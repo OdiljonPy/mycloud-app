@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
-
 import 'sync_task.dart';
 
 class SyncQueueDb {
@@ -36,8 +35,12 @@ class SyncQueueDb {
         },
         onUpgrade: (db, oldVersion, newVersion) async {
           if (oldVersion < 2) {
-            await db.execute('ALTER TABLE sync_queue ADD COLUMN session_id TEXT');
-            debugPrint('[SyncQueueDb] Migrated to v2: added session_id column');
+            try {
+              await db.execute('ALTER TABLE sync_queue ADD COLUMN session_id TEXT');
+              debugPrint('[SyncQueueDb] Migrated to v2: added session_id column');
+            } catch (e) {
+              debugPrint('[SyncQueueDb] Migration v2 skipped (column already exists): $e');
+            }
           }
         },
       );
@@ -55,11 +58,7 @@ class SyncQueueDb {
 
   Future<void> insertOrIgnore(SyncTask task) async {
     try {
-      await _database.insert(
-        'sync_queue',
-        task.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.ignore,
-      );
+      await _database.insert('sync_queue', task.toMap(), conflictAlgorithm: ConflictAlgorithm.ignore);
     } catch (e) {
       debugPrint('[SyncQueueDb] insertOrIgnore failed: $e');
     }
@@ -67,13 +66,7 @@ class SyncQueueDb {
 
   Future<List<SyncTask>> getPending({int limit = 10}) async {
     try {
-      final rows = await _database.query(
-        'sync_queue',
-        where: 'status = ?',
-        whereArgs: ['pending'],
-        orderBy: 'created_at ASC',
-        limit: limit,
-      );
+      final rows = await _database.query('sync_queue', where: 'status = ?', whereArgs: ['pending'], orderBy: 'created_at ASC', limit: limit);
       return rows.map((r) => SyncTask.fromMap(r)).toList();
     } catch (e) {
       debugPrint('[SyncQueueDb] getPending failed: $e');
@@ -81,17 +74,9 @@ class SyncQueueDb {
     }
   }
 
-  /// Returns pending tasks sorted by created_at ASC (oldest first).
-  /// Mirrors Google Photos upload order.
   Future<List<SyncTask>> getPendingOldestFirst({int limit = 10}) async {
     try {
-      final rows = await _database.query(
-        'sync_queue',
-        where: 'status = ?',
-        whereArgs: ['pending'],
-        orderBy: 'created_at ASC',
-        limit: limit,
-      );
+      final rows = await _database.query('sync_queue', where: 'status = ?', whereArgs: ['pending'], orderBy: 'created_at ASC', limit: limit);
       return rows.map((r) => SyncTask.fromMap(r)).toList();
     } catch (e) {
       debugPrint('[SyncQueueDb] getPendingOldestFirst failed: $e');
@@ -101,15 +86,7 @@ class SyncQueueDb {
 
   Future<void> markUploading(int id) async {
     try {
-      await _database.update(
-        'sync_queue',
-        {
-          'status': SyncStatus.uploading.name,
-          'updated_at': DateTime.now().millisecondsSinceEpoch,
-        },
-        where: 'id = ?',
-        whereArgs: [id],
-      );
+      await _database.update('sync_queue', {'status': SyncStatus.uploading.name, 'updated_at': DateTime.now().millisecondsSinceEpoch}, where: 'id = ?', whereArgs: [id]);
     } catch (e) {
       debugPrint('[SyncQueueDb] markUploading failed: $e');
     }
@@ -117,16 +94,7 @@ class SyncQueueDb {
 
   Future<void> markDone(int id, String serverUuid) async {
     try {
-      await _database.update(
-        'sync_queue',
-        {
-          'status': SyncStatus.done.name,
-          'server_uuid': serverUuid,
-          'updated_at': DateTime.now().millisecondsSinceEpoch,
-        },
-        where: 'id = ?',
-        whereArgs: [id],
-      );
+      await _database.update('sync_queue', {'status': SyncStatus.done.name, 'server_uuid': serverUuid, 'updated_at': DateTime.now().millisecondsSinceEpoch}, where: 'id = ?', whereArgs: [id]);
     } catch (e) {
       debugPrint('[SyncQueueDb] markDone failed: $e');
     }
@@ -134,20 +102,11 @@ class SyncQueueDb {
 
   Future<void> markFailed(int id) async {
     try {
-      await _database.update(
-        'sync_queue',
-        {
-          'status': SyncStatus.failed.name,
-          'retry_count': Sqflite.firstIntValue(await _database.rawQuery(
-                'SELECT retry_count FROM sync_queue WHERE id = ?',
-                [id],
-              )) ??
-              0 + 1,
-          'updated_at': DateTime.now().millisecondsSinceEpoch,
-        },
-        where: 'id = ?',
-        whereArgs: [id],
-      );
+      await _database.update('sync_queue', {
+        'status': SyncStatus.failed.name,
+        'retry_count': Sqflite.firstIntValue(await _database.rawQuery('SELECT retry_count FROM sync_queue WHERE id = ?', [id])) ?? 0 + 1,
+        'updated_at': DateTime.now().millisecondsSinceEpoch,
+      }, where: 'id = ?', whereArgs: [id]);
     } catch (e) {
       debugPrint('[SyncQueueDb] markFailed failed: $e');
     }
@@ -155,12 +114,7 @@ class SyncQueueDb {
 
   Future<bool> isDoneByHash(String sha256) async {
     try {
-      final result = await _database.query(
-        'sync_queue',
-        where: 'sha256 = ? AND status = ?',
-        whereArgs: [sha256, SyncStatus.done.name],
-        limit: 1,
-      );
+      final result = await _database.query('sync_queue', where: 'sha256 = ? AND status = ?', whereArgs: [sha256, SyncStatus.done.name], limit: 1);
       return result.isNotEmpty;
     } catch (e) {
       debugPrint('[SyncQueueDb] isDoneByHash failed: $e');
@@ -170,12 +124,7 @@ class SyncQueueDb {
 
   Future<bool> exists(String localId) async {
     try {
-      final result = await _database.query(
-        'sync_queue',
-        where: 'local_id = ?',
-        whereArgs: [localId],
-        limit: 1,
-      );
+      final result = await _database.query('sync_queue', where: 'local_id = ?', whereArgs: [localId], limit: 1);
       return result.isNotEmpty;
     } catch (e) {
       debugPrint('[SyncQueueDb] exists failed: $e');
@@ -185,19 +134,10 @@ class SyncQueueDb {
 
   Future<Map<String, int>> getStatusCounts() async {
     try {
-      final counts = <String, int>{
-        'pending': 0,
-        'uploading': 0,
-        'done': 0,
-        'failed': 0,
-      };
-      final rows = await _database.rawQuery(
-        'SELECT status, COUNT(*) as cnt FROM sync_queue GROUP BY status',
-      );
+      final counts = <String, int>{'pending': 0, 'uploading': 0, 'done': 0, 'failed': 0};
+      final rows = await _database.rawQuery('SELECT status, COUNT(*) as cnt FROM sync_queue GROUP BY status');
       for (final row in rows) {
-        final status = row['status'] as String;
-        final cnt = row['cnt'] as int;
-        counts[status] = cnt;
+        counts[row['status'] as String] = row['cnt'] as int;
       }
       return counts;
     } catch (e) {
@@ -206,26 +146,14 @@ class SyncQueueDb {
     }
   }
 
-  /// Count tasks by status. Pass null status to count ALL tasks.
-  /// If sessionId is provided, filters by that session only.
-  /// If sessionId is null, counts across all sessions (backward compat).
   Future<int> countByStatus(String? status, {String? sessionId}) async {
     try {
       final where = <String>[];
       final args = <dynamic>[];
-      if (status != null) {
-        where.add('status = ?');
-        args.add(status);
-      }
-      if (sessionId != null) {
-        where.add('session_id = ?');
-        args.add(sessionId);
-      }
+      if (status != null) { where.add('status = ?'); args.add(status); }
+      if (sessionId != null) { where.add('session_id = ?'); args.add(sessionId); }
       final whereClause = where.isEmpty ? '' : 'WHERE ${where.join(' AND ')}';
-      final result = await _database.rawQuery(
-        'SELECT COUNT(*) as count FROM sync_queue $whereClause',
-        args,
-      );
+      final result = await _database.rawQuery('SELECT COUNT(*) as count FROM sync_queue $whereClause', args);
       return Sqflite.firstIntValue(result) ?? 0;
     } catch (e) {
       debugPrint('[SyncQueueDb] countByStatus failed: $e');
