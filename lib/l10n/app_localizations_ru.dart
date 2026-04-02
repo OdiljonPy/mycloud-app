@@ -30,7 +30,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get recent => 'Недавние';
 
   @override
-  String get myCloudStorage => 'My Cloud Storage';
+  String get myCloudStorage => 'Моё облако';
 
   @override
   String get yourCloudStorage => 'Ваше облачное хранилище';
@@ -178,7 +178,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get unpinFolder => 'Открепить папку?';
 
   @override
-  String get shareViaLink => 'Share via link';
+  String get shareViaLink => 'Поделиться по ссылке';
 
   @override
   String get shareByPhone => 'По номеру';
@@ -187,13 +187,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get shareByLink => 'По ссылке';
 
   @override
-  String get linkName => 'Link name';
+  String get linkName => 'Название ссылки';
 
   @override
-  String get generate => 'Generate';
+  String get generate => 'Создать';
 
   @override
-  String get generatedLink => 'Generated link';
+  String get generatedLink => 'Созданная ссылка';
 
   @override
   String get linkCopied => 'Ссылка скопирована';
@@ -244,50 +244,50 @@ class AppLocalizationsRu extends AppLocalizations {
   String get folderCount => 'Папки';
 
   @override
-  String get shareRequests => 'Share Requests';
+  String get shareRequests => 'Запросы доступа';
 
   @override
   String get shareRequestsSubtitle => 'Управление ссылками и доступами';
 
   @override
-  String get shareRequestDetails => 'Share request details';
+  String get shareRequestDetails => 'Детали запроса';
 
   @override
-  String get request => 'Request';
+  String get request => 'Запрос';
 
   @override
-  String get linkNameLabel => 'LINK NAME';
+  String get linkNameLabel => 'НАЗВАНИЕ ССЫЛКИ';
 
   @override
-  String get shareLinkLabel => 'SHARE LINK';
+  String get shareLinkLabel => 'ССЫЛКА';
 
   @override
-  String get permissionRequests => 'PERMISSION REQUESTS';
+  String get permissionRequests => 'ЗАПРОСЫ ДОСТУПА';
 
   @override
-  String get pending => 'Pending';
+  String get pending => 'Ожидание';
 
   @override
-  String get approved => 'Approved';
+  String get approved => 'Одобрено';
 
   @override
-  String get rejected => 'Rejected';
+  String get rejected => 'Отклонено';
 
   @override
-  String get review => 'Review';
+  String get review => 'Рассмотреть';
 
   @override
-  String get reviewAccessRequest => 'Review access request';
+  String get reviewAccessRequest => 'Рассмотреть запрос доступа';
 
   @override
   String get reviewAccessRequestSubtitle =>
-      'Choose whether this user should get access.';
+      'Выберите, следует ли предоставить доступ этому пользователю.';
 
   @override
-  String get reject => 'Reject';
+  String get reject => 'Отклонить';
 
   @override
-  String get approve => 'Approve';
+  String get approve => 'Одобрить';
 
   @override
   String get accessApproved => 'Доступ одобрен';

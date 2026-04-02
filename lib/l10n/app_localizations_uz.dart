@@ -30,7 +30,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get recent => 'So\'nggi';
 
   @override
-  String get myCloudStorage => 'My Cloud Storage';
+  String get myCloudStorage => 'Mening bulutim';
 
   @override
   String get yourCloudStorage => 'Bulut xotirangiz';
@@ -396,87 +396,88 @@ class AppLocalizationsUz extends AppLocalizations {
   String get chooseLanguage => 'Tilni tanlang';
 
   @override
-  String get home_breadcrumb => 'Home';
+  String get home_breadcrumb => 'Bosh sahifa';
 
   @override
-  String get favourites_breadcrumb => 'Favourites';
+  String get favourites_breadcrumb => 'Sevimlilar';
 
   @override
   String selectedCount(int count) {
-    return 'Selected: $count';
+    return 'Tanlangan: $count';
   }
 
   @override
-  String get addedToFavourites => 'Added to favourites';
+  String get addedToFavourites => 'Sevimlilarga qo\'shildi';
 
   @override
-  String get couldNotOpenImage => 'Could not open image';
+  String get couldNotOpenImage => 'Rasmni ochib bo\'lmadi';
 
   @override
-  String get couldNotOpenVideo => 'Could not open video';
+  String get couldNotOpenVideo => 'Videoni ochib bo\'lmadi';
 
   @override
-  String get noSharedWithMe => 'No one has shared files';
+  String get noSharedWithMe => 'Hech kim fayl ulashmagan';
 
   @override
   String get noSharedWithMeSubtitle =>
-      'When someone shares a file — it will appear here';
+      'Kimdir fayl ulashsa — bu yerda ko\'rinadi';
 
   @override
-  String get noSharedByMe => 'You haven\'t shared with anyone yet';
+  String get noSharedByMe => 'Siz hali hech kim bilan ulashmadingiz';
 
   @override
-  String get noSharedByMeSubtitle => 'Tap the share button to share files';
+  String get noSharedByMeSubtitle =>
+      'Fayllarni ulashish uchun ulashish tugmasini bosing';
 
   @override
-  String get noSharedItems => 'No shared items';
+  String get noSharedItems => 'Ulashilgan elementlar yo\'q';
 
   @override
   String sharedWithLabel(String name) {
-    return 'For $name';
+    return '$name uchun';
   }
 
   @override
-  String get revokeAccess => 'Revoke access';
+  String get revokeAccess => 'Ruxsatni bekor qilish';
 
   @override
   String revokeAccessConfirm(String name) {
-    return 'Revoke access to \"$name\"?';
+    return '\"$name\" ga ruxsatni bekor qilasizmi?';
   }
 
   @override
-  String get revoke => 'Revoke';
+  String get revoke => 'Bekor qilish';
 
   @override
   String filesCount(int count) {
-    return '$count files';
+    return '$count fayl';
   }
 
   @override
-  String get openLabel => 'Open';
+  String get openLabel => 'Ochish';
 
   @override
-  String get usersTab => 'Users';
+  String get usersTab => 'Foydalanuvchilar';
 
   @override
-  String get sharedItemsTab => 'Shared items';
+  String get sharedItemsTab => 'Ulashilgan elementlar';
 
   @override
-  String get newNameHint => 'New name';
+  String get newNameHint => 'Yangi nom';
 
   @override
   String deleteItems(int count) {
-    return '$count items';
+    return '$count ta element';
   }
 
   @override
-  String get pinLabel => '📌 Pin';
+  String get pinLabel => '📌 Mahkamlash';
 
   @override
-  String get unpinLabel => '📌 Unpin';
+  String get unpinLabel => '📌 Olib tashlash';
 
   @override
-  String get favourite => 'Favourite';
+  String get favourite => 'Sevimli';
 
   @override
   String get syncFolderName => '📱 Sinxronizatsiya';

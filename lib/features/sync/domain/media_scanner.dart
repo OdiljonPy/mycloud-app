@@ -14,13 +14,37 @@ class MediaScanner {
   final Set<String> uploadedKeys;
   final Set<String>? selectedLocalIds;
   final String? sessionId;
+  final void Function(int pending)? onProgress;
 
   MediaScanner({
     required this.db,
     required this.uploadedKeys,
     this.selectedLocalIds,
     this.sessionId,
+    this.onProgress,
   });
+
+  /// Быстро считает общее кол-во файлов в галерее без сканирования.
+  Future<int> countTotal() async {
+    try {
+      final permission = await PhotoManager.requestPermissionExtend();
+      if (!permission.isAuth) return 0;
+      final albums = await PhotoManager.getAssetPathList(
+        type: RequestType.common,
+        hasAll: true,
+      );
+      if (albums.isEmpty) return 0;
+      // Берём только "All" альбом чтобы не дублировать
+      final allAlbum = albums.firstWhere(
+        (a) => a.isAll,
+        orElse: () => albums.first,
+      );
+      return await allAlbum.assetCountAsync;
+    } catch (e) {
+      debugPrint('[MediaScanner] countTotal failed: \$e');
+      return 0;
+    }
+  }
 
   /// Scans device gallery, deduplicates, and enqueues new items.
   /// Returns count of newly added pending items.
@@ -128,6 +152,7 @@ class MediaScanner {
                 updatedAt: now,
               ));
               enqueued++;
+              onProgress?.call(enqueued);
             } catch (e) {
               debugPrint('[MediaScanner] Error processing asset ${asset.id}: $e');
             }

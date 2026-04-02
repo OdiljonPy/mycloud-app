@@ -4,6 +4,7 @@ class SecureStorage {
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(
       encryptedSharedPreferences: true,
+      resetOnError: true,
     ),
   );
 
@@ -12,6 +13,16 @@ class SecureStorage {
   static const _userIdKey = 'user_id';
   static const _fullNameKey = 'full_name';
 
+  static Future<String?> _safeRead(String key) async {
+    try {
+      return await _storage
+          .read(key: key)
+          .timeout(const Duration(seconds: 3), onTimeout: () => null);
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<void> saveFullName(String name) async {
     try {
       await _storage.write(key: _fullNameKey, value: name);
@@ -19,12 +30,7 @@ class SecureStorage {
   }
 
   static Future<String?> getFullName() async {
-    try {
-      return await _storage.read(key: _fullNameKey);
-    } catch (_) {
-      await clearTokens();
-      return null;
-    }
+    return _safeRead(_fullNameKey);
   }
 
   static Future<void> saveTokens({
@@ -44,30 +50,15 @@ class SecureStorage {
   }
 
   static Future<String?> getUserId() async {
-    try {
-      return await _storage.read(key: _userIdKey);
-    } catch (_) {
-      await clearTokens();
-      return null;
-    }
+    return _safeRead(_userIdKey);
   }
 
   static Future<String?> getAccessToken() async {
-    try {
-      return await _storage.read(key: _accessTokenKey);
-    } catch (_) {
-      await clearTokens();
-      return null;
-    }
+    return _safeRead(_accessTokenKey);
   }
 
   static Future<String?> getRefreshToken() async {
-    try {
-      return await _storage.read(key: _refreshTokenKey);
-    } catch (_) {
-      await clearTokens();
-      return null;
-    }
+    return _safeRead(_refreshTokenKey);
   }
 
   static Future<void> clearTokens() async {

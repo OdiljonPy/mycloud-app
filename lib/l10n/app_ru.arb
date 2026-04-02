@@ -7,7 +7,7 @@
   "shared": "Общие",
   "profile": "Профиль",
   "recent": "Недавние",
-  "myCloudStorage": "My Cloud Storage",
+  "myCloudStorage": "Моё облако",
   "yourCloudStorage": "Ваше облачное хранилище",
   "used": "использовано",
   "total": "всего",
@@ -69,12 +69,12 @@
   "pin": "Закрепить",
   "unpin": "Открепить",
   "unpinFolder": "Открепить папку?",
-  "shareViaLink": "Share via link",
+  "shareViaLink": "Поделиться по ссылке",
   "shareByPhone": "По номеру",
   "shareByLink": "По ссылке",
-  "linkName": "Link name",
-  "generate": "Generate",
-  "generatedLink": "Generated link",
+  "linkName": "Название ссылки",
+  "generate": "Создать",
+  "generatedLink": "Созданная ссылка",
   "linkCopied": "Ссылка скопирована",
   "copy": "Скопировать",
   "copyLink": "Скопировать ссылку",
@@ -91,21 +91,21 @@
   "totalSize": "Общий размер",
   "fileCount": "Файлы",
   "folderCount": "Папки",
-  "shareRequests": "Share Requests",
+  "shareRequests": "Запросы доступа",
   "shareRequestsSubtitle": "Управление ссылками и доступами",
-  "shareRequestDetails": "Share request details",
-  "request": "Request",
-  "linkNameLabel": "LINK NAME",
-  "shareLinkLabel": "SHARE LINK",
-  "permissionRequests": "PERMISSION REQUESTS",
-  "pending": "Pending",
-  "approved": "Approved",
-  "rejected": "Rejected",
-  "review": "Review",
-  "reviewAccessRequest": "Review access request",
-  "reviewAccessRequestSubtitle": "Choose whether this user should get access.",
-  "reject": "Reject",
-  "approve": "Approve",
+  "shareRequestDetails": "Детали запроса",
+  "request": "Запрос",
+  "linkNameLabel": "НАЗВАНИЕ ССЫЛКИ",
+  "shareLinkLabel": "ССЫЛКА",
+  "permissionRequests": "ЗАПРОСЫ ДОСТУПА",
+  "pending": "Ожидание",
+  "approved": "Одобрено",
+  "rejected": "Отклонено",
+  "review": "Рассмотреть",
+  "reviewAccessRequest": "Рассмотреть запрос доступа",
+  "reviewAccessRequestSubtitle": "Выберите, следует ли предоставить доступ этому пользователю.",
+  "reject": "Отклонить",
+  "approve": "Одобрить",
   "accessApproved": "Доступ одобрен",
   "accessRejected": "Доступ отклонён",
   "noShareRequests": "Нет share requests",
@@ -210,21 +210,29 @@
   "syncStatusUploading": "Загружено {uploaded} из {total}",
   "@syncStatusUploading": {
     "placeholders": {
-      "uploaded": { "type": "int" },
-      "total": { "type": "int" }
+      "uploaded": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "syncStatusWaiting": "Ожидание синхронизации: {count}",
   "@syncStatusWaiting": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "syncStatusComplete": "Синхронизация завершена",
   "syncStatusErrors": "Ошибок: {count}",
   "@syncStatusErrors": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "syncSettingsTitle": "Авто-синхронизация",

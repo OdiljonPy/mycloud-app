@@ -146,8 +146,8 @@ class _MainPageState extends State<MainPage> {
                 onTap: (i) => setState(() => _currentIndex = i),
               ),
               _NavItem(
-                icon: Icons.access_time_rounded,
-                label: t.recent,
+                icon: Icons.folder_rounded,
+                label: t.files,
                 index: 1,
                 current: _currentIndex,
                 onTap: (i) {
