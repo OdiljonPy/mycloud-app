@@ -52,7 +52,8 @@ class AuthRepository {
         accessToken: accessToken?.toString() ?? '',
         refreshToken: refreshToken?.toString() ?? '',
       );
-      unawaited(AutoSyncService().initialize());
+      await AutoSyncService().onLogout();
+      AutoSyncService().initialize().then((_) => AutoSyncService().startAutoSync()).catchError((e) => print("[AutoSync] init error: $e"));
 
       final me = await _dio.get('authentication/users/me/');
       final meData = me.data is Map && me.data.containsKey('result')
@@ -125,7 +126,8 @@ class AuthRepository {
           accessToken: accessToken.toString(),
           refreshToken: refreshToken?.toString() ?? '',
         );
-        unawaited(AutoSyncService().initialize());
+        await AutoSyncService().onLogout();
+      AutoSyncService().initialize().then((_) => AutoSyncService().startAutoSync()).catchError((e) => print("[AutoSync] init error: $e"));
         final me = await _dio.get('authentication/users/me/');
         final meData = me.data is Map && me.data.containsKey('result')
             ? me.data['result']

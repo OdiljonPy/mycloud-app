@@ -110,7 +110,7 @@ class _SplashPageState extends State<SplashPage>
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    'MyCloud',
+                    'Bulutcha',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 32,

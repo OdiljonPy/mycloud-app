@@ -82,7 +82,7 @@ final ThemeData _darkTheme = ThemeData(
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  AppConfig.initialize(Environment.dev);
+  AppConfig.initialize(Environment.prod);
   runApp(const CloudApp());
 }
 
@@ -96,7 +96,7 @@ class CloudApp extends StatelessWidget {
       builder: (context, _) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          title: 'MyCloud',
+          title: 'Bulutcha',
           theme: _lightTheme,
           darkTheme: _darkTheme,
           themeMode: ThemeNotifier.instance.mode,

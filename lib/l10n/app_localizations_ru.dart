@@ -9,7 +9,7 @@ class AppLocalizationsRu extends AppLocalizations {
   AppLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
-  String get appName => 'MyCloud';
+  String get appName => 'Bulutcha';
 
   @override
   String get welcomeBack => 'С возвращением,';

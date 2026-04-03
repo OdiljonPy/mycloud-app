@@ -9,7 +9,7 @@ class AppLocalizationsUz extends AppLocalizations {
   AppLocalizationsUz([String locale = 'uz']) : super(locale);
 
   @override
-  String get appName => 'MyCloud';
+  String get appName => 'Bulutcha';
 
   @override
   String get welcomeBack => 'Xush kelibsiz,';

@@ -1,3 +1,5 @@
+import 'package:cloud_app/features/sync/auto_sync_service.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
@@ -110,6 +112,7 @@ class _MainPageState extends State<MainPage> {
 
   Future<void> _logout() async {
     await SecureStorage.clearTokens();
+    await AutoSyncService().onLogout();
     if (mounted) {
       Navigator.of(
         context,

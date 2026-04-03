@@ -19,10 +19,11 @@ class AppConfig {
       case Environment.dev:
         instance = const AppConfig(
           environment: Environment.dev,
-          baseUrl: 'https://api.bulutcha.com/api/v1/',
-          tusUrl: 'https://minio1.bulutcha.com/files/',
+          baseUrl: 'http://192.168.1.4:8000/api/v1/',
+          tusUrl: 'http://192.168.1.4:1080/files/',
         );
         break;
+
       case Environment.prod:
         instance = const AppConfig(
           environment: Environment.prod,

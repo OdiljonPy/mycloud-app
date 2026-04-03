@@ -23,7 +23,12 @@ class AppInitializer {
     }
 
     debugPrint('[AppInit] AutoSyncService (background)...');
-    AutoSyncService().initialize().catchError((e) {
+    AutoSyncService().initialize().then((_) {
+      // После перезапуска приложения — возобновляем sync автоматически
+      AutoSyncService().startAutoSync().catchError((e) {
+        debugPrint('[AppInit] startAutoSync error: $e');
+      });
+    }).catchError((e) {
       debugPrint('[AppInit] AutoSyncService error (non-critical): $e');
     });
 

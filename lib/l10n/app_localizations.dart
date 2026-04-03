@@ -103,7 +103,7 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In en, this message translates to:
-  /// **'MyCloud'**
+  /// **'Bulutcha'**
   String get appName;
 
   /// No description provided for @welcomeBack.

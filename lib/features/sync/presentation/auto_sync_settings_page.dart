@@ -140,6 +140,7 @@ class _AutoSyncSettingsPageState extends State<AutoSyncSettingsPage> {
     if (confirmed == true) {
       await _syncService.onLogout();
       await _syncService.initialize();
+      await _syncService.startAutoSync();
     }
   }
 
@@ -229,6 +230,25 @@ class _AutoSyncSettingsPageState extends State<AutoSyncSettingsPage> {
                   ),
                   const SizedBox(height: 16),
 
+                  if (_lastProgress.isScanning)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          const SizedBox(
+                            width: 18, height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2563EB)),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('Сканирование галереи'),
+                          const Spacer(),
+                          Text(
+                            '${_lastProgress.scannedCount} файлов',
+                            style: const TextStyle(color: Color(0xFF2563EB)),
+                          ),
+                        ],
+                      ),
+                    ),
                   _buildStatRow(Icons.hourglass_empty,
                       t.syncStatusPending, _lastProgress.pending, Colors.orange),
 

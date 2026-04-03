@@ -66,7 +66,7 @@ class SyncQueueDb {
 
   Future<List<SyncTask>> getPending({int limit = 10}) async {
     try {
-      final rows = await _database.query('sync_queue', where: 'status = ?', whereArgs: ['pending'], orderBy: 'created_at ASC', limit: limit);
+      final rows = await _database.query('sync_queue', where: 'status = ?', whereArgs: ['pending'], orderBy: 'created_at ASC',);
       return rows.map((r) => SyncTask.fromMap(r)).toList();
     } catch (e) {
       debugPrint('[SyncQueueDb] getPending failed: $e');
@@ -167,6 +167,25 @@ class SyncQueueDb {
       debugPrint('[SyncQueueDb] Queue reset');
     } catch (e) {
       debugPrint('[SyncQueueDb] reset failed: $e');
+    }
+  }
+
+  // FIX 1: Сбрасывает задачи со статусом 'uploading' обратно в 'pending'.
+  // Нужно при старте новой сессии — после краша/стопа они могли зависнуть.
+  Future<void> resetStuckUploading() async {
+    try {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final count = await _database.update(
+        'sync_queue',
+        {'status': SyncStatus.pending.name, 'updated_at': now},
+        where: 'status = ?',
+        whereArgs: [SyncStatus.uploading.name],
+      );
+      if (count > 0) {
+        debugPrint('[SyncQueueDb] Reset $count stuck uploading tasks to pending');
+      }
+    } catch (e) {
+      debugPrint('[SyncQueueDb] resetStuckUploading failed: $e');
     }
   }
 }
