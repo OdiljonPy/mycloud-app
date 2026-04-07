@@ -10,32 +10,10 @@ import 'data/gallery_service.dart';
 import 'data/sync_queue_db.dart';
 import 'data/tus_sync_uploader.dart';
 import 'domain/media_scanner.dart';
+import 'sync_progress.dart';
 import '../home/data/home_repository.dart';
 import '../home/data/models/folder_model.dart';
 
-class SyncProgress {
-  final int pending;
-  final int uploading;
-  final int done;
-  final int failed;
-  final double currentFileProgress;
-  final String? currentFileName;
-  final int totalInBatch;
-  final int scannedCount;
-  final bool isScanning;
-
-  const SyncProgress({
-    this.pending = 0,
-    this.uploading = 0,
-    this.done = 0,
-    this.failed = 0,
-    this.currentFileProgress = 0.0,
-    this.currentFileName,
-    this.totalInBatch = 0,
-    this.scannedCount = 0,
-    this.isScanning = false,
-  });
-}
 
 class AutoSyncService {
 
@@ -115,7 +93,18 @@ class AutoSyncService {
       await prefs.setBool(_kColdStartKey, true);
     }
 
-    await _emitProgress();
+    final counts = await _db.getStatusCounts();
+    _emit(_currentProgress.copyWith(
+      pending: counts['pending'] ?? 0,
+      uploading: counts['uploading'] ?? 0,
+      done: counts['done'] ?? 0,
+      failed: counts['failed'] ?? 0,
+      scannedCount: _scannedCount,
+      isScanning: _isScanning,
+      currentFileProgress: 0.0,
+      currentFileName: _currentFileName,
+      totalInBatch: _totalInBatch,
+    ));
   }
 
   // FIX 1: Пересканирует галерею без cold-start логики.
@@ -142,12 +131,23 @@ class AutoSyncService {
       selectedLocalIds: selectedIds,
       onProgress: (count) {
         _scannedCount = count;
-        _emitScanProgress();
+        _emit(_currentProgress.copyWith(scannedCount: _scannedCount, isScanning: true));
       },
     );
     final newItems = await scanner.scanAndEnqueue();
     debugPrint('[AutoSync] Rescan: $newItems new items enqueued');
-    await _emitProgress();
+    final counts = await _db.getStatusCounts();
+    _emit(_currentProgress.copyWith(
+      pending: counts['pending'] ?? 0,
+      uploading: counts['uploading'] ?? 0,
+      done: counts['done'] ?? 0,
+      failed: counts['failed'] ?? 0,
+      scannedCount: _scannedCount,
+      isScanning: _isScanning,
+      currentFileProgress: 0.0,
+      currentFileName: _currentFileName,
+      totalInBatch: _totalInBatch,
+    ));
     _isScanning = false;
   }
 
@@ -215,11 +215,24 @@ class AutoSyncService {
           if (!_isRunning || sessionId != _syncSessionId) break;
           if (task.id == null) continue;
 
+          Map<String, int> counts;
+
           final isDuplicate = duplicateMap[task.localId] ?? false;
           if (isDuplicate) {
             await _db.markDone(task.id!, 'duplicate_skipped');
             debugPrint('[Sync] Skipped duplicate: ${task.fileName}');
-            await _emitProgress();
+            counts = await _db.getStatusCounts();
+            _emit(_currentProgress.copyWith(
+              pending: counts['pending'] ?? 0,
+              uploading: counts['uploading'] ?? 0,
+              done: counts['done'] ?? 0,
+              failed: counts['failed'] ?? 0,
+              scannedCount: _scannedCount,
+              isScanning: _isScanning,
+              currentFileProgress: 0.0,
+              currentFileName: _currentFileName,
+              totalInBatch: _totalInBatch,
+            ));
             continue;
           }
 
@@ -227,20 +240,42 @@ class AutoSyncService {
           if (!file.existsSync()) {
             await _db.markFailed(task.id!);
             debugPrint('[Sync] File missing, skipped: ${task.filePath}');
-            await _emitProgress();
+            counts = await _db.getStatusCounts();
+            _emit(_currentProgress.copyWith(
+              pending: counts['pending'] ?? 0,
+              uploading: counts['uploading'] ?? 0,
+              done: counts['done'] ?? 0,
+              failed: counts['failed'] ?? 0,
+              scannedCount: _scannedCount,
+              isScanning: _isScanning,
+              currentFileProgress: 0.0,
+              currentFileName: _currentFileName,
+              totalInBatch: _totalInBatch,
+            ));
             continue;
           }
 
           _currentFileName = task.fileName;
           await _db.markUploading(task.id!);
-          await _emitProgress(currentProgress: 0.0);
+          counts = await _db.getStatusCounts();
+          _emit(_currentProgress.copyWith(
+            pending: counts['pending'] ?? 0,
+            uploading: counts['uploading'] ?? 0,
+            done: counts['done'] ?? 0,
+            failed: counts['failed'] ?? 0,
+            scannedCount: _scannedCount,
+            isScanning: _isScanning,
+            currentFileProgress: 0.0,
+            currentFileName: _currentFileName,
+            totalInBatch: _totalInBatch,
+          ));
 
           try {
             final serverUuid = await uploader.upload(
               task,
               folderId: syncFolderUuid,
               onProgress: (progress) {
-                _emitProgressSync(currentProgress: progress);
+                _emit(_currentProgress.copyWith(currentFileProgress: progress));
               },
             );
             await _db.markDone(task.id!, serverUuid);
@@ -253,13 +288,35 @@ class AutoSyncService {
             debugPrint('[Sync][ERROR] Unexpected: ${task.fileName} — $e');
           }
 
-          await _emitProgress();
+          counts = await _db.getStatusCounts();
+          _emit(_currentProgress.copyWith(
+            pending: counts['pending'] ?? 0,
+            uploading: counts['uploading'] ?? 0,
+            done: counts['done'] ?? 0,
+            failed: counts['failed'] ?? 0,
+            scannedCount: _scannedCount,
+            isScanning: _isScanning,
+            currentFileProgress: 0.0,
+            currentFileName: _currentFileName,
+            totalInBatch: _totalInBatch,
+          ));
         }
       }
     } finally {
       _isRunning = false;
       _currentFileName = null;
-      await _emitProgress();
+      final counts = await _db.getStatusCounts();
+      _emit(_currentProgress.copyWith(
+        pending: counts['pending'] ?? 0,
+        uploading: counts['uploading'] ?? 0,
+        done: counts['done'] ?? 0,
+        failed: counts['failed'] ?? 0,
+        scannedCount: _scannedCount,
+        isScanning: _isScanning,
+        currentFileProgress: 0.0,
+        currentFileName: _currentFileName,
+        totalInBatch: _totalInBatch,
+      ));
     }
   }
 
@@ -292,51 +349,11 @@ class AutoSyncService {
   String? _currentFileName;
   int _totalInBatch = 0;
   int _scannedCount = 0;
-  Map<String, int> _lastCounts = {'pending': 0, 'uploading': 0, 'done': 0, 'failed': 0};
+  SyncProgress _currentProgress = const SyncProgress();
 
-  // FIX 2: done берётся напрямую из БД (после markDone уже там).
-  // Убрали _batchDone — он давал двойной счёт.
-  Future<void> _emitProgress({double currentProgress = 0.0}) async {
-    final counts = await _db.getStatusCounts();
-    _lastCounts = counts;
-    _progressController.add(SyncProgress(
-      pending: counts['pending'] ?? 0,
-      uploading: counts['uploading'] ?? 0,
-      done: counts['done'] ?? 0,
-      failed: counts['failed'] ?? 0,
-      currentFileProgress: currentProgress,
-      currentFileName: _currentFileName,
-      totalInBatch: _totalInBatch,
-      scannedCount: _scannedCount,
-      isScanning: _isScanning,
-    ));
+  void _emit(SyncProgress progress) {
+    _currentProgress = progress;
+    _progressController.add(progress);
   }
 
-  void _emitScanProgress() {
-    _progressController.add(SyncProgress(
-      pending: _lastCounts['pending'] ?? 0,
-      uploading: _lastCounts['uploading'] ?? 0,
-      done: _lastCounts['done'] ?? 0,
-      failed: _lastCounts['failed'] ?? 0,
-      currentFileProgress: 0.0,
-      currentFileName: _currentFileName,
-      totalInBatch: _totalInBatch,
-      scannedCount: _scannedCount,
-      isScanning: true,
-    ));
-  }
-
-  void _emitProgressSync({double currentProgress = 0.0}) {
-    _progressController.add(SyncProgress(
-      pending: _lastCounts['pending'] ?? 0,
-      uploading: _lastCounts['uploading'] ?? 0,
-      done: _lastCounts['done'] ?? 0,
-      failed: _lastCounts['failed'] ?? 0,
-      currentFileProgress: currentProgress,
-      currentFileName: _currentFileName,
-      totalInBatch: _totalInBatch,
-      scannedCount: _scannedCount,
-      isScanning: _isScanning,
-    ));
-  }
 }

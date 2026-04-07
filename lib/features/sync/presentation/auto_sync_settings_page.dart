@@ -1,47 +1,31 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../auto_sync_service.dart';
+import '../sync_progress.dart';
+import '../sync_providers.dart';
 
-class AutoSyncSettingsPage extends StatefulWidget {
+class AutoSyncSettingsPage extends ConsumerStatefulWidget {
   const AutoSyncSettingsPage({super.key});
 
   @override
-  State<AutoSyncSettingsPage> createState() => _AutoSyncSettingsPageState();
+  ConsumerState<AutoSyncSettingsPage> createState() => _AutoSyncSettingsPageState();
 }
 
-class _AutoSyncSettingsPageState extends State<AutoSyncSettingsPage> {
+class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
   static const _accent = Color(0xFF2563EB);
-
-  final AutoSyncService _syncService = AutoSyncService();
 
   bool _autoSyncEnabled = false;
   bool _wifiOnly = false;
   bool _useSelectedFiles = false; // 👈 НОВОЕ
-  bool _isSyncing = false;
 
   List<String> _selectedFiles = []; // 👈 НОВОЕ
-
-  StreamSubscription<SyncProgress>? _progressSub;
-  SyncProgress _lastProgress = const SyncProgress();
 
   @override
   void initState() {
     super.initState();
     _loadPrefs();
-
-    _progressSub = _syncService.progressStream.listen((progress) {
-      if (mounted) {
-        setState(() {
-          _lastProgress = progress;
-          _isSyncing = _syncService.isRunning;
-        });
-      }
-    });
-
-    _isSyncing = _syncService.isRunning;
   }
 
   Future<void> _loadPrefs() async {
@@ -100,15 +84,13 @@ class _AutoSyncSettingsPageState extends State<AutoSyncSettingsPage> {
   }
 
   Future<void> _startSync() async {
-    setState(() => _isSyncing = true);
-
-    // 👇 используем новый метод
-    await _syncService.startAutoSync();
+    final service = ref.read(autoSyncServiceProvider);
+    if (service.isRunning || service.isScanning) return;
+    await service.startAutoSync();
   }
 
   Future<void> _stopSync() async {
-    await _syncService.stopSync();
-    if (mounted) setState(() => _isSyncing = false);
+    await ref.read(autoSyncServiceProvider).stopSync();
   }
 
   Future<void> _resetQueue() async {
@@ -138,20 +120,25 @@ class _AutoSyncSettingsPageState extends State<AutoSyncSettingsPage> {
     );
 
     if (confirmed == true) {
-      await _syncService.onLogout();
-      await _syncService.initialize();
-      await _syncService.startAutoSync();
+      final service = ref.read(autoSyncServiceProvider);
+      await service.onLogout();
+      await service.initialize();
+      await service.startAutoSync();
     }
   }
 
   @override
   void dispose() {
-    _progressSub?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final syncProgressAsync = ref.watch(syncProgressProvider);
+    final progress = syncProgressAsync.valueOrNull ?? const SyncProgress();
+    final isSyncing = ref.watch(autoSyncServiceProvider).isRunning ||
+        ref.watch(autoSyncServiceProvider).isScanning;
+
     final t = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
@@ -217,7 +204,7 @@ class _AutoSyncSettingsPageState extends State<AutoSyncSettingsPage> {
                       const SizedBox(width: 8),
                       Text(t.syncStatusTitle),
                       const Spacer(),
-                      if (_isSyncing)
+                      if (isSyncing)
                         const SizedBox(
                           width: 16,
                           height: 16,
@@ -230,7 +217,7 @@ class _AutoSyncSettingsPageState extends State<AutoSyncSettingsPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  if (_lastProgress.isScanning)
+                  if (progress.isScanning)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
@@ -243,54 +230,54 @@ class _AutoSyncSettingsPageState extends State<AutoSyncSettingsPage> {
                           const Text('Сканирование галереи'),
                           const Spacer(),
                           Text(
-                            '${_lastProgress.scannedCount} файлов',
+                            '${progress.scannedCount} файлов',
                             style: const TextStyle(color: Color(0xFF2563EB)),
                           ),
                         ],
                       ),
                     ),
                   _buildStatRow(Icons.hourglass_empty,
-                      t.syncStatusPending, _lastProgress.pending, Colors.orange),
+                      t.syncStatusPending, progress.pending, Colors.orange),
 
                   const SizedBox(height: 8),
 
                   // Загрузка — скрыта
                   _buildStatRow(Icons.check_circle,
-                      t.syncStatusDone, _lastProgress.done, Colors.green),
+                      t.syncStatusDone, progress.done, Colors.green),
 
                   const SizedBox(height: 8),
 
                   // _buildStatRow(Icons.error_outline,
-                  //     t.syncStatusFailed, _lastProgress.failed, Colors.red),
+                  //     t.syncStatusFailed, progress.failed, Colors.red),
 
                   const SizedBox(height: 16),
                   // Текущий файл — показываем всегда, не мигает
-                  if (_lastProgress.currentFileName != null)
+                  if (progress.currentFileName != null)
                     Text(
-                      _lastProgress.currentFileName!,
+                      progress.currentFileName!,
                       style: const TextStyle(fontSize: 12),
                       overflow: TextOverflow.ellipsis,
                     ),
-                  if (_lastProgress.currentFileName != null)
+                  if (progress.currentFileName != null)
                     const SizedBox(height: 6),
-                  if (_lastProgress.currentFileName != null)
+                  if (progress.currentFileName != null)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: LinearProgressIndicator(
-                        value: _lastProgress.currentFileProgress > 0
-                            ? _lastProgress.currentFileProgress
+                        value: progress.currentFileProgress > 0
+                            ? progress.currentFileProgress
                             : null,
                         minHeight: 6,
                       ),
                     ),
-                  if (_lastProgress.currentFileName != null)
+                  if (progress.currentFileName != null)
                     const SizedBox(height: 4),
-                  if (_lastProgress.currentFileName != null)
+                  if (progress.currentFileName != null)
                     Align(
                       alignment: Alignment.centerRight,
                       child: Text(
-                        _lastProgress.currentFileProgress > 0
-                            ? '${(_lastProgress.currentFileProgress * 100).toStringAsFixed(0)}%'
+                        progress.currentFileProgress > 0
+                            ? '${(progress.currentFileProgress * 100).toStringAsFixed(0)}%'
                             : '',
                         style: TextStyle(
                           fontSize: 12,
@@ -313,11 +300,11 @@ class _AutoSyncSettingsPageState extends State<AutoSyncSettingsPage> {
                   backgroundColor: _accent,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                onPressed: _isSyncing ? null : _startSync,
+                onPressed: isSyncing ? null : _startSync,
               ),
             ),
 
-            if (_isSyncing) ...[
+            if (isSyncing) ...[
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
