@@ -269,26 +269,23 @@ class _UploadPageState extends State<UploadPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: null,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
             expandedHeight: 110,
             floating: false,
             pinned: true,
-            backgroundColor: Colors.white,
             elevation: 0,
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
               title: const Text(
                 'Загрузка',
                 style: TextStyle(
-                  color: Colors.black,
                   fontWeight: FontWeight.bold,
                   fontSize: 22,
                 ),
               ),
-              background: Container(color: Colors.white),
+              background: Container(color: Colors.transparent),
             ),
             actions: [
               if (_queue.isNotEmpty && !_isUploading)
@@ -314,7 +311,7 @@ class _UploadPageState extends State<UploadPage> {
                       width: double.infinity,
                       height: 150,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: _pausedCount > 0
@@ -374,12 +371,12 @@ class _UploadPageState extends State<UploadPage> {
                                   ? Colors.green
                                   : _pausedCount > 0
                                   ? Colors.orange
-                                  : Colors.black87,
+                                  : Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            'Только фото и видео · до $_maxFiles файлов',
+                            'Только фото и видео',
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[500],

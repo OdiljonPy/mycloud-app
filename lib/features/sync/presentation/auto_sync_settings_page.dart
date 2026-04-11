@@ -15,19 +15,10 @@ class AutoSyncSettingsPage extends ConsumerStatefulWidget {
 class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
   static const _accent = Color(0xFF2563EB);
 
-  // Локальный флаг — блокирует кнопки пока идёт async операция.
-  // Предотвращает повторные нажатия до завершения текущего действия.
-  bool _isBusy = false;
+  // Только для защиты от двойного нажатия Reset (пока диалог открыт)
+  bool _isResetting = false;
 
-  Future<void> _setBusy(Future<void> Function() action) async {
-    if (_isBusy) return;
-    if (mounted) setState(() => _isBusy = true);
-    try {
-      await action();
-    } finally {
-      if (mounted) setState(() => _isBusy = false);
-    }
-  }
+  // ─── Переключатели ────────────────────────────────────────────────────────
 
   Future<void> _setAutoSync(bool value) async {
     await ref.read(syncSettingsProvider.notifier).setAutoSync(value);
@@ -43,37 +34,39 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
   }
 
   Future<void> _openFilePicker() async {
-    // ⚠️ ЗАГЛУШКА — подключи свой picker
     final files = await Navigator.push<List<String>>(
       context,
-      MaterialPageRoute(
-        builder: (_) => const _DummyPickerPage(),
-      ),
+      MaterialPageRoute(builder: (_) => const _DummyPickerPage()),
     );
-
     if (files != null) {
       await ref.read(syncSettingsProvider.notifier).saveSelectedFiles(files);
     }
   }
 
-  Future<void> _startSync() => _setBusy(() async {
+  // ─── Кнопки Sync / Stop / Reset ──────────────────────────────────────────
+
+  /// Запуск sync — мгновенно, fire-and-forget.
+  /// Если уже запущен — игнорируем (защита от многократного нажатия).
+  void _startSync() {
     final repo = ref.read(syncRepositoryProvider);
-    if (repo.isRunning || repo.isScanning) return;
-    await repo.startAutoSync();
-  });
+    if (repo.isRunning || repo.isScanning) return; // уже идёт — игнор
+    repo.startAutoSync(); // не await — UI обновляется через провайдер
+  }
 
-  Future<void> _stopSync() => _setBusy(() async {
-    await ref.read(syncRepositoryProvider).stopSync();
-  });
+  /// Остановка — мгновенно, всегда доступна пока isSyncing.
+  void _stopSync() {
+    ref.read(syncRepositoryProvider).stopSync();
+  }
 
+  /// Сброс очереди — диалог подтверждения, потом сброс.
   Future<void> _resetQueue() async {
+    if (_isResetting) return;
     final t = AppLocalizations.of(context)!;
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape:
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(t.syncResetConfirmTitle),
         content: Text(t.syncResetConfirmMessage),
         actions: [
@@ -92,27 +85,31 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
       ),
     );
 
-    if (confirmed == true) {
-      await _setBusy(() async {
-        final repo = ref.read(syncRepositoryProvider);
-        await repo.onLogout();
-        await repo.initialize();
-        await repo.startAutoSync();
-      });
+    if (confirmed != true) return;
+
+    if (mounted) setState(() => _isResetting = true);
+    try {
+      final repo = ref.read(syncRepositoryProvider);
+      await repo.stopSync();       // сначала стоп
+      await repo.onLogout();       // сброс очереди
+      await repo.initialize();     // реинициализация
+      repo.startAutoSync();        // fire-and-forget — сразу начинаем
+    } finally {
+      if (mounted) setState(() => _isResetting = false);
     }
   }
 
+  // ─── Build ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final syncProgressAsync = ref.watch(syncProgressProvider);
     final progress = syncProgressAsync.valueOrNull ?? const SyncProgress();
-    final isSyncing = ref.watch(syncRepositoryProvider).isRunning ||
-        ref.watch(syncRepositoryProvider).isScanning;
-    // Кнопки заблокированы если идёт async операция ИЛИ sync процесс
-    final isBlocked = _isBusy || isSyncing;
-    final settings = ref.watch(syncSettingsProvider);
 
+    final repo = ref.watch(syncRepositoryProvider);
+    final isSyncing = repo.isRunning || repo.isScanning;
+
+    final settings = ref.watch(syncSettingsProvider);
     final t = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
@@ -128,6 +125,7 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            // ── Настройки ──────────────────────────────────────────────────
             _buildCard(
               cardColor: cardColor,
               child: Column(
@@ -150,14 +148,11 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
                     onChanged: _setWifiOnly,
                   ),
                   const Divider(height: 1),
-
-                  // 👇 НОВЫЙ БЛОК
                   SwitchListTile(
                     activeTrackColor: _accent,
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Выбранные файлы'),
-                    subtitle: const Text(
-                        'Синхронизировать только выбранные'),
+                    subtitle: const Text('Синхронизировать только выбранные'),
                     value: settings.useSelectedFiles,
                     onChanged: _setUseSelected,
                   ),
@@ -167,6 +162,7 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
 
             const SizedBox(height: 16),
 
+            // ── Статус ─────────────────────────────────────────────────────
             _buildCard(
               cardColor: cardColor,
               child: Column(
@@ -197,8 +193,12 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
                       child: Row(
                         children: [
                           const SizedBox(
-                            width: 18, height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2563EB)),
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xFF2563EB),
+                            ),
                           ),
                           const SizedBox(width: 8),
                           const Text('Сканирование галереи'),
@@ -210,31 +210,21 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
                         ],
                       ),
                     ),
+
                   _buildStatRow(Icons.hourglass_empty,
                       t.syncStatusPending, progress.pending, Colors.orange),
-
                   const SizedBox(height: 8),
-
-                  // Загрузка — скрыта
                   _buildStatRow(Icons.check_circle,
                       t.syncStatusDone, progress.sessionUploaded, Colors.green),
-
-                  const SizedBox(height: 8),
-
-                  // _buildStatRow(Icons.error_outline,
-                  //     t.syncStatusFailed, progress.failed, Colors.red),
-
                   const SizedBox(height: 16),
-                  // Текущий файл — показываем всегда, не мигает
-                  if (progress.currentFileName != null)
+
+                  if (progress.currentFileName != null) ...[
                     Text(
                       progress.currentFileName!,
                       style: const TextStyle(fontSize: 12),
                       overflow: TextOverflow.ellipsis,
                     ),
-                  if (progress.currentFileName != null)
                     const SizedBox(height: 6),
-                  if (progress.currentFileName != null)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: LinearProgressIndicator(
@@ -244,27 +234,26 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
                         minHeight: 6,
                       ),
                     ),
-                  if (progress.currentFileName != null)
                     const SizedBox(height: 4),
-                  if (progress.currentFileName != null)
                     Align(
                       alignment: Alignment.centerRight,
                       child: Text(
                         progress.currentFileProgress > 0
                             ? '${(progress.currentFileProgress * 100).toStringAsFixed(0)}%'
                             : '',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[500],
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                       ),
                     ),
+                  ],
                 ],
               ),
             ),
 
             const SizedBox(height: 24),
 
+            // ── Кнопки ─────────────────────────────────────────────────────
+
+            // Sync now — активна только если НЕ идёт sync
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -272,13 +261,15 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
                 label: Text(t.syncNowButton),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _accent,
+                  disabledBackgroundColor: _accent.withOpacity(0.4),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                onPressed: isBlocked ? null : _startSync,
+                onPressed: isSyncing ? null : _startSync,
               ),
             ),
 
-            if (isSyncing || _isBusy) ...[
+            // Stop — видна и активна только пока идёт sync
+            if (isSyncing) ...[
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
@@ -289,19 +280,20 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
                     backgroundColor: Colors.red,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  onPressed: _isBusy ? null : _stopSync,
+                  onPressed: _stopSync, // всегда активна пока isSyncing
                 ),
               ),
             ],
 
             const SizedBox(height: 12),
 
+            // Reset — заблокирована пока идёт сам сброс (диалог)
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
                 icon: const Icon(Icons.delete_outline, color: Colors.red),
                 label: Text(t.syncResetButton),
-                onPressed: isBlocked ? null : _resetQueue,
+                onPressed: _isResetting ? null : _resetQueue,
               ),
             ),
           ],
@@ -321,8 +313,7 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
     );
   }
 
-  Widget _buildStatRow(
-      IconData icon, String label, int count, Color color) {
+  Widget _buildStatRow(IconData icon, String label, int count, Color color) {
     return Row(
       children: [
         Icon(icon, color: color, size: 18),
@@ -335,7 +326,7 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
   }
 }
 
-// 👇 ЗАГЛУШКА picker (замени на свою галерею)
+// Заглушка picker — замени на свою галерею
 class _DummyPickerPage extends StatelessWidget {
   const _DummyPickerPage();
 

@@ -1,56 +1,86 @@
 import 'package:flutter/services.dart';
 
+/// Форматирует узбекский номер: +998 XX XXX XX XX
+/// Курсор сохраняется на правильной позиции при редактировании середины.
 class UzbekPhoneFormatter extends TextInputFormatter {
+  static const _prefix = '+998 ';
   @override
   TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue,
-      TextEditingValue newValue,
-      ) {
-    final digitsOnly = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // 1. Извлекаем только цифры из нового текста
+    final newDigits = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
 
+    // 2. Всегда держим префикс 998
     String digits;
-    if (digitsOnly.startsWith('998')) {
-      digits = digitsOnly;
-    } else if (digitsOnly.length <= 3) {
-      digits = '998';
+    if (newDigits.startsWith('998')) {
+      digits = newDigits;
     } else {
-      digits = '998${digitsOnly.substring(3)}';
+      digits = '998$newDigits';
     }
-
     if (digits.length > 12) digits = digits.substring(0, 12);
 
-    final buffer = StringBuffer('+998');
-    final afterPrefix = digits.length > 3 ? digits.substring(3) : '';
+    // 3. Форматируем: +998 XX XXX XX XX
+    final after = digits.length > 3 ? digits.substring(3) : '';
+    final buf = StringBuffer('+998');
+    if (after.isNotEmpty) {
+      buf.write(' ');
+      buf.write(after.substring(0, after.length.clamp(0, 2)));
+    }
+    if (after.length > 2) {
+      buf.write(' ');
+      buf.write(after.substring(2, after.length.clamp(2, 5)));
+    }
+    if (after.length > 5) {
+      buf.write(' ');
+      buf.write(after.substring(5, after.length.clamp(5, 7)));
+    }
+    if (after.length > 7) {
+      buf.write(' ');
+      buf.write(after.substring(7, after.length.clamp(7, 9)));
+    }
 
-    if (afterPrefix.isNotEmpty) {
-      buffer.write(' ');
-      buffer.write(afterPrefix.substring(0, afterPrefix.length.clamp(0, 2)));
-    }
-    if (afterPrefix.length > 2) {
-      buffer.write(' ');
-      buffer.write(afterPrefix.substring(2, afterPrefix.length.clamp(2, 5)));
-    }
-    if (afterPrefix.length > 5) {
-      buffer.write(' ');
-      buffer.write(afterPrefix.substring(5, afterPrefix.length.clamp(5, 7)));
-    }
-    if (afterPrefix.length > 7) {
-      buffer.write(' ');
-      buffer.write(afterPrefix.substring(7, afterPrefix.length.clamp(7, 9)));
-    }
+    final formatted = buf.toString();
 
-    final formatted = buffer.toString();
-
-    if (formatted.length < 5) {
+    // 4. Защита: если стёрли префикс — возвращаем +998 с курсором в конце
+    if (formatted.length <= _prefix.length) {
       return const TextEditingValue(
-        text: '+998 ',
-        selection: TextSelection.collapsed(offset: 5),
+        text: _prefix,
+        selection: TextSelection.collapsed(offset: _prefix.length),
       );
     }
 
+    // 5. Умный курсор: считаем сколько значимых цифр было ДО курсора в старом тексте
+    //    и восстанавливаем эту же позицию в новом отформатированном тексте
+    // Новые цифры до курсора — с учётом что мы могли добавить/удалить цифру
+    final newDigitsBeforeCursor = newValue.text
+        .substring(0, newValue.selection.end.clamp(0, newValue.text.length))
+        .replaceAll(RegExp(r'[^\d]'), '')
+        .length;
+
+    // Считаем позицию курсора в отформатированной строке по кол-ву цифр
+    int targetDigits = newDigitsBeforeCursor;
+    // Префикс 998 всегда присутствует — курсор не может быть перед ним
+    if (targetDigits < 3) targetDigits = 3;
+
+    int newCursor = 0;
+    int digitsSeen = 0;
+    for (int i = 0; i < formatted.length; i++) {
+      if (RegExp(r'\d').hasMatch(formatted[i])) {
+        digitsSeen++;
+        if (digitsSeen == targetDigits) {
+          newCursor = i + 1;
+          break;
+        }
+      }
+    }
+    // Если не нашли — ставим в конец
+    if (newCursor == 0) newCursor = formatted.length;
+
     return TextEditingValue(
       text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
+      selection: TextSelection.collapsed(offset: newCursor),
     );
   }
 
