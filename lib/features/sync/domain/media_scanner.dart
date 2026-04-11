@@ -1,9 +1,4 @@
-import 'dart:convert';
-import 'dart:io';
-
-import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path/path.dart' as p;
 import 'package:photo_manager/photo_manager.dart';
 
 import '../data/sync_queue_db.dart';
@@ -16,12 +11,17 @@ class MediaScanner {
   final String? sessionId;
   final void Function(int pending)? onProgress;
 
+  /// Если задан — сканировать только ассеты созданные ПОСЛЕ этого timestamp (мс).
+  /// Используется для delta scan. Null = полный scan.
+  final int? filterFromMs;
+
   MediaScanner({
     required this.db,
     required this.uploadedKeys,
     this.selectedLocalIds,
     this.sessionId,
     this.onProgress,
+    this.filterFromMs,
   });
 
   /// Быстро считает общее кол-во файлов в галерее без сканирования.
@@ -91,47 +91,54 @@ class MediaScanner {
                 continue;
               }
 
+              // Delta filter: пропускаем если ассет старее watermark
+              final assetCreatedMs = asset.createDateTime.millisecondsSinceEpoch;
+              if (filterFromMs != null && assetCreatedMs < filterFromMs!) continue;
+
+              // Metadata-only for name/mime — originFile for real size + path
+              final name = asset.title ?? '${asset.id}.${asset.type == AssetType.video ? 'mp4' : 'jpg'}';
+              final mimeType = _mimeForAsset(asset);
+
+              // bucket_day для группировки
+              final bucketDay = '${asset.createDateTime.year.toString().padLeft(4, '0')}'
+                  '-${asset.createDateTime.month.toString().padLeft(2, '0')}'
+                  '-${asset.createDateTime.day.toString().padLeft(2, '0')}';
+
+              // Получаем реальный размер файла для корректной дедупликации
+              int realSize = 0;
+              String resolvedPath = '';
+              try {
+                final file = await asset.originFile;
+                if (file != null && file.existsSync()) {
+                  realSize = await file.length();
+                  resolvedPath = file.path;
+                }
+              } catch (_) {}
+
               // Skip if already in local DB
               if (await db.exists(asset.id)) continue;
 
-              // Get file reference
-              final file = await asset.originFile;
-              if (file == null) continue;
+              // Дополнительно: проверка по имени+размеру для случая после logout
+              if (realSize > 0) {
+                final alreadyDone = await db.isDoneByNameAndSize(name, realSize);
+                if (alreadyDone) continue;
+              }
 
-              final name = asset.title ?? p.basename(file.path);
-              final size = file.lengthSync();
-              final key = '$name|$size';
+              // Key для server-side dedup
+              final key = '$name|$realSize';
 
               // Check if already uploaded to server (cold start dedup)
               if (uploadedKeys.contains(key)) {
                 await db.insertOrIgnore(SyncTask(
                   localId: asset.id,
-                  filePath: file.path,
+                  filePath: resolvedPath,
                   fileName: name,
-                  fileSize: size,
-                  mimeType: _mimeForAsset(asset),
+                  fileSize: realSize,
+                  mimeType: mimeType,
                   sessionId: sessionId,
                   status: SyncStatus.done,
-                  createdAt: now,
-                  updatedAt: now,
-                ));
-                continue;
-              }
-
-              // Compute hash for deduplication
-              final hash = await _computeHash(asset, file, size);
-
-              // Check if a file with the same hash was already uploaded
-              if (hash != null && await db.isDoneByHash(hash)) {
-                await db.insertOrIgnore(SyncTask(
-                  localId: asset.id,
-                  filePath: file.path,
-                  fileName: name,
-                  fileSize: size,
-                  mimeType: _mimeForAsset(asset),
-                  sha256: hash,
-                  sessionId: sessionId,
-                  status: SyncStatus.done,
+                  assetCreatedAt: assetCreatedMs,
+                  bucketDay: bucketDay,
                   createdAt: now,
                   updatedAt: now,
                 ));
@@ -141,13 +148,14 @@ class MediaScanner {
               // Enqueue as pending
               await db.insertOrIgnore(SyncTask(
                 localId: asset.id,
-                filePath: file.path,
+                filePath: resolvedPath,
                 fileName: name,
-                fileSize: size,
-                mimeType: _mimeForAsset(asset),
-                sha256: hash,
+                fileSize: realSize,
+                mimeType: mimeType,
                 sessionId: sessionId,
                 status: SyncStatus.pending,
+                assetCreatedAt: assetCreatedMs,
+                bucketDay: bucketDay,
                 createdAt: now,
                 updatedAt: now,
               ));
@@ -168,28 +176,6 @@ class MediaScanner {
     }
   }
 
-  static const int _isolateHashThreshold = 256 * 1024; // 256KB
-
-  Future<String?> _computeHash(AssetEntity asset, File file, int size) async {
-    try {
-      // Skip hash for missing files
-      if (!file.existsSync()) return null;
-
-      final isVideo = asset.type == AssetType.video;
-      final args = _HashArgs(file.path, size, isVideo);
-
-      // Use compute() only for files above threshold to avoid isolate overhead
-      if (size > _isolateHashThreshold) {
-        return await compute(_computeHashIsolate, args);
-      } else {
-        return _computeHashIsolate(args);
-      }
-    } catch (e) {
-      debugPrint('[MediaScanner] Hash computation failed: $e');
-      return null;
-    }
-  }
-
   String _mimeForAsset(AssetEntity asset) {
     switch (asset.type) {
       case AssetType.image:
@@ -199,42 +185,5 @@ class MediaScanner {
       default:
         return 'application/octet-stream';
     }
-  }
-}
-
-// ── Isolate-safe hash computation ───────────────────────────────────────────
-
-class _HashArgs {
-  final String filePath;
-  final int fileSize;
-  final bool isVideo;
-  const _HashArgs(this.filePath, this.fileSize, this.isVideo);
-}
-
-String? _computeHashIsolate(_HashArgs args) {
-  try {
-    final file = File(args.filePath);
-    Uint8List bytes;
-    if (args.isVideo) {
-      const maxBytes = 1024 * 1024;
-      final raf = file.openSync(mode: FileMode.read);
-      try {
-        final readLength = args.fileSize < maxBytes ? args.fileSize : maxBytes;
-        bytes = raf.readSync(readLength);
-      } finally {
-        raf.closeSync();
-      }
-      final sizeBytes = utf8.encode(args.fileSize.toString());
-      final combined = Uint8List(bytes.length + sizeBytes.length);
-      combined.setRange(0, bytes.length, bytes);
-      combined.setRange(bytes.length, combined.length, sizeBytes);
-      bytes = combined;
-    } else {
-      bytes = file.readAsBytesSync();
-    }
-    final digest = sha256.convert(bytes);
-    return digest.toString();
-  } catch (_) {
-    return null;
   }
 }

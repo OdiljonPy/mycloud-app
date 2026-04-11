@@ -14,6 +14,9 @@ class SyncTask {
   final String? serverUuid;
   final int createdAt;
   final int updatedAt;
+  final int? assetCreatedAt;
+  final String? bucketDay;
+  final int sessionUploaded;
 
   const SyncTask({
     this.id,
@@ -29,6 +32,9 @@ class SyncTask {
     this.serverUuid,
     required this.createdAt,
     required this.updatedAt,
+    this.assetCreatedAt,
+    this.bucketDay,
+    this.sessionUploaded = 0,
   });
 
   SyncTask copyWith({
@@ -43,6 +49,9 @@ class SyncTask {
     SyncStatus? status,
     int? retryCount,
     String? serverUuid,
+    int? assetCreatedAt,
+    String? bucketDay,
+    int? sessionUploaded,
     int? createdAt,
     int? updatedAt,
   }) {
@@ -60,6 +69,9 @@ class SyncTask {
       serverUuid: serverUuid ?? this.serverUuid,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      assetCreatedAt: assetCreatedAt ?? this.assetCreatedAt,
+      bucketDay: bucketDay ?? this.bucketDay,
+      sessionUploaded: sessionUploaded ?? this.sessionUploaded,
     );
   }
 
@@ -78,6 +90,9 @@ class SyncTask {
       'server_uuid': serverUuid,
       'created_at': createdAt,
       'updated_at': updatedAt,
+      'asset_created_at': assetCreatedAt,
+      'bucket_day': bucketDay,
+      'session_uploaded': sessionUploaded,
     };
   }
 
@@ -99,6 +114,9 @@ class SyncTask {
       serverUuid: map['server_uuid'] as String?,
       createdAt: map['created_at'] as int,
       updatedAt: map['updated_at'] as int,
+      assetCreatedAt: map['asset_created_at'] as int?,
+      bucketDay: map['bucket_day'] as String?,
+      sessionUploaded: map['session_uploaded'] as int? ?? 0,
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../data/auth_repository.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../home/presentation/main_page.dart';
+import 'package:cloud_app/features/sync/sync_providers.dart';
 
 class OtpPage extends StatefulWidget {
   final String phoneNumber;
@@ -23,7 +24,10 @@ class _OtpPageState extends State<OtpPage> {
   List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
-  final _authRepo = AuthRepository();
+  final _authRepo = AuthRepository(
+    onLoginSync: syncOnLoginCallback,
+    onLogoutSync: syncOnLogoutCallback,
+  );
   late String _otpKey;
 
   bool _isLoading = false;

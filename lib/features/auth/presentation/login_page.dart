@@ -5,6 +5,7 @@ import '../../../core/utils/uzbek_phone_formatter.dart';
 import '../../home/presentation/main_page.dart';
 import 'forgot_password_page.dart';
 import 'register_page.dart';
+import 'package:cloud_app/features/sync/sync_providers.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -16,7 +17,10 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _phoneController = TextEditingController(text: '+998 ');
   final _passwordController = TextEditingController();
-  final _authRepo = AuthRepository();
+  final _authRepo = AuthRepository(
+    onLoginSync: syncOnLoginCallback,
+    onLogoutSync: syncOnLogoutCallback,
+  );
 
   final _phoneFocus = FocusNode();
   final _passwordFocus = FocusNode();

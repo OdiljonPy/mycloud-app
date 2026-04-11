@@ -4,10 +4,18 @@ import 'package:dio/dio.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/errors/app_exception.dart';
-import '../../sync/auto_sync_service.dart';
 
 class AuthRepository {
   final Dio _dio = DioClient.instance;
+
+  /// Callback вызывается после успешного login/register.
+  /// Инициализирует sync для нового пользователя.
+  final Future<void> Function()? onLoginSync;
+
+  /// Callback вызывается при logout.
+  final Future<void> Function()? onLogoutSync;
+
+  AuthRepository({this.onLoginSync, this.onLogoutSync});
 
   String _extractError(dynamic data) {
     if (data == null) return 'Unknown error';
@@ -52,8 +60,7 @@ class AuthRepository {
         accessToken: accessToken?.toString() ?? '',
         refreshToken: refreshToken?.toString() ?? '',
       );
-      await AutoSyncService().onLogout();
-      AutoSyncService().initialize().then((_) => AutoSyncService().startAutoSync()).catchError((e) => print("[AutoSync] init error: $e"));
+      await onLoginSync?.call();
 
       final me = await _dio.get('authentication/users/me/');
       final meData = me.data is Map && me.data.containsKey('result')
@@ -126,8 +133,7 @@ class AuthRepository {
           accessToken: accessToken.toString(),
           refreshToken: refreshToken?.toString() ?? '',
         );
-        await AutoSyncService().onLogout();
-      AutoSyncService().initialize().then((_) => AutoSyncService().startAutoSync()).catchError((e) => print("[AutoSync] init error: $e"));
+        await onLoginSync?.call();
         final me = await _dio.get('authentication/users/me/');
         final meData = me.data is Map && me.data.containsKey('result')
             ? me.data['result']
@@ -245,5 +251,6 @@ class AuthRepository {
   // LOGOUT
   Future<void> logout() async {
     await SecureStorage.clearTokens();
+    await onLogoutSync?.call();
   }
 }

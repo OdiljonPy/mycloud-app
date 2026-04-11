@@ -13,7 +13,7 @@ class SyncQueueDb {
       final path = p.join(dbPath, 'sync_queue.db');
       _db = await openDatabase(
         path,
-        version: 2,
+        version: 3,
         onCreate: (db, version) async {
           await db.execute('''
             CREATE TABLE sync_queue (
@@ -29,7 +29,10 @@ class SyncQueueDb {
               retry_count INTEGER NOT NULL DEFAULT 0,
               server_uuid TEXT,
               created_at INTEGER NOT NULL,
-              updated_at INTEGER NOT NULL
+              updated_at INTEGER NOT NULL,
+              asset_created_at INTEGER,
+              bucket_day TEXT,
+              session_uploaded INTEGER NOT NULL DEFAULT 0
             )
           ''');
         },
@@ -40,6 +43,16 @@ class SyncQueueDb {
               debugPrint('[SyncQueueDb] Migrated to v2: added session_id column');
             } catch (e) {
               debugPrint('[SyncQueueDb] Migration v2 skipped (column already exists): $e');
+            }
+          }
+          if (oldVersion < 3) {
+            try {
+              await db.execute('ALTER TABLE sync_queue ADD COLUMN asset_created_at INTEGER');
+              await db.execute('ALTER TABLE sync_queue ADD COLUMN bucket_day TEXT');
+              await db.execute('ALTER TABLE sync_queue ADD COLUMN session_uploaded INTEGER NOT NULL DEFAULT 0');
+              debugPrint('[SyncQueueDb] Migrated to v3: added asset_created_at, bucket_day, session_uploaded');
+            } catch (e) {
+              debugPrint('[SyncQueueDb] Migration v3 skipped: $e');
             }
           }
         },
@@ -186,6 +199,59 @@ class SyncQueueDb {
       }
     } catch (e) {
       debugPrint('[SyncQueueDb] resetStuckUploading failed: $e');
+    }
+  }
+
+  /// Помечает задачу как done и увеличивает session_uploaded счётчик.
+  Future<void> markDoneWithSession(int id, String serverUuid) async {
+    try {
+      await _database.update('sync_queue', {
+        'status': SyncStatus.done.name,
+        'server_uuid': serverUuid,
+        'session_uploaded': 1,
+        'updated_at': DateTime.now().millisecondsSinceEpoch,
+      }, where: 'id = ?', whereArgs: [id]);
+    } catch (e) {
+      debugPrint('[SyncQueueDb] markDoneWithSession failed: $e');
+    }
+  }
+
+  /// Сколько файлов загружено в текущей сессии.
+  Future<int> countSessionUploaded() async {
+    try {
+      final result = await _database.rawQuery(
+        'SELECT COUNT(*) as count FROM sync_queue WHERE session_uploaded = 1',
+      );
+      return Sqflite.firstIntValue(result) ?? 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  /// Сбрасывает session_uploaded счётчик при старте новой сессии.
+  Future<void> resetSessionCounter() async {
+    try {
+      await _database.update('sync_queue', {'session_uploaded': 0});
+      debugPrint('[SyncQueueDb] Session counter reset');
+    } catch (e) {
+      debugPrint('[SyncQueueDb] resetSessionCounter failed: $e');
+    }
+  }
+
+  /// Проверяет есть ли файл с таким же именем и размером
+  /// уже помеченный как done в локальной DB.
+  Future<bool> isDoneByNameAndSize(String fileName, int fileSize) async {
+    try {
+      final result = await _database.query(
+        'sync_queue',
+        where: 'file_name = ? AND file_size = ? AND status = ?',
+        whereArgs: [fileName, fileSize, SyncStatus.done.name],
+        limit: 1,
+      );
+      return result.isNotEmpty;
+    } catch (e) {
+      debugPrint('[SyncQueueDb] isDoneByNameAndSize failed: $e');
+      return false;
     }
   }
 }

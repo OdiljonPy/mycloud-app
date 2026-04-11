@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../sync_progress.dart';
 import '../sync_providers.dart';
@@ -16,54 +15,17 @@ class AutoSyncSettingsPage extends ConsumerStatefulWidget {
 class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
   static const _accent = Color(0xFF2563EB);
 
-  bool _autoSyncEnabled = false;
-  bool _wifiOnly = false;
-  bool _useSelectedFiles = false; // 👈 НОВОЕ
-
-  List<String> _selectedFiles = []; // 👈 НОВОЕ
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPrefs();
-  }
-
-  Future<void> _loadPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    if (mounted) {
-      setState(() {
-        _autoSyncEnabled = prefs.getBool('auto_sync_enabled') ?? false;
-        _wifiOnly = prefs.getBool('auto_sync_wifi_only') ?? false;
-        _useSelectedFiles =
-            prefs.getBool('auto_sync_selected_only') ?? false;
-        _selectedFiles =
-            prefs.getStringList('selected_files') ?? [];
-      });
-    }
-  }
-
   Future<void> _setAutoSync(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('auto_sync_enabled', value);
-    if (mounted) setState(() => _autoSyncEnabled = value);
+    await ref.read(syncSettingsProvider.notifier).setAutoSync(value);
   }
 
   Future<void> _setWifiOnly(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('auto_sync_wifi_only', value);
-    if (mounted) setState(() => _wifiOnly = value);
+    await ref.read(syncSettingsProvider.notifier).setWifiOnly(value);
   }
 
   Future<void> _setUseSelected(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('auto_sync_selected_only', value);
-
-    if (mounted) setState(() => _useSelectedFiles = value);
-
-    if (value) {
-      _openFilePicker();
-    }
+    await ref.read(syncSettingsProvider.notifier).setUseSelectedFiles(value);
+    if (value) _openFilePicker();
   }
 
   Future<void> _openFilePicker() async {
@@ -76,21 +38,18 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
     );
 
     if (files != null) {
-      setState(() => _selectedFiles = files);
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList('selected_files', files);
+      await ref.read(syncSettingsProvider.notifier).saveSelectedFiles(files);
     }
   }
 
   Future<void> _startSync() async {
-    final service = ref.read(autoSyncServiceProvider);
-    if (service.isRunning || service.isScanning) return;
-    await service.startAutoSync();
+    final repo = ref.read(syncRepositoryProvider);
+    if (repo.isRunning || repo.isScanning) return;
+    await repo.startAutoSync();
   }
 
   Future<void> _stopSync() async {
-    await ref.read(autoSyncServiceProvider).stopSync();
+    await ref.read(syncRepositoryProvider).stopSync();
   }
 
   Future<void> _resetQueue() async {
@@ -120,24 +79,21 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
     );
 
     if (confirmed == true) {
-      final service = ref.read(autoSyncServiceProvider);
-      await service.onLogout();
-      await service.initialize();
-      await service.startAutoSync();
+      final repo = ref.read(syncRepositoryProvider);
+      await repo.onLogout();
+      await repo.initialize();
+      await repo.startAutoSync();
     }
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     final syncProgressAsync = ref.watch(syncProgressProvider);
     final progress = syncProgressAsync.valueOrNull ?? const SyncProgress();
-    final isSyncing = ref.watch(autoSyncServiceProvider).isRunning ||
-        ref.watch(autoSyncServiceProvider).isScanning;
+    final isSyncing = ref.watch(syncRepositoryProvider).isRunning ||
+        ref.watch(syncRepositoryProvider).isScanning;
+    final settings = ref.watch(syncSettingsProvider);
 
     final t = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -163,7 +119,7 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
                     contentPadding: EdgeInsets.zero,
                     title: Text(t.syncEnableToggle),
                     subtitle: Text(t.syncAutoUpload),
-                    value: _autoSyncEnabled,
+                    value: settings.autoSyncEnabled,
                     onChanged: _setAutoSync,
                   ),
                   const Divider(height: 1),
@@ -172,7 +128,7 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
                     contentPadding: EdgeInsets.zero,
                     title: Text(t.syncWifiOnly),
                     subtitle: Text(t.syncNoMobileData),
-                    value: _wifiOnly,
+                    value: settings.wifiOnly,
                     onChanged: _setWifiOnly,
                   ),
                   const Divider(height: 1),
@@ -184,7 +140,7 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
                     title: const Text('Выбранные файлы'),
                     subtitle: const Text(
                         'Синхронизировать только выбранные'),
-                    value: _useSelectedFiles,
+                    value: settings.useSelectedFiles,
                     onChanged: _setUseSelected,
                   ),
                 ],
@@ -243,7 +199,7 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
 
                   // Загрузка — скрыта
                   _buildStatRow(Icons.check_circle,
-                      t.syncStatusDone, progress.done, Colors.green),
+                      t.syncStatusDone, progress.sessionUploaded, Colors.green),
 
                   const SizedBox(height: 8),
 

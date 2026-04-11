@@ -26,6 +26,7 @@ mixin _$SyncProgress {
   int get totalInBatch => throw _privateConstructorUsedError;
   int get scannedCount => throw _privateConstructorUsedError;
   bool get isScanning => throw _privateConstructorUsedError;
+  int get sessionUploaded => throw _privateConstructorUsedError;
 
   /// Create a copy of SyncProgress
   /// with the given fields replaced by the non-null parameter values.
@@ -51,6 +52,7 @@ abstract class $SyncProgressCopyWith<$Res> {
     int totalInBatch,
     int scannedCount,
     bool isScanning,
+    int sessionUploaded,
   });
 }
 
@@ -78,6 +80,7 @@ class _$SyncProgressCopyWithImpl<$Res, $Val extends SyncProgress>
     Object? totalInBatch = null,
     Object? scannedCount = null,
     Object? isScanning = null,
+    Object? sessionUploaded = null,
   }) {
     return _then(
       _value.copyWith(
@@ -117,6 +120,10 @@ class _$SyncProgressCopyWithImpl<$Res, $Val extends SyncProgress>
                 ? _value.isScanning
                 : isScanning // ignore: cast_nullable_to_non_nullable
                       as bool,
+            sessionUploaded: null == sessionUploaded
+                ? _value.sessionUploaded
+                : sessionUploaded // ignore: cast_nullable_to_non_nullable
+                      as int,
           )
           as $Val,
     );
@@ -142,6 +149,7 @@ abstract class _$$SyncProgressImplCopyWith<$Res>
     int totalInBatch,
     int scannedCount,
     bool isScanning,
+    int sessionUploaded,
   });
 }
 
@@ -168,6 +176,7 @@ class __$$SyncProgressImplCopyWithImpl<$Res>
     Object? totalInBatch = null,
     Object? scannedCount = null,
     Object? isScanning = null,
+    Object? sessionUploaded = null,
   }) {
     return _then(
       _$SyncProgressImpl(
@@ -207,6 +216,10 @@ class __$$SyncProgressImplCopyWithImpl<$Res>
             ? _value.isScanning
             : isScanning // ignore: cast_nullable_to_non_nullable
                   as bool,
+        sessionUploaded: null == sessionUploaded
+            ? _value.sessionUploaded
+            : sessionUploaded // ignore: cast_nullable_to_non_nullable
+                  as int,
       ),
     );
   }
@@ -225,6 +238,7 @@ class _$SyncProgressImpl implements _SyncProgress {
     this.totalInBatch = 0,
     this.scannedCount = 0,
     this.isScanning = false,
+    this.sessionUploaded = 0,
   });
 
   @override
@@ -253,10 +267,13 @@ class _$SyncProgressImpl implements _SyncProgress {
   @override
   @JsonKey()
   final bool isScanning;
+  @override
+  @JsonKey()
+  final int sessionUploaded;
 
   @override
   String toString() {
-    return 'SyncProgress(pending: $pending, uploading: $uploading, done: $done, failed: $failed, currentFileProgress: $currentFileProgress, currentFileName: $currentFileName, totalInBatch: $totalInBatch, scannedCount: $scannedCount, isScanning: $isScanning)';
+    return 'SyncProgress(pending: $pending, uploading: $uploading, done: $done, failed: $failed, currentFileProgress: $currentFileProgress, currentFileName: $currentFileName, totalInBatch: $totalInBatch, scannedCount: $scannedCount, isScanning: $isScanning, sessionUploaded: $sessionUploaded)';
   }
 
   @override
@@ -278,7 +295,9 @@ class _$SyncProgressImpl implements _SyncProgress {
             (identical(other.scannedCount, scannedCount) ||
                 other.scannedCount == scannedCount) &&
             (identical(other.isScanning, isScanning) ||
-                other.isScanning == isScanning));
+                other.isScanning == isScanning) &&
+            (identical(other.sessionUploaded, sessionUploaded) ||
+                other.sessionUploaded == sessionUploaded));
   }
 
   @override
@@ -293,6 +312,7 @@ class _$SyncProgressImpl implements _SyncProgress {
     totalInBatch,
     scannedCount,
     isScanning,
+    sessionUploaded,
   );
 
   /// Create a copy of SyncProgress
@@ -315,6 +335,7 @@ abstract class _SyncProgress implements SyncProgress {
     final int totalInBatch,
     final int scannedCount,
     final bool isScanning,
+    final int sessionUploaded,
   }) = _$SyncProgressImpl;
 
   @override
@@ -335,6 +356,8 @@ abstract class _SyncProgress implements SyncProgress {
   int get scannedCount;
   @override
   bool get isScanning;
+  @override
+  int get sessionUploaded;
 
   /// Create a copy of SyncProgress
   /// with the given fields replaced by the non-null parameter values.
