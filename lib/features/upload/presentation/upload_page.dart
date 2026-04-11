@@ -45,7 +45,8 @@ class _UploadPageState extends State<UploadPage> {
   final List<_FileItem> _queue = [];
   bool _isUploading = false;
   bool _allDone = false;
-  static const int _maxFiles = 50;
+  // Лимит убран — загружаем сколько выбрал пользователь
+  static const int _maxFiles = 10000;
   int _currentIndex = 0;
 
 
@@ -425,7 +426,7 @@ class _UploadPageState extends State<UploadPage> {
                             ),
                           ),
                         const Spacer(),
-                        if (!_isUploading && _queue.length < _maxFiles)
+                        if (!_isUploading)
                           TextButton.icon(
                             onPressed: _pickFiles,
                             icon: const Icon(Icons.add, size: 15),

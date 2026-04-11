@@ -15,6 +15,20 @@ class AutoSyncSettingsPage extends ConsumerStatefulWidget {
 class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
   static const _accent = Color(0xFF2563EB);
 
+  // Локальный флаг — блокирует кнопки пока идёт async операция.
+  // Предотвращает повторные нажатия до завершения текущего действия.
+  bool _isBusy = false;
+
+  Future<void> _setBusy(Future<void> Function() action) async {
+    if (_isBusy) return;
+    if (mounted) setState(() => _isBusy = true);
+    try {
+      await action();
+    } finally {
+      if (mounted) setState(() => _isBusy = false);
+    }
+  }
+
   Future<void> _setAutoSync(bool value) async {
     await ref.read(syncSettingsProvider.notifier).setAutoSync(value);
   }
@@ -42,15 +56,15 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
     }
   }
 
-  Future<void> _startSync() async {
+  Future<void> _startSync() => _setBusy(() async {
     final repo = ref.read(syncRepositoryProvider);
     if (repo.isRunning || repo.isScanning) return;
     await repo.startAutoSync();
-  }
+  });
 
-  Future<void> _stopSync() async {
+  Future<void> _stopSync() => _setBusy(() async {
     await ref.read(syncRepositoryProvider).stopSync();
-  }
+  });
 
   Future<void> _resetQueue() async {
     final t = AppLocalizations.of(context)!;
@@ -79,10 +93,12 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
     );
 
     if (confirmed == true) {
-      final repo = ref.read(syncRepositoryProvider);
-      await repo.onLogout();
-      await repo.initialize();
-      await repo.startAutoSync();
+      await _setBusy(() async {
+        final repo = ref.read(syncRepositoryProvider);
+        await repo.onLogout();
+        await repo.initialize();
+        await repo.startAutoSync();
+      });
     }
   }
 
@@ -93,6 +109,8 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
     final progress = syncProgressAsync.valueOrNull ?? const SyncProgress();
     final isSyncing = ref.watch(syncRepositoryProvider).isRunning ||
         ref.watch(syncRepositoryProvider).isScanning;
+    // Кнопки заблокированы если идёт async операция ИЛИ sync процесс
+    final isBlocked = _isBusy || isSyncing;
     final settings = ref.watch(syncSettingsProvider);
 
     final t = AppLocalizations.of(context)!;
@@ -256,11 +274,11 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
                   backgroundColor: _accent,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                onPressed: isSyncing ? null : _startSync,
+                onPressed: isBlocked ? null : _startSync,
               ),
             ),
 
-            if (isSyncing) ...[
+            if (isSyncing || _isBusy) ...[
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
@@ -271,7 +289,7 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
                     backgroundColor: Colors.red,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  onPressed: _stopSync,
+                  onPressed: _isBusy ? null : _stopSync,
                 ),
               ),
             ],
@@ -283,7 +301,7 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
               child: OutlinedButton.icon(
                 icon: const Icon(Icons.delete_outline, color: Colors.red),
                 label: Text(t.syncResetButton),
-                onPressed: _resetQueue,
+                onPressed: isBlocked ? null : _resetQueue,
               ),
             ),
           ],

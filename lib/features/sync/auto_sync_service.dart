@@ -25,6 +25,8 @@ class AutoSyncService {
       debugPrint("[AutoSync] Already running/scanning, skip");
       return;
     }
+    // Инвалидируем предыдущую сессию перед новым scan
+    _syncSessionId++;
     await _rescan();
     await startSync();
   }
@@ -128,6 +130,7 @@ class AutoSyncService {
   // FIX 1: Пересканирует галерею без cold-start логики.
   // Вызывается при каждом нажатии "Синхронизировать сейчас".
   Future<void> _rescan() async {
+    final mySession = _syncSessionId;
     _isScanning = true;
     final token = await SecureStorage.getAccessToken();
     if (token == null || token.isEmpty) return;
@@ -143,6 +146,10 @@ class AutoSyncService {
 
     // uploadedKeys = {} т.к. дубли уже есть в локальной БД (status=done)
     _scannedCount = 0;
+    if (mySession != _syncSessionId) {
+      _isScanning = false;
+      return;
+    }
     final scanner = MediaScanner(
       db: _db,
       uploadedKeys: {},
@@ -216,7 +223,7 @@ class AutoSyncService {
       final uploader = TusSyncUploader();
 
       while (_isRunning && sessionId == _syncSessionId) {
-        final tasks = await _db.getPendingOldestFirst(limit: 10);
+        final tasks = await _db.getPendingOldestFirst(limit: 50);
         if (tasks.isEmpty) {
           debugPrint('[Sync] No pending tasks, sync complete');
           break;
