@@ -77,29 +77,15 @@ class _MainPageState extends State<MainPage> {
                 key: _homeKey,
                 onFolderChanged: _onFolderChanged,
                 onNavigateToFiles: () => setState(() => _currentIndex = 1),
-                onNavigateToShared: () => setState(() => _currentIndex = 3),
+                onNavigateToShared: () => setState(() => _currentIndex = 2),
                 onToggleFavourites: () {
                   setState(() => _currentIndex = 1);
-                  // переключить на Files таб — FilesPage сам покажет избранное
-                  // через небольшую задержку вызвать toggleFavourites на FilesPage
                   Future.delayed(const Duration(milliseconds: 100), () {
                     _filesKey.currentState?.toggleFavourites();
                   });
                 },
               ),
               FilesPage(key: _filesKey, onFolderChanged: _onFolderChanged),
-              UploadPage(
-                parentId: _currentFolderId,
-                onUploadComplete: () async {
-                  // Сначала переключаем на Files таб
-                  setState(() => _currentIndex = 0);
-                  // Ждём пока виджет отрисуется
-                  await Future.delayed(const Duration(milliseconds: 300));
-                  // Потом обновляем контент
-                  _homeKey.currentState?.reloadContent();
-                  _filesKey.currentState?.reloadContent();
-                },
-              ),
               const SharedPage(),
               ProfilePage(onLogout: _logout),
             ],
@@ -154,28 +140,23 @@ class _MainPageState extends State<MainPage> {
                 index: 1,
                 current: _currentIndex,
                 onTap: (i) {
-                  // ✅ FIX: при переходе на Recent — автообновляем список
                   if (i == 1) {
                     _filesKey.currentState?.reloadContent();
                   }
                   setState(() => _currentIndex = i);
                 },
               ),
-              _UploadButton(
-                isActive: _currentIndex == 2,
-                onTap: () => setState(() => _currentIndex = 2),
-              ),
               _NavItem(
                 icon: Icons.people_rounded,
                 label: t.shared,
-                index: 3,
+                index: 2,
                 current: _currentIndex,
                 onTap: (i) => setState(() => _currentIndex = i),
               ),
               _NavItem(
                 icon: Icons.person_rounded,
                 label: t.profile,
-                index: 4,
+                index: 3,
                 current: _currentIndex,
                 onTap: (i) => setState(() => _currentIndex = i),
               ),
@@ -249,34 +230,3 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-class _UploadButton extends StatelessWidget {
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const _UploadButton({required this.isActive, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 52,
-        height: 52,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1A73E8), Color(0xFF4A90E2)],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF1A73E8).withValues(alpha: 0.35),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
-      ),
-    );
-  }
-}

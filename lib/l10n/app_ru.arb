@@ -251,5 +251,29 @@
   "syncStatusUploading2": "Загрузка",
   "syncStatusDone": "Готово",
   "syncStatusFailed": "Ошибки",
-  "syncStop": "Остановить"
+  "syncStop": "Остановить",
+  "fileTypes": "Типы файлов",
+  "viewAll": "Все",
+  "recentFiles": "Файлы галереи",
+  "sync": "Синхр.",
+  "image": "Изображение",
+  "video": "Видео",
+  "filesLabel": "{count} файлов",
+  "@filesLabel": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "today": "Сегодня",
+  "yesterday": "Вчера",
+  "daysAgo": "{count} дней назад",
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

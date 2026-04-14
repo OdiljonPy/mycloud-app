@@ -484,7 +484,7 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String syncStatusUploading(int uploaded, int total) {
-    return '$total tadan $uploaded yuklandi';
+    return '$uploaded/$total yuklandi';
   }
 
   @override
@@ -493,7 +493,7 @@ class AppLocalizationsUz extends AppLocalizations {
   }
 
   @override
-  String get syncStatusComplete => 'Sinxronizatsiya tugadi';
+  String get syncStatusComplete => 'Sinxronizatsiya tugallandi';
 
   @override
   String syncStatusErrors(int count) {
@@ -501,36 +501,36 @@ class AppLocalizationsUz extends AppLocalizations {
   }
 
   @override
-  String get syncSettingsTitle => 'Avtomatik sinxronizatsiya';
+  String get syncSettingsTitle => 'Avto-sinxronizatsiya';
 
   @override
-  String get syncEnableToggle => 'Avtomatik sinxronizatsiyani yoqish';
+  String get syncEnableToggle => 'Avto-sinxronizatsiyani yoqish';
 
   @override
   String get syncWifiOnly => 'Faqat Wi-Fi orqali';
 
   @override
-  String get syncNowButton => 'Hozir sinxronlashtirish';
+  String get syncNowButton => 'Hozir sinxronlash';
 
   @override
   String get syncResetButton => 'Navbatni tozalash';
 
   @override
   String get syncFolderReadOnly =>
-      'Bu sinxronizatsiya papkasi. Fayllar avtomatik boshqariladi.';
+      'Bu sizning Sinxronizatsiya papkangiz. Bu yerdagi fayllar avtomatik boshqariladi.';
 
   @override
   String get syncResetConfirmTitle => 'Navbatni tozalash?';
 
   @override
   String get syncResetConfirmMessage =>
-      'Barcha yozuvlar o\'chiriladi. Ilova galereyani qaytadan skanerlaydi.';
+      'Barcha yozuvlar o\'chiriladi. Keyin ilova galereyani qayta skanerlaydi.';
 
   @override
   String get syncResetConfirmButton => 'Tozalash';
 
   @override
-  String get syncAutoUpload => 'Rasmlar va videolarni avtomatik yuklash';
+  String get syncAutoUpload => 'Foto va videolarni avtomatik yuklash';
 
   @override
   String get syncNoMobileData => 'Mobil internet orqali sinxronlamaslik';
@@ -552,4 +552,38 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get syncStop => 'To\'xtatish';
+
+  @override
+  String get fileTypes => 'Fayl turlari';
+
+  @override
+  String get viewAll => 'Barchasi';
+
+  @override
+  String get recentFiles => 'Galereya fayllari';
+
+  @override
+  String get sync => 'Sinxr.';
+
+  @override
+  String get image => 'Rasm';
+
+  @override
+  String get video => 'Video';
+
+  @override
+  String filesLabel(String count) {
+    return '$count fayllar';
+  }
+
+  @override
+  String get today => 'Bugun';
+
+  @override
+  String get yesterday => 'Kecha';
+
+  @override
+  String daysAgo(int count) {
+    return '$count kun oldin';
+  }
 }

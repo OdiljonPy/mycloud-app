@@ -29,3 +29,6 @@ lib/core/config/app_config_local.dart
 *.iml
 .vscode/
 .DS_Store
+
+# FVM Version Cache
+.fvm/

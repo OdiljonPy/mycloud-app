@@ -7,7 +7,6 @@ import '../../../../core/config/app_config.dart';
 import '../../../../core/storage/secure_storage.dart';
 import '../../../../features/home/data/home_repository.dart';
 import '../../../../features/home/presentation/photo_viewer_page.dart';
-import '../../../../features/home/presentation/video_player_page.dart';
 import '../../data/remote/share_remote_data_source_impl.dart';
 import '../../data/repository/share_repository_impl.dart';
 import '../bloc/share_bloc.dart';
@@ -51,11 +50,15 @@ class _ShareUserFilesPageState extends State<ShareUserFilesPage> {
       List<Map<String, dynamic>> allItems,
       String fileId,
       ) async {
-    final imageItems = allItems
-        .where((item) => _mimeOf(item).startsWith('image/'))
+    // Get all media files (images AND videos) together
+    final mediaItems = allItems
+        .where((item) {
+          final mime = _mimeOf(item);
+          return mime.startsWith('image/') || mime.startsWith('video/');
+        })
         .toList();
 
-    final files = imageItems
+    final files = mediaItems
         .map((item) {
       final id = item['id']?.toString() ?? '';
       return (
@@ -65,6 +68,7 @@ class _ShareUserFilesPageState extends State<ShareUserFilesPage> {
       url: id.isNotEmpty ? '' : (_normalizeUrl(item['thumbnail_path']?.toString()) ?? ''),
       name: _nameOf(item),
       fileId: id,
+      mimeType: _mimeOf(item),
       );
     })
         .toList();
@@ -80,29 +84,6 @@ class _ShareUserFilesPageState extends State<ShareUserFilesPage> {
           initialIndex: idx < 0 ? 0 : idx,
           authToken: _authToken,
           onNeedFullUrl: (id) => _homeRepo.getPreviewUrl(id),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _openVideo(BuildContext ctx, String fileId, String name) async {
-    final url = await _homeRepo.getPreviewUrl(fileId);
-    if (url == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(ctx).showSnackBar(
-          const SnackBar(content: Text('Не удалось открыть видео')),
-        );
-      }
-      return;
-    }
-    if (!mounted) return;
-    Navigator.push(
-      ctx,
-      MaterialPageRoute(
-        builder: (_) => VideoPlayerPage(
-          videoUrl: url,
-          fileName: name,
-          authToken: _authToken,
         ),
       ),
     );
@@ -318,10 +299,8 @@ class _ShareUserFilesPageState extends State<ShareUserFilesPage> {
             ctx.read<ShareBloc>().add(LoadSharedWithMeUserFolder(
                 userId: widget.userId, folderId: id));
           }
-        } else if (isImage) {
+        } else if (isImage || isVideo) {
           _openImage(ctx, allItems, id);
-        } else if (isVideo) {
-          _openVideo(ctx, id, name);
         }
       },
       child: Container(
