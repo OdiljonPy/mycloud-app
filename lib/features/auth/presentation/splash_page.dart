@@ -73,12 +73,16 @@ class _SplashPageState extends State<SplashPage>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF1A73E8),
+      backgroundColor: isDark ? const Color(0xFF000000) : const Color(0xFF1A73E8),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF1A73E8), Color(0xFF0D47A1)],
+            colors: isDark
+                ? [const Color(0xFF000000), const Color(0xFF1C1C1E)]
+                : [const Color(0xFF1A73E8), const Color(0xFF0D47A1)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -95,7 +99,7 @@ class _SplashPageState extends State<SplashPage>
                     width: 90,
                     height: 90,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: Colors.white.withValues(alpha: isDark ? 0.1 : 0.2),
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: ClipRRect(
@@ -150,11 +154,15 @@ class OnboardingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF1A73E8), Color(0xFF0D47A1)],
+            colors: isDark
+                ? [const Color(0xFF000000), const Color(0xFF1C1C1E)]
+                : [const Color(0xFF1A73E8), const Color(0xFF0D47A1)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -169,7 +177,7 @@ class OnboardingPage extends StatelessWidget {
                   width: 120,
                   height: 120,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
+                    color: Colors.white.withValues(alpha: isDark ? 0.1 : 0.15),
                     borderRadius: BorderRadius.circular(32),
                   ),
                   child: ClipRRect(
@@ -214,7 +222,9 @@ class OnboardingPage extends StatelessWidget {
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF1A73E8),
+                      foregroundColor: isDark
+                          ? const Color(0xFF0A84FF)
+                          : const Color(0xFF1A73E8),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -237,7 +247,9 @@ class OnboardingPage extends StatelessWidget {
                     ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white,
-                      side: BorderSide(color: Colors.white.withValues(alpha: 0.5)),
+                      side: BorderSide(
+                        color: Colors.white.withValues(alpha: isDark ? 0.3 : 0.5),
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),

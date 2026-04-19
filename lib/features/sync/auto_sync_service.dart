@@ -23,6 +23,7 @@ class SyncProgress {
   final int totalInBatch;
   final int scannedCount;
   final bool isScanning;
+  final int totalFiles;
 
   const SyncProgress({
     this.pending = 0,
@@ -34,6 +35,7 @@ class SyncProgress {
     this.totalInBatch = 0,
     this.scannedCount = 0,
     this.isScanning = false,
+    this.totalFiles = 0,
   });
 }
 
@@ -134,7 +136,6 @@ class AutoSyncService {
       if (cleaned.isNotEmpty) selectedIds = cleaned;
     }
 
-    // uploadedKeys = {} т.к. дубли уже есть в локальной БД (status=done)
     _scannedCount = 0;
     final scanner = MediaScanner(
       db: _db,
@@ -145,6 +146,11 @@ class AutoSyncService {
         _emitScanProgress();
       },
     );
+
+    _totalFiles = await scanner.countTotal();
+    debugPrint('[AutoSync] Jami fayllar: $_totalFiles');
+    await _emitProgress();
+
     final newItems = await scanner.scanAndEnqueue();
     debugPrint('[AutoSync] Rescan: $newItems new items enqueued');
     await _emitProgress();
@@ -292,6 +298,7 @@ class AutoSyncService {
   String? _currentFileName;
   int _totalInBatch = 0;
   int _scannedCount = 0;
+  int _totalFiles = 0;
   Map<String, int> _lastCounts = {'pending': 0, 'uploading': 0, 'done': 0, 'failed': 0};
 
   // FIX 2: done берётся напрямую из БД (после markDone уже там).
@@ -309,6 +316,7 @@ class AutoSyncService {
       totalInBatch: _totalInBatch,
       scannedCount: _scannedCount,
       isScanning: _isScanning,
+      totalFiles: _totalFiles,
     ));
   }
 
@@ -323,6 +331,7 @@ class AutoSyncService {
       totalInBatch: _totalInBatch,
       scannedCount: _scannedCount,
       isScanning: true,
+      totalFiles: _totalFiles,
     ));
   }
 
@@ -337,6 +346,7 @@ class AutoSyncService {
       totalInBatch: _totalInBatch,
       scannedCount: _scannedCount,
       isScanning: _isScanning,
+      totalFiles: _totalFiles,
     ));
   }
 }

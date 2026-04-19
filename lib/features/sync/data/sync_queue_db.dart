@@ -122,6 +122,39 @@ class SyncQueueDb {
     }
   }
 
+  Future<bool> isDoneByFingerprint({
+    required String sha256,
+    required int fileSize,
+    required String mimeType,
+  }) async {
+    try {
+      final hashPreview = sha256.length > 16 ? '${sha256.substring(0, 16)}...' : sha256;
+      debugPrint('[SyncQueueDb] 🔍 Dublikat tekshirish:');
+      debugPrint('  - SHA256: $hashPreview');
+      debugPrint('  - Size: $fileSize bytes');
+      debugPrint('  - MIME: $mimeType');
+
+      final result = await _database.query(
+        'sync_queue',
+        where: 'sha256 = ? AND file_size = ? AND mime_type = ? AND status = ?',
+        whereArgs: [sha256, fileSize, mimeType, SyncStatus.done.name],
+        limit: 1,
+      );
+
+      final isDuplicate = result.isNotEmpty;
+      if (isDuplicate) {
+        debugPrint('  ✅ DUBLIKAT topildi! (yuklanmaydi)');
+      } else {
+        debugPrint('  ➕ YANGI fayl (yuklanadi)');
+      }
+
+      return isDuplicate;
+    } catch (e) {
+      debugPrint('[SyncQueueDb] ❌ isDoneByFingerprint failed: $e');
+      return false;
+    }
+  }
+
   Future<bool> exists(String localId) async {
     try {
       final result = await _database.query('sync_queue', where: 'local_id = ?', whereArgs: [localId], limit: 1);

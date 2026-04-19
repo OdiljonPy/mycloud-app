@@ -120,15 +120,22 @@ class MediaScanner {
 
               // Compute hash for deduplication
               final hash = await _computeHash(asset, file, size);
+              final mimeType = _mimeForAsset(asset);
 
-              // Check if a file with the same hash was already uploaded
-              if (hash != null && await db.isDoneByHash(hash)) {
+              // Check if a file with the same fingerprint was already uploaded
+              // Using hash + size + mime for stronger duplicate detection
+              if (hash != null &&
+                  await db.isDoneByFingerprint(
+                    sha256: hash,
+                    fileSize: size,
+                    mimeType: mimeType,
+                  )) {
                 await db.insertOrIgnore(SyncTask(
                   localId: asset.id,
                   filePath: file.path,
                   fileName: name,
                   fileSize: size,
-                  mimeType: _mimeForAsset(asset),
+                  mimeType: mimeType,
                   sha256: hash,
                   sessionId: sessionId,
                   status: SyncStatus.done,

@@ -72,14 +72,24 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // iOS HIG ranglar
+    final bgColor = isDark ? const Color(0xFF000000) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subtitleColor = isDark ? const Color(0xFF98989D) : const Color(0xFF8E8E93);
+    final inputFillColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF5F7FA);
+    final hintColor = isDark ? const Color(0xFF636366) : const Color(0xFFC7C7CC);
+    final accentColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF1A73E8);
+    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: bgColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios,
-              color: Colors.black, size: 20),
+          icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -95,37 +105,36 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A73E8).withValues(alpha: 0.1),
+                  color: accentColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.lock_reset_rounded,
-                    color: Color(0xFF1A73E8), size: 28),
+                child: Icon(Icons.lock_reset_rounded, color: accentColor, size: 28),
               ),
 
               const SizedBox(height: 24),
 
-              const Text(
+              Text(
                 'Forgot Password?',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: textColor,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Enter your phone number and we\'ll send you a code to reset your password.',
-                style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                style: TextStyle(fontSize: 14, color: subtitleColor),
               ),
 
               const SizedBox(height: 40),
 
-              const Text(
+              Text(
                 'Phone Number',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  color: textColor,
                 ),
               ),
               const SizedBox(height: 8),
@@ -134,22 +143,21 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 focusNode: _phoneFocus,
                 keyboardType: TextInputType.phone,
                 inputFormatters: [UzbekPhoneFormatter()],
-                style: const TextStyle(fontSize: 15),
+                style: TextStyle(fontSize: 15, color: textColor),
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
                   hintText: '+998 XX XXX XX XX',
-                  hintStyle: TextStyle(color: Colors.grey[400]),
+                  hintStyle: TextStyle(color: hintColor),
                   filled: true,
-                  fillColor: const Color(0xFFF5F7FA),
+                  fillColor: inputFillColor,
                   prefixIcon: Container(
                     margin: const EdgeInsets.all(10),
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1A73E8).withValues(alpha: 0.1),
+                      color: accentColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.phone_rounded,
-                        color: Color(0xFF1A73E8), size: 18),
+                    child: Icon(Icons.phone_rounded, color: accentColor, size: 18),
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -157,8 +165,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(
-                      color: Color(0xFF1A73E8),
+                    borderSide: BorderSide(
+                      color: accentColor,
                       width: 1.5,
                     ),
                   ),
@@ -170,9 +178,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               ),
               if (_phoneTouched && !_isPhoneValid) ...[
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Неверный номер телефона',
-                  style: TextStyle(color: Colors.red, fontSize: 12),
+                  style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],
 
@@ -181,22 +189,21 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.08),
+                    color: errorColor.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: Colors.red.withValues(alpha: 0.2),
+                      color: errorColor.withValues(alpha: 0.2),
                     ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline,
-                          color: Colors.red, size: 18),
+                      Icon(Icons.error_outline, color: errorColor, size: 18),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _error!,
-                          style: const TextStyle(
-                            color: Colors.red,
+                          style: TextStyle(
+                            color: errorColor,
                             fontSize: 13,
                           ),
                         ),
@@ -214,9 +221,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _sendOtp,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A73E8),
-                    disabledBackgroundColor:
-                        const Color(0xFF1A73E8).withValues(alpha: 0.5),
+                    backgroundColor: accentColor,
+                    disabledBackgroundColor: accentColor.withValues(alpha: 0.5),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),

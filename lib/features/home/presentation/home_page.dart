@@ -8,6 +8,7 @@ import '../../../core/storage/secure_storage.dart';
 import '../../../core/config/app_config.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../sync/presentation/auto_sync_settings_page.dart';
+import '../../sync/auto_sync_service.dart';
 import '../data/home_repository.dart';
 import 'photo_viewer_page.dart';
 import 'device_media_viewer_page.dart';
@@ -62,7 +63,7 @@ class HomePageState extends State<HomePage> {
       final results = await Future.wait([
         _profileRepo.getStorageUsed(),
         _profileRepo.getContentStatistics(),
-        _loadGalleryFiles(), // Load from device gallery instead of API
+        _loadGalleryFiles(),
       ]);
       if (mounted) {
         setState(() {
@@ -72,6 +73,11 @@ class HomePageState extends State<HomePage> {
           _isLoading = false;
         });
       }
+
+      // Sinxronizatsiyani qayta tekshirish
+      AutoSyncService().startAutoSync().catchError((e) {
+        debugPrint('[HomePage] Auto-sync refresh error: $e');
+      });
     } catch (_) {
       if (mounted) setState(() { _userName = name; _isLoading = false; });
     }
