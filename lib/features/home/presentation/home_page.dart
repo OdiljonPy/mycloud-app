@@ -99,6 +99,11 @@ class HomePageState extends State<HomePage> {
 
     if (albums.isEmpty) return;
 
+    // Reset pagination state
+    _currentPage = 0;
+    _hasMoreGalleryFiles = true;
+    _recentGalleryFiles.clear();
+
     // Store album reference for pagination
     _galleryAlbum = albums.first;
 
