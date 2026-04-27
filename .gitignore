@@ -1,3 +1,7 @@
+# Binaries
+*.apk
+*.zip
+
 # Flutter
 .dart_tool/
 .flutter-plugins
@@ -30,3 +34,5 @@ lib/core/config/app_config_local.dart
 .vscode/
 .DS_Store
 patch_*.py
+android/app/bulutcha.jks
+android/key.properties
