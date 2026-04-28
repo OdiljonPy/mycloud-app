@@ -12,7 +12,7 @@ class AutoSyncSettingsPage extends StatefulWidget {
   State<AutoSyncSettingsPage> createState() => _AutoSyncSettingsPageState();
 }
 
-class _AutoSyncSettingsPageState extends State<AutoSyncSettingsPage> {
+class _AutoSyncSettingsPageState extends State<AutoSyncSettingsPage> with AutomaticKeepAliveClientMixin {
   static const _accent = Color(0xFF2563EB);
 
   final AutoSyncService _syncService = AutoSyncService();
@@ -26,6 +26,9 @@ class _AutoSyncSettingsPageState extends State<AutoSyncSettingsPage> {
 
   StreamSubscription<SyncProgress>? _progressSub;
   SyncProgress _lastProgress = const SyncProgress();
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -152,6 +155,7 @@ class _AutoSyncSettingsPageState extends State<AutoSyncSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin uchun kerak
     final t = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -440,31 +444,31 @@ class _AutoSyncSettingsPageState extends State<AutoSyncSettingsPage> {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: OutlinedButton(
-                      onPressed: _resetQueue,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30),
-                        side: BorderSide(
-                          color: isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30),
-                          width: 1.5,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        t.syncResetButton,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
+                  // const SizedBox(height: 12),
+                  // SizedBox(
+                  //   width: double.infinity,
+                  //   height: 50,
+                  //   child: OutlinedButton(
+                  //     onPressed: _resetQueue,
+                  //     style: OutlinedButton.styleFrom(
+                  //       foregroundColor: isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30),
+                  //       side: BorderSide(
+                  //         color: isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30),
+                  //         width: 1.5,
+                  //       ),
+                  //       shape: RoundedRectangleBorder(
+                  //         borderRadius: BorderRadius.circular(12),
+                  //       ),
+                  //     ),
+                  //     child: Text(
+                  //       t.syncResetButton,
+                  //       style: const TextStyle(
+                  //         fontSize: 17,
+                  //         fontWeight: FontWeight.w600,
+                  //       ),
+                  //     ),
+                  //   ),
+                  // ),
                 ],
               ),
             ),

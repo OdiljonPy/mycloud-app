@@ -1,8 +1,11 @@
 import 'dart:ui';
+import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
+import 'package:photo_manager/photo_manager.dart';
+import 'package:image_picker/image_picker.dart';
 import '../data/home_repository.dart';
 import '../data/download_repository.dart';
 import '../data/models/folder_model.dart';
@@ -386,19 +389,35 @@ class FilesPageState extends State<FilesPage> {
   }
 
   Future<void> _pickAndUploadFiles() async {
-    final result = await FilePicker.platform.pickFiles(
-      allowMultiple: true,
-      type: FileType.media,
-    );
-    if (result == null || result.files.isEmpty) return;
+    final ImagePicker picker = ImagePicker();
+
+    // Pick multiple images/videos from gallery
+    final List<XFile> selectedFiles = await picker.pickMultipleMedia();
+
+    if (selectedFiles.isEmpty) return;
     if (!mounted) return;
+
+    // Convert XFile to PlatformFile
+    final List<PlatformFile> files = [];
+    for (final xFile in selectedFiles) {
+      final file = File(xFile.path);
+      files.add(PlatformFile(
+        name: xFile.name,
+        size: await file.length(),
+        path: xFile.path,
+      ));
+    }
+
+    if (files.isEmpty) return;
+    if (!mounted) return;
+
     final currentFolder = _currentFolderId;
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => UploadPage(
           parentId: currentFolder,
-          initialFiles: result.files,
+          initialFiles: files,
           onUploadComplete: () async {
             await Future.delayed(const Duration(seconds: 2));
             _loadContent();

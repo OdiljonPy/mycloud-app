@@ -165,6 +165,27 @@ class SyncQueueDb {
     }
   }
 
+  Future<SyncStatus?> getStatus(String localId) async {
+    try {
+      final result = await _database.query('sync_queue', where: 'local_id = ?', whereArgs: [localId], limit: 1);
+      if (result.isEmpty) return null;
+      final statusStr = result.first['status'] as String;
+      return SyncStatus.values.firstWhere((s) => s.name == statusStr);
+    } catch (e) {
+      debugPrint('[SyncQueueDb] getStatus failed: $e');
+      return null;
+    }
+  }
+
+  Future<void> deleteByLocalId(String localId) async {
+    try {
+      await _database.delete('sync_queue', where: 'local_id = ?', whereArgs: [localId]);
+      debugPrint('[SyncQueueDb] Deleted task with localId: $localId');
+    } catch (e) {
+      debugPrint('[SyncQueueDb] deleteByLocalId failed: $e');
+    }
+  }
+
   Future<Map<String, int>> getStatusCounts() async {
     try {
       final counts = <String, int>{'pending': 0, 'uploading': 0, 'done': 0, 'failed': 0};

@@ -3,15 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
-import 'package:photo_manager/photo_manager.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/config/app_config.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../sync/presentation/auto_sync_settings_page.dart';
 import '../../sync/auto_sync_service.dart';
+import '../../sync/data/gallery_service.dart';
 import '../data/home_repository.dart';
 import 'photo_viewer_page.dart';
-import 'device_media_viewer_page.dart';
 import '../../../main.dart';
 
 class HomePage extends StatefulWidget {
@@ -37,24 +36,37 @@ class HomePageState extends State<HomePage> {
   final _homeRepo = HomeRepository();
   Map<String, dynamic> _storageData = {};
   Map<String, dynamic> _statsData = {};
-  List<AssetEntity> _recentGalleryFiles = [];
+  List<GalleryFile> _backendGalleryFiles = [];
   String? _userName;
   bool _isLoading = true;
 
   // Pagination state
-  AssetPathEntity? _galleryAlbum;
-  int _currentPage = 0;
-  final int _pageSize = 50;
+  int _currentPage = 1;
+  final int _pageSize = 20;
   bool _hasMoreGalleryFiles = true;
   bool _isLoadingMore = false;
-
-  // Prevent double-tap on gallery items
-  bool _isOpeningGallery = false;
+  int _totalCount = 0;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoadingMore && _hasMoreGalleryFiles) {
+        _loadMoreBackendGalleryFiles();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -63,7 +75,7 @@ class HomePageState extends State<HomePage> {
       final results = await Future.wait([
         _profileRepo.getStorageUsed(),
         _profileRepo.getContentStatistics(),
-        _loadGalleryFiles(),
+        _loadBackendGalleryFiles(),
       ]);
       if (mounted) {
         setState(() {
@@ -83,60 +95,56 @@ class HomePageState extends State<HomePage> {
     }
   }
 
-  // Load initial gallery files with pagination support
-  Future<void> _loadGalleryFiles() async {
-    final permission = await PhotoManager.requestPermissionExtend();
-    if (!permission.isAuth) return;
-
-    final albums = await PhotoManager.getAssetPathList(
-      type: RequestType.common, // Get both images and videos
-      filterOption: FilterOptionGroup(
-        imageOption: const FilterOption(
-          sizeConstraint: SizeConstraint(ignoreSize: true),
-        ),
-      ),
-    );
-
-    if (albums.isEmpty) return;
+  // Load backend gallery files with pagination
+  Future<void> _loadBackendGalleryFiles() async {
+    final token = await SecureStorage.getAccessToken();
+    if (token == null || token.isEmpty) return;
 
     // Reset pagination state
-    _currentPage = 0;
+    _currentPage = 1;
     _hasMoreGalleryFiles = true;
-    _recentGalleryFiles.clear();
-
-    // Store album reference for pagination
-    _galleryAlbum = albums.first;
+    _backendGalleryFiles.clear();
 
     // Load first page
-    await _loadMoreGalleryFiles();
+    await _loadMoreBackendGalleryFiles();
   }
 
-  // Load more gallery files (pagination)
-  Future<void> _loadMoreGalleryFiles() async {
-    if (_galleryAlbum == null || _isLoadingMore || !_hasMoreGalleryFiles) {
+  // Load more backend gallery files (pagination)
+  Future<void> _loadMoreBackendGalleryFiles() async {
+    if (_isLoadingMore || !_hasMoreGalleryFiles) {
       return;
     }
 
     if (mounted) setState(() => _isLoadingMore = true);
 
     try {
-      final start = _currentPage * _pageSize;
-      final end = start + _pageSize;
+      final token = await SecureStorage.getAccessToken();
+      if (token == null || token.isEmpty) {
+        if (mounted) setState(() => _isLoadingMore = false);
+        return;
+      }
 
-      final assets = await _galleryAlbum!.getAssetListRange(
-        start: start,
-        end: end,
+      final galleryService = GalleryService(
+        baseUrl: AppConfig.instance.baseUrl,
+        token: token,
+      );
+
+      final response = await galleryService.getGalleryPaginated(
+        page: _currentPage,
+        pageSize: _pageSize,
       );
 
       if (mounted) {
         setState(() {
-          _recentGalleryFiles.addAll(assets);
+          _backendGalleryFiles.addAll(response.results);
+          _totalCount = response.count;
           _currentPage++;
-          _hasMoreGalleryFiles = assets.length == _pageSize;
+          _hasMoreGalleryFiles = response.next != null;
           _isLoadingMore = false;
         });
       }
     } catch (e) {
+      debugPrint('[HomePage] Load backend gallery failed: $e');
       if (mounted) {
         setState(() {
           _isLoadingMore = false;
@@ -244,6 +252,7 @@ class HomePageState extends State<HomePage> {
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
               : SingleChildScrollView(
+                  controller: _scrollController,
                   physics: const AlwaysScrollableScrollPhysics(),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -392,161 +401,62 @@ class HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildStatisticsSection(ColorScheme cs, AppLocalizations t) {
-    final image = _statsData['image'] as Map<String, dynamic>? ?? {};
-    final video = _statsData['video'] as Map<String, dynamic>? ?? {};
-    final sharedByMe = _statsData['shared_by_me'] as Map<String, dynamic>? ?? {};
-    final sharedWithMe = _statsData['shared_with_me'] as Map<String, dynamic>? ?? {};
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            t.overallStats,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: cs.onSurface,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 180,
-                child: _StatCard(
-                  icon: Icons.image_rounded,
-                  iconColor: const Color(0xFF1A73E8),
-                  label: t.images,
-                  count: '${image['count'] ?? 0}',
-                  subtitle: _fmt(image['size']),
-                ),
-              ),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 180,
-                child: _StatCard(
-                  icon: Icons.videocam_rounded,
-                  iconColor: const Color(0xFFE53935),
-                  label: t.videos,
-                  count: '${video['count'] ?? 0}',
-                  subtitle: _fmt(video['size']),
-                ),
-              ),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 180,
-                child: _StatCard(
-                  icon: Icons.share_rounded,
-                  iconColor: Colors.green,
-                  label: t.sharedByMe,
-                  count: '${(sharedByMe['files'] ?? 0) + (sharedByMe['folders'] ?? 0)}',
-                  subtitle: '${sharedByMe['users'] ?? 0} ${t.participants}',
-                ),
-              ),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 180,
-                child: _StatCard(
-                  icon: Icons.person_rounded,
-                  iconColor: Colors.orange,
-                  label: t.sharedWithMe,
-                  count: '${(sharedWithMe['files'] ?? 0) + (sharedWithMe['folders'] ?? 0)}',
-                  subtitle: '${sharedWithMe['users'] ?? 0} ${t.participants}',
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Recent files section
-  Widget _buildRecentSection(ColorScheme cs, AppLocalizations t) {
-    final image = _statsData['image'] as Map<String, dynamic>? ?? {};
-    final video = _statsData['video'] as Map<String, dynamic>? ?? {};
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                t.fileTypes,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: cs.onSurface,
-                ),
-              ),
-              TextButton(
-                onPressed: () => widget.onNavigateToFiles?.call(),
-                child: Text(
-                  t.viewAll,
-                  style: const TextStyle(
-                    color: Color(0xFF1A73E8),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _FileTypeCard(
-                  icon: Icons.image_rounded,
-                  label: t.images,
-                  count: '${image['count'] ?? 0}',
-                  size: _fmt(image['size']),
-                  color: const Color(0xFF1A73E8),
-                  isDark: isDark,
-                  onTap: () => widget.onNavigateToFiles?.call(),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _FileTypeCard(
-                  icon: Icons.videocam_rounded,
-                  label: t.videos,
-                  count: '${video['count'] ?? 0}',
-                  size: _fmt(video['size']),
-                  color: const Color(0xFFE53935),
-                  isDark: isDark,
-                  onTap: () => widget.onNavigateToFiles?.call(),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   // State variable for layout toggle
   bool _isGridView = true;
 
-  // Recent files section with grid/list toggle - from device gallery
+  // Group files by date
+  Map<String, List<GalleryFile>> _groupFilesByDate() {
+    final t = AppLocalizations.of(context)!;
+    final Map<String, List<GalleryFile>> grouped = {};
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    for (final file in _backendGalleryFiles) {
+      if (file.capturedAt == null) continue;
+
+      try {
+        final fileDate = DateTime.parse(file.capturedAt!);
+        final fileDateOnly = DateTime(fileDate.year, fileDate.month, fileDate.day);
+
+        String dateKey;
+        if (fileDateOnly == today) {
+          dateKey = t.today;
+        } else if (fileDateOnly == yesterday) {
+          dateKey = t.yesterday;
+        } else {
+          dateKey = '${fileDate.day} ${_getMonthName(fileDate.month)}';
+        }
+
+        grouped.putIfAbsent(dateKey, () => []);
+        grouped[dateKey]!.add(file);
+      } catch (e) {
+        continue;
+      }
+    }
+
+    return grouped;
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
+      'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr'
+    ];
+    return months[month - 1];
+  }
+
+  // Recent files section with grid/list toggle - from backend gallery
   Widget _buildRecentFilesSection(ColorScheme cs, AppLocalizations t) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Show nothing if no media files from gallery
-    if (_recentGalleryFiles.isEmpty) {
+    // Show nothing if no media files from backend gallery
+    if (_backendGalleryFiles.isEmpty) {
       return const SizedBox.shrink();
     }
+
+    // Group files by date
+    final groupedFiles = _groupFilesByDate();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -578,100 +488,102 @@ class HomePageState extends State<HomePage> {
             ],
           ),
           const SizedBox(height: 12),
-          _isGridView
-              ? GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
+
+          // Show grouped files by date
+          ...groupedFiles.entries.map((entry) {
+            final dateLabel = entry.key;
+            final files = entry.value;
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Date header
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, bottom: 12),
+                  child: Text(
+                    dateLabel,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: cs.onSurface.withValues(alpha: 0.7),
+                    ),
                   ),
-                  itemCount: _recentGalleryFiles.length + (_hasMoreGalleryFiles ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    // Load more indicator at the end
-                    if (index == _recentGalleryFiles.length) {
-                      // Trigger loading more
-                      if (_hasMoreGalleryFiles && !_isLoadingMore) {
-                        Future.microtask(() => _loadMoreGalleryFiles());
-                      }
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      );
-                    }
-
-                    final asset = _recentGalleryFiles[index];
-                    return _GalleryItemGrid(
-                      index: index,
-                      asset: asset,
-                      isDark: isDark,
-                      onTap: () => _openDeviceGallery(index),
-                    );
-                  },
-                )
-              : ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _recentGalleryFiles.length + (_hasMoreGalleryFiles ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    // Load more indicator at the end
-                    if (index == _recentGalleryFiles.length) {
-                      // Trigger loading more
-                      if (_hasMoreGalleryFiles && !_isLoadingMore) {
-                        Future.microtask(() => _loadMoreGalleryFiles());
-                      }
-                      return Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: cs.onSurface.withValues(alpha: 0.5),
-                          ),
-                        ),
-                      );
-                    }
-
-                    final asset = _recentGalleryFiles[index];
-                    return _GalleryItemList(
-                      asset: asset,
-                      isDark: isDark,
-                      onTap: () => _openDeviceGallery(index),
-                    );
-                  },
                 ),
+
+                // Grid or List view for this date group
+                _isGridView
+                    ? GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                        ),
+                        itemCount: files.length,
+                        itemBuilder: (context, index) {
+                          final file = files[index];
+                          final globalIndex = _backendGalleryFiles.indexOf(file);
+                          return _BackendGalleryItemGrid(
+                            index: globalIndex,
+                            file: file,
+                            isDark: isDark,
+                            onTap: () => _openBackendGallery(globalIndex),
+                          );
+                        },
+                      )
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: files.length,
+                        itemBuilder: (context, index) {
+                          final file = files[index];
+                          final globalIndex = _backendGalleryFiles.indexOf(file);
+                          return _BackendGalleryItemList(
+                            file: file,
+                            isDark: isDark,
+                            onTap: () => _openBackendGallery(globalIndex),
+                          );
+                        },
+                      ),
+                const SizedBox(height: 16),
+              ],
+            );
+          }),
+
+          // Load more indicator
+          if (_isLoadingMore)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: cs.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 
-  // Open gallery viewer with device media files
-  Future<void> _openDeviceGallery(int initialIndex) async {
-    // Prevent double-tap: if already opening, ignore
-    if (_isOpeningGallery) return;
+  // Open gallery viewer with backend media files
+  Future<void> _openBackendGallery(int initialIndex) async {
+    if (!mounted) return;
 
-    _isOpeningGallery = true;
+    final authToken = await SecureStorage.getAccessToken();
+    final files = _backendGalleryFiles;
 
-    try {
-      if (!mounted) return;
+    if (files.isEmpty || initialIndex >= files.length) return;
 
-      // Pass AssetEntity list directly for lazy loading in viewer
-      // Using named constructor directly
-      final viewer = DeviceMediaViewerPage(
-        assets: _recentGalleryFiles,
-        initialIndex: initialIndex,
-      );
+    final mediaFiles = files.map((file) => {
+      'id': file.id,
+      'mime_type': file.mimeType,
+      'name': file.name,
+      'thumbnail_path': file.thumbnailPath,
+    }).toList();
 
-      await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => viewer),
-      );
-    } finally {
-      // Reset flag when navigation completes (user comes back)
-      _isOpeningGallery = false;
-    }
+    await _openGallery(mediaFiles, files[initialIndex].id);
   }
 
   String? _normalizeUrl(String? raw) {
@@ -782,174 +694,6 @@ class HomePageState extends State<HomePage> {
   }
 }
 
-// ─── Stat Card ───────────────────────────────────────────────────────────────
-
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String label;
-  final String count;
-  final String subtitle;
-
-  const _StatCard({
-    required this.icon,
-    required this.iconColor,
-    required this.label,
-    required this.count,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: iconColor, size: 22),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: cs.onSurface.withValues(alpha: 0.5),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  count,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: cs.onSurface,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: cs.onSurface.withValues(alpha: 0.5),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── File Type Card ──────────────────────────────────────────────────────────
-
-class _FileTypeCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String count;
-  final String size;
-  final Color color;
-  final bool isDark;
-  final VoidCallback onTap;
-
-  const _FileTypeCard({
-    required this.icon,
-    required this.label,
-    required this.count,
-    required this.size,
-    required this.color,
-    required this.isDark,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context)!;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              color.withValues(alpha: isDark ? 0.2 : 0.1),
-              color.withValues(alpha: isDark ? 0.1 : 0.05),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: color.withValues(alpha: 0.2),
-            width: 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              t.filesLabel(count),
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              size,
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark ? Colors.white60 : Colors.black54,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // ─── Quick Action Card ───────────────────────────────────────────────────────
 
 class _QuickActionCard extends StatelessWidget {
@@ -1015,164 +759,58 @@ class _QuickActionCard extends StatelessWidget {
   }
 }
 
-// ─── Animated Gallery Item ──────────────────────────────────────────────────
+// ─── Backend Gallery Item Grid ──────────────────────────────────────────────
 
-class _AnimatedGalleryItem extends StatefulWidget {
+class _BackendGalleryItemGrid extends StatelessWidget {
   final int index;
-  final String imageUrl;
+  final GalleryFile file;
   final bool isDark;
   final VoidCallback onTap;
 
-  const _AnimatedGalleryItem({
+  const _BackendGalleryItemGrid({
     required this.index,
-    required this.imageUrl,
+    required this.file,
     required this.isDark,
     required this.onTap,
   });
 
   @override
-  State<_AnimatedGalleryItem> createState() => _AnimatedGalleryItemState();
-}
-
-class _AnimatedGalleryItemState extends State<_AnimatedGalleryItem>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-
-    // Staggered delay based on index (row-by-row animation)
-    final delay = (widget.index ~/ 3) * 100 + (widget.index % 3) * 50;
-    Future.delayed(Duration(milliseconds: delay), () {
-      if (mounted) _controller.forward();
-    });
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.8, curve: Curves.easeOut),
-      ),
-    );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.4),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeOutCubic,
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: GestureDetector(
-          onTap: widget.onTap,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              decoration: BoxDecoration(
-                color: widget.isDark ? Colors.grey[900] : Colors.grey[200],
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: CachedNetworkImage(
-                imageUrl: widget.imageUrl,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: widget.isDark ? Colors.grey[800] : Colors.grey[300],
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: widget.isDark ? Colors.white24 : Colors.black26,
-                    ),
-                  ),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: widget.isDark ? Colors.grey[800] : Colors.grey[300],
-                  child: Icon(
-                    Icons.image_not_supported_rounded,
-                    color: widget.isDark ? Colors.grey[600] : Colors.grey[400],
-                    size: 32,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+    final thumbnailUrl = file.thumbnailPath ?? '';
+    final normalizedUrl = _normalizeUrl(thumbnailUrl, context);
 
-// ─── Gallery Item Grid (from device) ────────────────────────────────────────
-
-class _GalleryItemGrid extends StatefulWidget {
-  final int index;
-  final AssetEntity asset;
-  final bool isDark;
-  final VoidCallback onTap;
-
-  const _GalleryItemGrid({
-    required this.index,
-    required this.asset,
-    required this.isDark,
-    required this.onTap,
-  });
-
-  @override
-  State<_GalleryItemGrid> createState() => _GalleryItemGridState();
-}
-
-class _GalleryItemGridState extends State<_GalleryItemGrid> {
-  @override
-  Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: widget.onTap,
+      onTap: onTap,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Container(
           decoration: BoxDecoration(
-            color: widget.isDark ? Colors.grey[900] : Colors.grey[200],
+            color: isDark ? Colors.grey[900] : Colors.grey[200],
             borderRadius: BorderRadius.circular(12),
           ),
-          child: FutureBuilder<Uint8List?>(
-            future: widget.asset.thumbnailDataWithSize(const ThumbnailSize(200, 200)),
-            builder: (_, snapshot) {
-              if (snapshot.hasData && snapshot.data != null) {
-                return Stack(
+          child: normalizedUrl.isNotEmpty
+              ? Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.memory(
-                      snapshot.data!,
+                    CachedNetworkImage(
+                      imageUrl: normalizedUrl,
                       fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: isDark ? Colors.grey[800] : Colors.grey[300],
+                        child: const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: isDark ? Colors.grey[800] : Colors.grey[300],
+                        child: Icon(
+                          Icons.image_not_supported_rounded,
+                          color: isDark ? Colors.grey[600] : Colors.grey[400],
+                          size: 32,
+                        ),
+                      ),
                     ),
-                    if (widget.asset.type == AssetType.video)
+                    if (file.isVideo)
                       Positioned(
                         right: 4,
                         bottom: 4,
@@ -1190,56 +828,84 @@ class _GalleryItemGridState extends State<_GalleryItemGrid> {
                         ),
                       ),
                   ],
-                );
-              }
-              return Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: widget.isDark ? Colors.white24 : Colors.black26,
+                )
+              : Center(
+                  child: Icon(
+                    Icons.image_not_supported_rounded,
+                    color: isDark ? Colors.grey[600] : Colors.grey[400],
+                    size: 32,
+                  ),
                 ),
-              );
-            },
-          ),
         ),
       ),
     );
   }
+
+  String _normalizeUrl(String? raw, BuildContext context) {
+    if (raw == null || raw.isEmpty) return '';
+    final uri = Uri.tryParse(raw);
+    if (uri != null && uri.hasScheme) return raw;
+
+    final base = Uri.parse(AppConfig.instance.baseUrl);
+    final origin = base.replace(path: '/', query: '', fragment: '');
+
+    if (raw.startsWith('/media/') || raw.startsWith('/static/')) {
+      return origin.resolve(raw).toString();
+    }
+    if (raw.startsWith('/api/')) {
+      return origin.resolve(raw).toString();
+    }
+    if (raw.startsWith('/content/')) {
+      return base.resolve(raw.substring(1)).toString();
+    }
+    if (raw.startsWith('/')) {
+      return origin.resolve(raw).toString();
+    }
+    return base.resolve(raw).toString();
+  }
 }
 
-// ─── Gallery Item List (from device) ────────────────────────────────────────
+// ─── Backend Gallery Item List ──────────────────────────────────────────────
 
-class _GalleryItemList extends StatelessWidget {
-  final AssetEntity asset;
+class _BackendGalleryItemList extends StatelessWidget {
+  final GalleryFile file;
   final bool isDark;
   final VoidCallback onTap;
 
-  const _GalleryItemList({
-    required this.asset,
+  const _BackendGalleryItemList({
+    required this.file,
     required this.isDark,
     required this.onTap,
   });
 
-  String _formatDate(DateTime date, AppLocalizations t) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
+  String _formatDate(String? dateStr, AppLocalizations t) {
+    if (dateStr == null || dateStr.isEmpty) return '';
 
-    if (difference.inDays == 0) {
-      return '${t.today} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
-    } else if (difference.inDays == 1) {
-      return t.yesterday;
-    } else if (difference.inDays < 7) {
-      return t.daysAgo(difference.inDays);
-    } else {
-      return '${date.day}.${date.month}.${date.year}';
+    try {
+      final date = DateTime.parse(dateStr);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+
+      if (difference.inDays == 0) {
+        return '${t.today} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+      } else if (difference.inDays == 1) {
+        return t.yesterday;
+      } else if (difference.inDays < 7) {
+        return t.daysAgo(difference.inDays);
+      } else {
+        return '${date.day}.${date.month}.${date.year}';
+      }
+    } catch (e) {
+      return '';
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isVideo = asset.type == AssetType.video;
-    final fileName = asset.title ?? 'Unknown';
-    final fileDate = asset.createDateTime;
+    final t = AppLocalizations.of(context)!;
+    final thumbnailUrl = file.thumbnailPath ?? '';
+    final normalizedUrl = _normalizeUrl(thumbnailUrl, context);
 
     return GestureDetector(
       onTap: onTap,
@@ -1264,18 +930,29 @@ class _GalleryItemList extends StatelessWidget {
               child: SizedBox(
                 width: 60,
                 height: 60,
-                child: FutureBuilder<Uint8List?>(
-                  future: asset.thumbnailDataWithSize(const ThumbnailSize(200, 200)),
-                  builder: (_, snapshot) {
-                    if (snapshot.hasData && snapshot.data != null) {
-                      return Stack(
+                child: normalizedUrl.isNotEmpty
+                    ? Stack(
                         fit: StackFit.expand,
                         children: [
-                          Image.memory(
-                            snapshot.data!,
+                          CachedNetworkImage(
+                            imageUrl: normalizedUrl,
                             fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              color: isDark ? Colors.grey[800] : Colors.grey[300],
+                              child: const Center(
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              color: isDark ? Colors.grey[800] : Colors.grey[300],
+                              child: Icon(
+                                Icons.image_not_supported_rounded,
+                                color: isDark ? Colors.grey[600] : Colors.grey[400],
+                                size: 24,
+                              ),
+                            ),
                           ),
-                          if (isVideo)
+                          if (file.isVideo)
                             Positioned(
                               right: 4,
                               bottom: 4,
@@ -1293,16 +970,15 @@ class _GalleryItemList extends StatelessWidget {
                               ),
                             ),
                         ],
-                      );
-                    }
-                    return Container(
-                      color: isDark ? Colors.grey[800] : Colors.grey[300],
-                      child: const Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Container(
+                        color: isDark ? Colors.grey[800] : Colors.grey[300],
+                        child: Icon(
+                          Icons.image_not_supported_rounded,
+                          color: isDark ? Colors.grey[600] : Colors.grey[400],
+                          size: 24,
+                        ),
                       ),
-                    );
-                  },
-                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -1311,7 +987,7 @@ class _GalleryItemList extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    fileName,
+                    file.name,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -1322,7 +998,7 @@ class _GalleryItemList extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _formatDate(fileDate, AppLocalizations.of(context)!),
+                    _formatDate(file.capturedAt, t),
                     style: TextStyle(
                       fontSize: 12,
                       color: cs.onSurface.withValues(alpha: 0.5),
@@ -1339,5 +1015,28 @@ class _GalleryItemList extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _normalizeUrl(String? raw, BuildContext context) {
+    if (raw == null || raw.isEmpty) return '';
+    final uri = Uri.tryParse(raw);
+    if (uri != null && uri.hasScheme) return raw;
+
+    final base = Uri.parse(AppConfig.instance.baseUrl);
+    final origin = base.replace(path: '/', query: '', fragment: '');
+
+    if (raw.startsWith('/media/') || raw.startsWith('/static/')) {
+      return origin.resolve(raw).toString();
+    }
+    if (raw.startsWith('/api/')) {
+      return origin.resolve(raw).toString();
+    }
+    if (raw.startsWith('/content/')) {
+      return base.resolve(raw.substring(1)).toString();
+    }
+    if (raw.startsWith('/')) {
+      return origin.resolve(raw).toString();
+    }
+    return base.resolve(raw).toString();
   }
 }

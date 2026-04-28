@@ -79,22 +79,7 @@ class AutoSyncService {
       return;
     }
 
-    final baseUrl = AppConfig.instance.baseUrl;
-    final galleryService = GalleryService(baseUrl: baseUrl, token: token);
-
-    Set<String> uploadedKeys = {};
     final prefs = await SharedPreferences.getInstance();
-    final coldStartDone = prefs.getBool(_kColdStartKey) ?? false;
-
-    if (!coldStartDone) {
-      try {
-        uploadedKeys = await galleryService.getUploadedFileKeys();
-        debugPrint('[AutoSync] Cold start: loaded ${uploadedKeys.length} keys from server');
-      } catch (e) {
-        debugPrint('[AutoSync] Cold start gallery fetch failed: $e');
-      }
-    }
-
     Set<String>? selectedIds;
     final selectiveOn = prefs.getBool('auto_sync_selected_only') ?? false;
     if (selectiveOn) {
@@ -107,15 +92,11 @@ class AutoSyncService {
 
     final scanner = MediaScanner(
       db: _db,
-      uploadedKeys: uploadedKeys,
+      uploadedKeys: {}, // No longer used - backend checks duplicates
       selectedLocalIds: selectedIds,
     );
     final newItems = await scanner.scanAndEnqueue();
     debugPrint('[AutoSync] Scanned: $newItems new items enqueued');
-
-    if (!coldStartDone) {
-      await prefs.setBool(_kColdStartKey, true);
-    }
 
     await _emitProgress();
   }
@@ -201,7 +182,7 @@ class AutoSyncService {
       final uploader = TusSyncUploader();
 
       while (_isRunning && sessionId == _syncSessionId) {
-        final tasks = await _db.getPendingOldestFirst(limit: 10);
+        final tasks = await _db.getPendingOldestFirst(limit: 200);
         if (tasks.isEmpty) {
           debugPrint('[Sync] No pending tasks, sync complete');
           break;
@@ -241,6 +222,8 @@ class AutoSyncService {
           await _db.markUploading(task.id!);
           await _emitProgress(currentProgress: 0.0);
 
+          debugPrint('[Sync] 📤 Uploading: ${task.fileName} (${(task.fileSize / 1024 / 1024).toStringAsFixed(2)} MB, ${task.mimeType})');
+
           try {
             final serverUuid = await uploader.upload(
               task,
@@ -250,7 +233,7 @@ class AutoSyncService {
               },
             );
             await _db.markDone(task.id!, serverUuid);
-            debugPrint('[Sync] Uploaded: ${task.fileName} -> $serverUuid');
+            debugPrint('[Sync] ✅ Uploaded: ${task.fileName} -> $serverUuid');
           } on TusUploadException catch (e) {
             await _db.markFailed(task.id!);
             debugPrint('[Sync][ERROR] Upload failed: ${task.fileName} — $e');
