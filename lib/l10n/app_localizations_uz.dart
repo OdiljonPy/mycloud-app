@@ -586,4 +586,14 @@ class AppLocalizationsUz extends AppLocalizations {
   String daysAgo(int count) {
     return '$count kun oldin';
   }
+
+  @override
+  String get deleteAccount => 'Hisobni o\'chirish';
+
+  @override
+  String get deleteAccountConfirm => 'Hisobni o\'chirish';
+
+  @override
+  String get deleteAccountConfirmMessage =>
+      'Hisobingizni o\'chirishni xohlaysizmi? Bu amalni qaytarib bo\'lmaydi.';
 }

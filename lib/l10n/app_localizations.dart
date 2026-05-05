@@ -1191,6 +1191,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} days ago'**
   String daysAgo(int count);
+
+  /// No description provided for @deleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get deleteAccount;
+
+  /// No description provided for @deleteAccountConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get deleteAccountConfirm;
+
+  /// No description provided for @deleteAccountConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete your account? This action is irreversible.'**
+  String get deleteAccountConfirmMessage;
 }
 
 class _AppLocalizationsDelegate

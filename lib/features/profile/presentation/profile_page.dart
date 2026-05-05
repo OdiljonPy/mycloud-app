@@ -80,6 +80,26 @@ class _ProfilePageState extends State<ProfilePage> {
     return '${(b / 1024).toStringAsFixed(0)} KB';
   }
 
+  Future<void> _deleteAccount() async {
+    try {
+      await _repo.disableAccount();
+      await SecureStorage.clearTokens();
+      DioClient.reset();
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginPage()),
+          (_) => false,
+        );
+      }
+    } on AppException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   Future<void> _logout() async {
     if (widget.onLogout != null) {
       widget.onLogout!();
@@ -565,6 +585,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       _buildTheme(),
                       const SizedBox(height: 24),
                       _buildLogout(),
+                      const SizedBox(height: 12),
+                      _buildDeleteAccount(),
                       const SizedBox(height: 40),
                     ],
                   ),
@@ -981,6 +1003,59 @@ class _ProfilePageState extends State<ProfilePage> {
                   },
                   child: Text(t.logout,
                       style: const TextStyle(color: Colors.red)),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDeleteAccount() {
+    final t = AppLocalizations.of(context)!;
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        icon: const Icon(Icons.delete_forever_rounded, color: Colors.red),
+        label: Text(
+          t.deleteAccount,
+          style: const TextStyle(
+            color: Colors.red,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          side: BorderSide(color: Colors.red.withValues(alpha: 0.4)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Text(t.deleteAccountConfirm),
+              content: Text(t.deleteAccountConfirmMessage),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(t.cancel),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _deleteAccount();
+                  },
+                  child: Text(
+                    t.deleteAccount,
+                    style: const TextStyle(color: Colors.red),
+                  ),
                 ),
               ],
             ),

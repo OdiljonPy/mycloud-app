@@ -267,5 +267,8 @@
         "type": "int"
       }
     }
-  }
+  },
+  "deleteAccount": "Delete account",
+  "deleteAccountConfirm": "Delete account",
+  "deleteAccountConfirmMessage": "Are you sure you want to delete your account? This action is irreversible."
 }

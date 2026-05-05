@@ -278,5 +278,8 @@
         "type": "int"
       }
     }
-  }
+  },
+  "deleteAccount": "Hisobni o'chirish",
+  "deleteAccountConfirm": "Hisobni o'chirish",
+  "deleteAccountConfirmMessage": "Hisobingizni o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi."
 }

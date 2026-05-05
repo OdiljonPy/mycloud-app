@@ -275,5 +275,8 @@
         "type": "int"
       }
     }
-  }
+  },
+  "deleteAccount": "Удалить аккаунт",
+  "deleteAccountConfirm": "Удалить аккаунт",
+  "deleteAccountConfirmMessage": "Вы уверены, что хотите удалить аккаунт? Это действие необратимо."
 }

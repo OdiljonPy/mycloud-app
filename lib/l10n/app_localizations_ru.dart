@@ -586,4 +586,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String daysAgo(int count) {
     return '$count дней назад';
   }
+
+  @override
+  String get deleteAccount => 'Удалить аккаунт';
+
+  @override
+  String get deleteAccountConfirm => 'Удалить аккаунт';
+
+  @override
+  String get deleteAccountConfirmMessage =>
+      'Вы уверены, что хотите удалить аккаунт? Это действие необратимо.';
 }

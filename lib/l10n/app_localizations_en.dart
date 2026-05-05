@@ -584,4 +584,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String daysAgo(int count) {
     return '$count days ago';
   }
+
+  @override
+  String get deleteAccount => 'Delete account';
+
+  @override
+  String get deleteAccountConfirm => 'Delete account';
+
+  @override
+  String get deleteAccountConfirmMessage =>
+      'Are you sure you want to delete your account? This action is irreversible.';
 }
