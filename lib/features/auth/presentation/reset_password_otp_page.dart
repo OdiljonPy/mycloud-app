@@ -43,15 +43,12 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
       setState(() => _error = 'Enter the complete 6-digit code');
       return;
     }
-
     setState(() {
       _isLoading = true;
       _error = null;
     });
-
     try {
-      // Verify OTP is valid — don't save tokens (this is password reset flow)
-      await _authRepo.verifyOtp(
+      final newOtpKey = await _authRepo.verifyPasswordOtp(
         otpKey: _otpKey,
         otpCode: int.parse(_otpCode),
       );
@@ -60,39 +57,41 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
           context,
           MaterialPageRoute(
             builder: (_) => ResetPasswordPage(
-              otpKey: _otpKey,
+              otpKey: newOtpKey.isNotEmpty ? newOtpKey : _otpKey,
               otpCode: int.parse(_otpCode),
             ),
           ),
         );
       }
     } on AppException catch (e) {
-      setState(() => _error = e.message);
+      if (mounted) setState(() => _error = e.message);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _resend() async {
-    setState(() => _isResending = true);
+    if (mounted) setState(() => _isResending = true);
     try {
       final newKey = await _authRepo.resendPasswordOtp(
           phoneNumber: widget.phoneNumber);
-      setState(() => _otpKey = newKey);
-      // Clear OTP fields
+      if (!mounted) return;
+      setState(() {
+        _otpKey = newKey;
+        _error = null;
+      });
       for (final c in _controllers) {
         c.clear();
       }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('OTP code resent'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      _focusNodes[0].requestFocus();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('OTP code resent'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } on AppException catch (e) {
-      setState(() => _error = e.message);
+      if (mounted) setState(() => _error = e.message);
     } finally {
       if (mounted) setState(() => _isResending = false);
     }
