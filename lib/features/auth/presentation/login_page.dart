@@ -32,7 +32,6 @@ class _LoginPageState extends State<LoginPage> {
   bool _phoneTouched = false;
   bool _passwordTouched = false;
 
-  /// Убираем всё кроме цифр
   String _rawPhone() => _phoneController.text.replaceAll(RegExp(r'[^\d]'), '');
 
   bool get _isPhoneValid => _rawPhone().length == 12;
@@ -66,15 +65,14 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      // Отправляем чистый номер: +998XXXXXXXXX
       await _authRepo.login(
         phoneNumber: '+${_rawPhone()}',
         password: _passwordController.text,
       );
       if (mounted) {
-        Navigator.of(
-          context,
-        ).pushReplacement(MaterialPageRoute(builder: (_) => const MainPage()));
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const MainPage()),
+        );
       }
     } on AppException catch (e) {
       setState(() => _error = e.message);
@@ -94,7 +92,22 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // iOS HIG ranglar
+    final bgColor = isDark ? const Color(0xFF000000) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subtitleColor = isDark ? const Color(0xFF98989D) : const Color(0xFF8E8E93);
+    final inputFillColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF5F7FA);
+    final hintColor = isDark ? const Color(0xFF636366) : const Color(0xFFC7C7CC);
+    final accentColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF1A73E8);
+    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+
     return Scaffold(
+<<<<<<< HEAD
+=======
+      backgroundColor: bgColor,
+>>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -108,15 +121,17 @@ class _LoginPageState extends State<LoginPage> {
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1A73E8), Color(0xFF4A90E2)],
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [const Color(0xFF0A84FF), const Color(0xFF0A84FF)]
+                        : [const Color(0xFF1A73E8), const Color(0xFF4A90E2)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF1A73E8).withValues(alpha: 0.3),
+                      color: accentColor.withValues(alpha: 0.3),
                       blurRadius: 16,
                       offset: const Offset(0, 6),
                     ),
@@ -136,14 +151,18 @@ class _LoginPageState extends State<LoginPage> {
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
+<<<<<<< HEAD
                   color: Theme.of(context).colorScheme.onSurface,
+=======
+                  color: textColor,
+>>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
                   height: 1.2,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Please sign in to access your secure files.',
-                style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                style: TextStyle(fontSize: 14, color: subtitleColor),
               ),
 
               const SizedBox(height: 48),
@@ -154,7 +173,11 @@ class _LoginPageState extends State<LoginPage> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
+<<<<<<< HEAD
                   color: Theme.of(context).colorScheme.onSurface,
+=======
+                  color: textColor,
+>>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
                 ),
               ),
               const SizedBox(height: 8),
@@ -163,25 +186,29 @@ class _LoginPageState extends State<LoginPage> {
                 focusNode: _phoneFocus,
                 keyboardType: TextInputType.phone,
                 inputFormatters: [UzbekPhoneFormatter()],
-                style: const TextStyle(fontSize: 15),
+                style: TextStyle(fontSize: 15, color: textColor),
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
                   hintText: '+998 XX XXX XX XX',
-                  hintStyle: TextStyle(color: Colors.grey[400]),
+                  hintStyle: TextStyle(color: hintColor),
                   filled: true,
+<<<<<<< HEAD
                   fillColor: Theme.of(context).brightness == Brightness.dark
                       ? const Color(0xFF21262D)
                       : const Color(0xFFF5F7FA),
+=======
+                  fillColor: inputFillColor,
+>>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
                   prefixIcon: Container(
                     margin: const EdgeInsets.all(10),
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1A73E8).withValues(alpha: 0.1),
+                      color: accentColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.phone_rounded,
-                      color: Color(0xFF1A73E8),
+                      color: accentColor,
                       size: 18,
                     ),
                   ),
@@ -191,18 +218,18 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(
-                      color: Color(0xFF1A73E8),
+                    borderSide: BorderSide(
+                      color: accentColor,
                       width: 1.5,
                     ),
                   ),
                   errorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: Colors.red, width: 1),
+                    borderSide: BorderSide(color: errorColor, width: 1),
                   ),
                   focusedErrorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                    borderSide: BorderSide(color: errorColor, width: 1.5),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -212,9 +239,9 @@ class _LoginPageState extends State<LoginPage> {
               ),
               if (_phoneTouched && !_isPhoneValid) ...[
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Неверный номер телефона',
-                  style: TextStyle(color: Colors.red, fontSize: 12),
+                  style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],
 
@@ -226,7 +253,11 @@ class _LoginPageState extends State<LoginPage> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
+<<<<<<< HEAD
                   color: Theme.of(context).colorScheme.onSurface,
+=======
+                  color: textColor,
+>>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
                 ),
               ),
               const SizedBox(height: 8),
@@ -234,25 +265,29 @@ class _LoginPageState extends State<LoginPage> {
                 controller: _passwordController,
                 focusNode: _passwordFocus,
                 obscureText: _obscurePassword,
-                style: const TextStyle(fontSize: 15),
+                style: TextStyle(fontSize: 15, color: textColor),
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
                   hintText: 'Enter your password',
-                  hintStyle: TextStyle(color: Colors.grey[400]),
+                  hintStyle: TextStyle(color: hintColor),
                   filled: true,
+<<<<<<< HEAD
                   fillColor: Theme.of(context).brightness == Brightness.dark
                       ? const Color(0xFF21262D)
                       : const Color(0xFFF5F7FA),
+=======
+                  fillColor: inputFillColor,
+>>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
                   prefixIcon: Container(
                     margin: const EdgeInsets.all(10),
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1A73E8).withValues(alpha: 0.1),
+                      color: accentColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.lock_rounded,
-                      color: Color(0xFF1A73E8),
+                      color: accentColor,
                       size: 18,
                     ),
                   ),
@@ -261,7 +296,7 @@ class _LoginPageState extends State<LoginPage> {
                       _obscurePassword
                           ? Icons.visibility_off_rounded
                           : Icons.visibility_rounded,
-                      color: Colors.grey[400],
+                      color: hintColor,
                       size: 20,
                     ),
                     onPressed: () =>
@@ -273,8 +308,8 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(
-                      color: Color(0xFF1A73E8),
+                    borderSide: BorderSide(
+                      color: accentColor,
                       width: 1.5,
                     ),
                   ),
@@ -287,9 +322,9 @@ class _LoginPageState extends State<LoginPage> {
               ),
               if (_passwordTouched && !_isPasswordValid) ...[
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Минимум 8 символов',
-                  style: TextStyle(color: Colors.red, fontSize: 12),
+                  style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],
 
@@ -309,10 +344,10 @@ class _LoginPageState extends State<LoginPage> {
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text(
+                  child: Text(
                     'Forgot Password?',
                     style: TextStyle(
-                      color: Color(0xFF1A73E8),
+                      color: accentColor,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
@@ -326,25 +361,25 @@ class _LoginPageState extends State<LoginPage> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.08),
+                    color: errorColor.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: Colors.red.withValues(alpha: 0.2),
+                      color: errorColor.withValues(alpha: 0.2),
                     ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.error_outline,
-                        color: Colors.red,
+                        color: errorColor,
                         size: 18,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _error!,
-                          style: const TextStyle(
-                            color: Colors.red,
+                          style: TextStyle(
+                            color: errorColor,
                             fontSize: 13,
                           ),
                         ),
@@ -363,10 +398,8 @@ class _LoginPageState extends State<LoginPage> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A73E8),
-                    disabledBackgroundColor: const Color(
-                      0xFF1A73E8,
-                    ).withValues(alpha: 0.5),
+                    backgroundColor: accentColor,
+                    disabledBackgroundColor: accentColor.withValues(alpha: 0.5),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -404,7 +437,7 @@ class _LoginPageState extends State<LoginPage> {
                       'Don\'t have an account? ',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey[500],
+                        color: subtitleColor,
                       ),
                     ),
                     GestureDetector(
@@ -413,11 +446,11 @@ class _LoginPageState extends State<LoginPage> {
                         MaterialPageRoute(
                             builder: (_) => const RegisterPage()),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Register',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Color(0xFF1A73E8),
+                          color: accentColor,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

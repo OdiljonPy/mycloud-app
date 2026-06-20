@@ -16,6 +16,34 @@ import 'sync_progress.dart';
 import '../home/data/home_repository.dart';
 import '../home/data/models/folder_model.dart';
 
+<<<<<<< HEAD
+=======
+class SyncProgress {
+  final int pending;
+  final int uploading;
+  final int done;
+  final int failed;
+  final double currentFileProgress;
+  final String? currentFileName;
+  final int totalInBatch;
+  final int scannedCount;
+  final bool isScanning;
+  final int totalFiles;
+
+  const SyncProgress({
+    this.pending = 0,
+    this.uploading = 0,
+    this.done = 0,
+    this.failed = 0,
+    this.currentFileProgress = 0.0,
+    this.currentFileName,
+    this.totalInBatch = 0,
+    this.scannedCount = 0,
+    this.isScanning = false,
+    this.totalFiles = 0,
+  });
+}
+>>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
 
 class AutoSyncService {
 
@@ -60,22 +88,7 @@ class AutoSyncService {
       return;
     }
 
-    final baseUrl = AppConfig.instance.baseUrl;
-    final galleryService = GalleryService(baseUrl: baseUrl, token: token);
-
-    Set<String> uploadedKeys = {};
     final prefs = await SharedPreferences.getInstance();
-    final coldStartDone = prefs.getBool(_kColdStartKey) ?? false;
-
-    if (!coldStartDone) {
-      try {
-        uploadedKeys = await galleryService.getUploadedFileKeys();
-        debugPrint('[AutoSync] Cold start: loaded ${uploadedKeys.length} keys from server');
-      } catch (e) {
-        debugPrint('[AutoSync] Cold start gallery fetch failed: $e');
-      }
-    }
-
     Set<String>? selectedIds;
     final selectiveOn = prefs.getBool('auto_sync_selected_only') ?? false;
     if (selectiveOn) {
@@ -97,13 +110,14 @@ class AutoSyncService {
 
     final scanner = MediaScanner(
       db: _db,
-      uploadedKeys: uploadedKeys,
+      uploadedKeys: {}, // No longer used - backend checks duplicates
       selectedLocalIds: selectedIds,
       filterFromMs: filterFromMs,
     );
     final newItems = await scanner.scanAndEnqueue();
     debugPrint('[AutoSync] Scanned: $newItems new items enqueued');
 
+<<<<<<< HEAD
     // Обновляем watermark = now после каждого scan
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     await prefs.setInt(_kWatermarkKey, nowMs);
@@ -126,6 +140,9 @@ class AutoSyncService {
       currentFileName: _currentFileName,
       totalInBatch: _totalInBatch,
     ));
+=======
+    await _emitProgress();
+>>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
   }
 
   // FIX 1: Пересканирует галерею без cold-start логики.
@@ -145,6 +162,7 @@ class AutoSyncService {
       if (cleaned.isNotEmpty) selectedIds = cleaned;
     }
 
+<<<<<<< HEAD
     // Delta scan: сканируем только файлы после последнего синка
     final watermarkMs = prefs.getInt(_kWatermarkKey);
     final filterFromMs = watermarkMs != null
@@ -153,6 +171,8 @@ class AutoSyncService {
     debugPrint('[AutoSync] Rescan watermark: ${watermarkMs != null ? DateTime.fromMillisecondsSinceEpoch(watermarkMs) : 'none (full scan)'}');
 
     // uploadedKeys = {} т.к. дубли уже есть в локальной БД (status=done)
+=======
+>>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
     _scannedCount = 0;
     if (mySession != _syncSessionId) {
       _isScanning = false;
@@ -169,6 +189,11 @@ class AutoSyncService {
         _emit(_currentProgress.copyWith(scannedCount: _scannedCount, isScanning: true, sessionUploaded: _sessionUploadedCount));
       },
     );
+
+    _totalFiles = await scanner.countTotal();
+    debugPrint('[AutoSync] Jami fayllar: $_totalFiles');
+    await _emitProgress();
+
     final newItems = await scanner.scanAndEnqueue();
     debugPrint('[AutoSync] Rescan: $newItems new items enqueued');
 
@@ -236,7 +261,11 @@ class AutoSyncService {
       final uploader = TusSyncUploader();
 
       while (_isRunning && sessionId == _syncSessionId) {
+<<<<<<< HEAD
         final tasks = await _db.getPendingOldestFirst(limit: 50);
+=======
+        final tasks = await _db.getPendingOldestFirst(limit: 200);
+>>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
         if (tasks.isEmpty) {
           if (_isScanning) {
             await Future.delayed(const Duration(milliseconds: 500));
@@ -367,6 +396,8 @@ class AutoSyncService {
             totalInBatch: _totalInBatch,
           ));
 
+          debugPrint('[Sync] 📤 Uploading: ${task.fileName} (${(task.fileSize / 1024 / 1024).toStringAsFixed(2)} MB, ${task.mimeType})');
+
           try {
             final uploadTask = resolvedPath != task.filePath
                 ? task.copyWith(filePath: resolvedPath)
@@ -379,9 +410,14 @@ class AutoSyncService {
                 _emit(_currentProgress.copyWith(currentFileProgress: progress, sessionUploaded: _sessionUploadedCount));
               },
             );
+<<<<<<< HEAD
             await _db.markDoneWithSession(task.id!, serverUuid);
             _sessionUploadedCount++;
             debugPrint('[Sync] Uploaded: ${task.fileName} -> $serverUuid (session: $_sessionUploadedCount)');
+=======
+            await _db.markDone(task.id!, serverUuid);
+            debugPrint('[Sync] ✅ Uploaded: ${task.fileName} -> $serverUuid');
+>>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
           } on TusUploadException catch (e) {
             await _db.markFailed(task.id!);
             debugPrint('[Sync][ERROR] Upload failed: ${task.fileName} — $e');
@@ -485,6 +521,7 @@ class AutoSyncService {
   String? _currentFileName;
   int _totalInBatch = 0;
   int _scannedCount = 0;
+<<<<<<< HEAD
   int _sessionUploadedCount = 0;
   SyncProgress _currentProgress = const SyncProgress();
 
@@ -504,4 +541,57 @@ class AutoSyncService {
     _progressController.add(progress);
   }
 
+=======
+  int _totalFiles = 0;
+  Map<String, int> _lastCounts = {'pending': 0, 'uploading': 0, 'done': 0, 'failed': 0};
+
+  // FIX 2: done берётся напрямую из БД (после markDone уже там).
+  // Убрали _batchDone — он давал двойной счёт.
+  Future<void> _emitProgress({double currentProgress = 0.0}) async {
+    final counts = await _db.getStatusCounts();
+    _lastCounts = counts;
+    _progressController.add(SyncProgress(
+      pending: counts['pending'] ?? 0,
+      uploading: counts['uploading'] ?? 0,
+      done: counts['done'] ?? 0,
+      failed: counts['failed'] ?? 0,
+      currentFileProgress: currentProgress,
+      currentFileName: _currentFileName,
+      totalInBatch: _totalInBatch,
+      scannedCount: _scannedCount,
+      isScanning: _isScanning,
+      totalFiles: _totalFiles,
+    ));
+  }
+
+  void _emitScanProgress() {
+    _progressController.add(SyncProgress(
+      pending: _lastCounts['pending'] ?? 0,
+      uploading: _lastCounts['uploading'] ?? 0,
+      done: _lastCounts['done'] ?? 0,
+      failed: _lastCounts['failed'] ?? 0,
+      currentFileProgress: 0.0,
+      currentFileName: _currentFileName,
+      totalInBatch: _totalInBatch,
+      scannedCount: _scannedCount,
+      isScanning: true,
+      totalFiles: _totalFiles,
+    ));
+  }
+
+  void _emitProgressSync({double currentProgress = 0.0}) {
+    _progressController.add(SyncProgress(
+      pending: _lastCounts['pending'] ?? 0,
+      uploading: _lastCounts['uploading'] ?? 0,
+      done: _lastCounts['done'] ?? 0,
+      failed: _lastCounts['failed'] ?? 0,
+      currentFileProgress: currentProgress,
+      currentFileName: _currentFileName,
+      totalInBatch: _totalInBatch,
+      scannedCount: _scannedCount,
+      isScanning: _isScanning,
+      totalFiles: _totalFiles,
+    ));
+  }
+>>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
 }

@@ -24,6 +24,14 @@ android/key.properties
 **/*.keystore
 **/*.jks
 
+# Debug symbols va APK fayllar
+debug-info/
+**/*.apk
+**/*.symbols
+**/app.android-arm.symbols
+**/app.android-arm64.symbols
+**/app.android-x64.symbols
+
 # Environment
 .env
 lib/core/config/app_config_local.dart
@@ -33,6 +41,12 @@ lib/core/config/app_config_local.dart
 *.iml
 .vscode/
 .DS_Store
+<<<<<<< HEAD
 patch_*.py
 android/app/bulutcha.jks
 android/key.properties
+=======
+
+# FVM Version Cache
+.fvm/
+>>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
