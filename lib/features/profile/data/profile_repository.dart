@@ -116,6 +116,17 @@ class ProfileRepository {
     }
   }
 
+  Future<void> disableAccount() async {
+    try {
+      await _dio.post('/authentication/users/disable/', data: {'verified': true});
+    } on DioException catch (e) {
+      throw AppException(
+        message: _extractError(e.response?.data),
+        statusCode: e.response?.statusCode,
+      );
+    }
+  }
+
   Future<void> uploadAvatar(File imageFile) async {
     try {
       final me = await getMe();

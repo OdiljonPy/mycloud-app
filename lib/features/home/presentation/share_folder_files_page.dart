@@ -9,7 +9,6 @@ import '../../../core/errors/app_exception.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/network/dio_client.dart';
 import 'photo_viewer_page.dart';
-import 'video_player_page.dart';
 import '../../share/data/repository/share_repository_impl.dart';
 import '../../share/data/remote/share_remote_data_source_impl.dart';
 import '../../share/presentation/bloc/share_bloc.dart';
@@ -207,46 +206,33 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
   Future<void> _openFileViewer(FileModel file) async {
     final mime = file.mimeType.toLowerCase();
     if (mime.startsWith('image/')) {
-      final allImages = _displayFiles
-          .where((f) => f.mimeType.toLowerCase().startsWith('image/'))
+      // Get all media files (images AND videos) together
+      final allMediaFiles = _displayFiles
+          .where((f) {
+            final m = f.mimeType.toLowerCase();
+            return m.startsWith('image/') || m.startsWith('video/');
+          })
           .toList();
-      final idx = allImages.indexWhere((f) => f.id == file.id);
+
+      final idx = allMediaFiles.indexWhere((f) => f.id == file.id);
+
       if (!mounted) return;
+
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => PhotoViewerPage(
-            files: allImages
+            files: allMediaFiles
                 .map((f) => (
                       url: f.id.isNotEmpty ? '' : (f.thumbnailPath ?? ''),
                       name: f.name,
                       fileId: f.id,
+                      mimeType: f.mimeType,
                     ))
                 .toList(),
             initialIndex: idx < 0 ? 0 : idx,
             authToken: _authToken,
             onNeedFullUrl: (fileId) => _repo.getPreviewUrl(fileId),
-          ),
-        ),
-      );
-    } else if (mime.startsWith('video/')) {
-      final url = await _repo.getPreviewUrl(file.id);
-      if (url == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Не удалось открыть видео')),
-          );
-        }
-        return;
-      }
-      if (!mounted) return;
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => VideoPlayerPage(
-            videoUrl: url,
-            fileName: file.name,
-            authToken: _authToken,
           ),
         ),
       );

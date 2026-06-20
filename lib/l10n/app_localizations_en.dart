@@ -550,4 +550,48 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncStop => 'Stop';
+
+  @override
+  String get fileTypes => 'File types';
+
+  @override
+  String get viewAll => 'View all';
+
+  @override
+  String get recentFiles => 'Gallery files';
+
+  @override
+  String get sync => 'Sync';
+
+  @override
+  String get image => 'Image';
+
+  @override
+  String get video => 'Video';
+
+  @override
+  String filesLabel(String count) {
+    return '$count files';
+  }
+
+  @override
+  String get today => 'Today';
+
+  @override
+  String get yesterday => 'Yesterday';
+
+  @override
+  String daysAgo(int count) {
+    return '$count days ago';
+  }
+
+  @override
+  String get deleteAccount => 'Delete account';
+
+  @override
+  String get deleteAccountConfirm => 'Delete account';
+
+  @override
+  String get deleteAccountConfirmMessage =>
+      'Are you sure you want to delete your account? This action is irreversible.';
 }

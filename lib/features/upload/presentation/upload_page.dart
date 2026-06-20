@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:cross_file/cross_file.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/errors/app_exception.dart';
 import '../data/upload_repository.dart';
@@ -79,43 +78,22 @@ class _UploadPageState extends State<UploadPage> {
   Future<void> _pickFiles() async {
     if (_isUploading) return;
 
-    final result = await FilePicker.platform.pickFiles(
-      allowMultiple: true,
-      type: FileType.custom,
-      allowedExtensions: UploadRepository.allowedExtensions,
-    );
+    final picker = ImagePicker();
+    final List<XFile> selected = await picker.pickMultipleMedia();
 
-    if (result == null || result.files.isEmpty) return;
-
-    final rejected = <String>[];
+    if (selected.isEmpty) return;
 
     setState(() {
       _allDone = false;
-      for (final f in result.files) {
-        if (f.path == null) continue;
+      for (final xFile in selected) {
         if (_queue.length >= _maxFiles) break;
-        if (!UploadRepository.isAllowed(f.name)) {
-          rejected.add(f.name);
-          continue;
-        }
-        final alreadyAdded = _queue.any((q) => q.name == f.name);
+        if (!UploadRepository.isAllowed(xFile.name)) continue;
+        final alreadyAdded = _queue.any((q) => q.name == xFile.name);
         if (!alreadyAdded) {
-          _queue.add(_FileItem(file: XFile(f.path!), name: f.name));
+          _queue.add(_FileItem(file: xFile, name: xFile.name));
         }
       }
     });
-
-    if (rejected.isNotEmpty && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Пропущено ${rejected.length} файл(ов): только фото и видео',
-          ),
-          backgroundColor: Colors.orange,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
 
     if (_queue.isNotEmpty &&
         _queue.any((f) => f.status == _FileStatus.waiting) &&

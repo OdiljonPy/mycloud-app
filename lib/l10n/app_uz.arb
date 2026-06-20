@@ -216,5 +216,70 @@
   "deleteItems": "{count} ta element",
   "pinLabel": "📌 Mahkamlash",
   "unpinLabel": "📌 Olib tashlash",
-  "favourite": "Sevimli"
+  "favourite": "Sevimli",
+  "syncFolderName": "📱 Sinxronizatsiya",
+  "syncStatusUploading": "{uploaded}/{total} yuklandi",
+  "@syncStatusUploading": {
+    "placeholders": {
+      "uploaded": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "syncStatusWaiting": "Sinxronizatsiya kutilmoqda: {count}",
+  "@syncStatusWaiting": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "syncStatusComplete": "Sinxronizatsiya tugallandi",
+  "syncStatusErrors": "{count} ta xato",
+  "@syncStatusErrors": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "syncSettingsTitle": "Avto-sinxronizatsiya",
+  "syncEnableToggle": "Avto-sinxronizatsiyani yoqish",
+  "syncWifiOnly": "Faqat Wi-Fi orqali",
+  "syncNowButton": "Hozir sinxronlash",
+  "syncResetButton": "Navbatni tozalash",
+  "syncFolderReadOnly": "Bu sizning Sinxronizatsiya papkangiz. Bu yerdagi fayllar avtomatik boshqariladi.",
+  "syncResetConfirmTitle": "Navbatni tozalash?",
+  "syncResetConfirmMessage": "Barcha yozuvlar o'chiriladi. Keyin ilova galereyani qayta skanerlaydi.",
+  "syncResetConfirmButton": "Tozalash",
+  "syncAutoUpload": "Foto va videolarni avtomatik yuklash",
+  "syncNoMobileData": "Mobil internet orqali sinxronlamaslik",
+  "syncStatusTitle": "Sinxronizatsiya holati",
+  "syncStatusPending": "Kutilmoqda",
+  "syncStatusUploading2": "Yuklanmoqda",
+  "syncStatusDone": "Tayyor",
+  "syncStatusFailed": "Xatolar",
+  "syncStop": "To'xtatish",
+  "fileTypes": "Fayl turlari",
+  "viewAll": "Barchasi",
+  "recentFiles": "Galereya fayllari",
+  "sync": "Sinxr.",
+  "image": "Rasm",
+  "video": "Video",
+  "filesLabel": "{count} fayllar",
+  "@filesLabel": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "today": "Bugun",
+  "yesterday": "Kecha",
+  "daysAgo": "{count} kun oldin",
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteAccount": "Hisobni o'chirish",
+  "deleteAccountConfirm": "Hisobni o'chirish",
+  "deleteAccountConfirmMessage": "Hisobingizni o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi."
 }

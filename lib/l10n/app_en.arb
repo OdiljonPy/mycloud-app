@@ -243,5 +243,32 @@
   "syncStatusUploading2": "Uploading",
   "syncStatusDone": "Done",
   "syncStatusFailed": "Errors",
-  "syncStop": "Stop"
+  "syncStop": "Stop",
+  "fileTypes": "File types",
+  "viewAll": "View all",
+  "recentFiles": "Gallery files",
+  "sync": "Sync",
+  "image": "Image",
+  "video": "Video",
+  "filesLabel": "{count} files",
+  "@filesLabel": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "daysAgo": "{count} days ago",
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteAccount": "Delete account",
+  "deleteAccountConfirm": "Delete account",
+  "deleteAccountConfirmMessage": "Are you sure you want to delete your account? This action is irreversible."
 }
