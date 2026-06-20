@@ -53,9 +53,10 @@ class AuthRepository {
         refreshToken: refreshToken?.toString() ?? '',
       );
       await AutoSyncService().onLogout();
+      AutoSyncService().initialize().then((_) => AutoSyncService().startAutoSync()).catchError((e) => print("[AutoSync] init error: $e"));
 
       final me = await _dio.get('authentication/users/me/');
-      final meData = me.data is Map && (me.data as Map).containsKey('result')
+      final meData = me.data is Map && me.data.containsKey('result')
           ? me.data['result']
           : me.data;
       if (meData is Map) {
@@ -64,12 +65,6 @@ class AuthRepository {
         final fullName = meData['full_name']?.toString();
         if (fullName != null) await SecureStorage.saveFullName(fullName);
       }
-
-      AutoSyncService().initialize().then((_) async {
-        if (await AutoSyncService().isAutoSyncEnabled()) {
-          AutoSyncService().startAutoSync().catchError((_) {});
-        }
-      }).catchError((_) {});
     } on DioException catch (e) {
       throw AppException(
         message: _extractError(e.response?.data) != 'Unknown error'
@@ -110,7 +105,7 @@ class AuthRepository {
     }
   }
 
-  // VERIFY OTP (registration flow only — saves tokens and starts sync)
+  // VERIFY OTP
   Future<void> verifyOtp({required String otpKey, required int otpCode}) async {
     try {
       final response = await _dio.post(
@@ -132,9 +127,9 @@ class AuthRepository {
           refreshToken: refreshToken?.toString() ?? '',
         );
         await AutoSyncService().onLogout();
-
+      AutoSyncService().initialize().then((_) => AutoSyncService().startAutoSync()).catchError((e) => print("[AutoSync] init error: $e"));
         final me = await _dio.get('authentication/users/me/');
-        final meData = me.data is Map && (me.data as Map).containsKey('result')
+        final meData = me.data is Map && me.data.containsKey('result')
             ? me.data['result']
             : me.data;
         if (meData is Map) {
@@ -143,12 +138,6 @@ class AuthRepository {
           final fullName = meData['full_name']?.toString();
           if (fullName != null) await SecureStorage.saveFullName(fullName);
         }
-
-        AutoSyncService().initialize().then((_) async {
-          if (await AutoSyncService().isAutoSyncEnabled()) {
-            AutoSyncService().startAutoSync().catchError((_) {});
-          }
-        }).catchError((_) {});
       }
     } on DioException catch (e) {
       throw AppException(
@@ -238,6 +227,7 @@ class AuthRepository {
         'authentication/users/password/reset/',
         data: {
           'otp_key': otpKey,
+          'otp_code': otpCode,
           'password': password,
           'confirm_password': confirmPassword,
         },
@@ -247,28 +237,6 @@ class AuthRepository {
         message: _extractError(e.response?.data) != 'Unknown error'
             ? _extractError(e.response?.data)
             : 'Password reset failed',
-        statusCode: e.response?.statusCode,
-      );
-    }
-  }
-
-  // VERIFY PASSWORD OTP → returns new otp_key
-  Future<String> verifyPasswordOtp({required String otpKey, required int otpCode}) async {
-    try {
-      final response = await _dio.post(
-        'authentication/users/password/verify/',
-        data: {'otp_key': otpKey, 'otp_code': otpCode},
-      );
-      final data = response.data is Map
-          ? response.data as Map<String, dynamic>
-          : {};
-      final result = data.containsKey('result') ? data['result'] : data;
-      return result['otp_key']?.toString() ?? '';
-    } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) != 'Unknown error'
-            ? _extractError(e.response?.data)
-            : 'OTP verification failed',
         statusCode: e.response?.statusCode,
       );
     }
