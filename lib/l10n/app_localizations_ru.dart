@@ -280,8 +280,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get reviewAccessRequest => 'Рассмотреть запрос доступа';
 
   @override
-  String get reviewAccessRequestSubtitle =>
-      'Выберите, следует ли предоставить доступ этому пользователю.';
+  String get reviewAccessRequestSubtitle => 'Выберите, следует ли предоставить доступ этому пользователю.';
 
   @override
   String get reject => 'Отклонить';
@@ -299,8 +298,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get noShareRequests => 'Нет запросов на доступ';
 
   @override
-  String get noShareRequestsSubtitle =>
-      'Поделитесь файлами по ссылке и они появятся здесь';
+  String get noShareRequestsSubtitle => 'Поделитесь файлами по ссылке и они появятся здесь';
 
   @override
   String get personalData => 'ЛИЧНЫЕ ДАННЫЕ';
@@ -369,8 +367,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get logoutConfirm => 'Выход';
 
   @override
-  String get logoutConfirmMessage =>
-      'Вы уверены, что хотите выйти из аккаунта?';
+  String get logoutConfirmMessage => 'Вы уверены, что хотите выйти из аккаунта?';
 
   @override
   String get refresh => 'Обновить';
@@ -419,15 +416,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get noSharedWithMe => 'Никто не делился файлами';
 
   @override
-  String get noSharedWithMeSubtitle =>
-      'Когда кто-то поделится файлом — они появятся здесь';
+  String get noSharedWithMeSubtitle => 'Когда кто-то поделится файлом — они появятся здесь';
 
   @override
   String get noSharedByMe => 'Вы ещё ни с кем не делились';
 
   @override
-  String get noSharedByMeSubtitle =>
-      'Нажмите кнопку шаринга чтобы поделиться файлами';
+  String get noSharedByMeSubtitle => 'Нажмите кнопку шаринга чтобы поделиться файлами';
 
   @override
   String get noSharedItems => 'Нет расшаренных элементов';
@@ -516,15 +511,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get syncResetButton => 'Сбросить очередь';
 
   @override
-  String get syncFolderReadOnly =>
-      'Это папка синхронизации. Файлы здесь управляются автоматически.';
+  String get syncFolderReadOnly => 'Это папка синхронизации. Файлы здесь управляются автоматически.';
 
   @override
   String get syncResetConfirmTitle => 'Сбросить очередь?';
 
   @override
-  String get syncResetConfirmMessage =>
-      'Все записи будут удалены. После этого приложение заново просканирует галерею.';
+  String get syncResetConfirmMessage => 'Все записи будут удалены. После этого приложение заново просканирует галерею.';
 
   @override
   String get syncResetConfirmButton => 'Сбросить';
@@ -549,6 +542,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get syncStatusFailed => 'Ошибки';
+
+  @override
+  String get syncStatusScanning => 'Сканируется галерея...';
 
   @override
   String get syncStop => 'Остановить';

@@ -192,6 +192,7 @@
   "syncStatusUploading2": "Yuklanmoqda",
   "syncStatusDone": "Tayyor",
   "syncStatusFailed": "Xatolar",
+  "syncStatusScanning": "Galereya skanlanmoqda...",
   "syncStop": "To'xtatish",
   "syncSelectedFiles": "Tanlangan fayllar",
   "syncSelectedFilesSubtitle": "Faqat tanlanganlarni sinxronlashtirish",

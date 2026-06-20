@@ -280,8 +280,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reviewAccessRequest => 'Review access request';
 
   @override
-  String get reviewAccessRequestSubtitle =>
-      'Choose whether this user should get access.';
+  String get reviewAccessRequestSubtitle => 'Choose whether this user should get access.';
 
   @override
   String get reject => 'Reject';
@@ -299,8 +298,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noShareRequests => 'No share requests';
 
   @override
-  String get noShareRequestsSubtitle =>
-      'Share files via link and they will appear here';
+  String get noShareRequestsSubtitle => 'Share files via link and they will appear here';
 
   @override
   String get personalData => 'PERSONAL DATA';
@@ -418,8 +416,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noSharedWithMe => 'No one has shared files';
 
   @override
-  String get noSharedWithMeSubtitle =>
-      'When someone shares a file — it will appear here';
+  String get noSharedWithMeSubtitle => 'When someone shares a file — it will appear here';
 
   @override
   String get noSharedByMe => 'You haven\'t shared with anyone yet';
@@ -514,15 +511,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncResetButton => 'Reset queue';
 
   @override
-  String get syncFolderReadOnly =>
-      'This is your Sync folder. Files here are managed automatically.';
+  String get syncFolderReadOnly => 'This is your Sync folder. Files here are managed automatically.';
 
   @override
   String get syncResetConfirmTitle => 'Reset queue?';
 
   @override
-  String get syncResetConfirmMessage =>
-      'All records will be deleted. The app will re-scan the gallery after that.';
+  String get syncResetConfirmMessage => 'All records will be deleted. The app will re-scan the gallery after that.';
 
   @override
   String get syncResetConfirmButton => 'Reset';
@@ -547,6 +542,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncStatusFailed => 'Errors';
+
+  @override
+  String get syncStatusScanning => 'Scanning gallery...';
 
   @override
   String get syncStop => 'Stop';

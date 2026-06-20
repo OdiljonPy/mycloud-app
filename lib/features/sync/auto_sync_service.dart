@@ -26,9 +26,14 @@ class SyncProgress {
   final double currentFileProgress;
   final String? currentFileName;
   final int totalInBatch;
+<<<<<<< Updated upstream
   final int scannedCount;
   final bool isScanning;
   final int totalFiles;
+=======
+  final bool isScanning;
+  final int scannedCount;
+>>>>>>> Stashed changes
 
   const SyncProgress({
     this.pending = 0,
@@ -38,9 +43,14 @@ class SyncProgress {
     this.currentFileProgress = 0.0,
     this.currentFileName,
     this.totalInBatch = 0,
+<<<<<<< Updated upstream
     this.scannedCount = 0,
     this.isScanning = false,
     this.totalFiles = 0,
+=======
+    this.isScanning = false,
+    this.scannedCount = 0,
+>>>>>>> Stashed changes
   });
 }
 >>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
@@ -48,6 +58,7 @@ class SyncProgress {
 class AutoSyncService {
 
   Future<void> startAutoSync() async {
+<<<<<<< Updated upstream
     if (_isRunning || _isScanning) {
       debugPrint("[AutoSync] Already running/scanning, skip");
       return;
@@ -55,6 +66,72 @@ class AutoSyncService {
     _syncSessionId++;
     await _emitDeviceTotal();
     await Future.wait([_rescan(), startSync()]);
+=======
+    if (_isRunning) return;
+    _isRunning = true;
+
+    // ФАЗА 1: Сканирование галереи
+    _progressController.add(const SyncProgress(isScanning: true, scannedCount: 0));
+
+    try {
+      final token = await SecureStorage.getAccessToken();
+      if (token == null || token.isEmpty) {
+        _isRunning = false;
+        _progressController.add(const SyncProgress());
+        return;
+      }
+
+      final baseUrl = AppConfig.instance.baseUrl;
+      final galleryService = GalleryService(baseUrl: baseUrl, token: token);
+
+      Set<String> uploadedKeys = {};
+      final prefs = await SharedPreferences.getInstance();
+      final coldStartDone = prefs.getBool(_kColdStartKey) ?? false;
+
+      if (!coldStartDone) {
+        try {
+          uploadedKeys = await galleryService.getUploadedFileKeys();
+        } catch (e) {
+          debugPrint('[AutoSync] Cold start gallery fetch failed: $e');
+        }
+      }
+
+      Set<String>? selectedIds;
+      final selectiveOn = prefs.getBool('auto_sync_selected_only') ?? false;
+      if (selectiveOn) {
+        final list = prefs.getStringList('selected_files') ?? [];
+        final cleaned = list.where((id) => id.trim().isNotEmpty).toSet();
+        if (cleaned.isNotEmpty) selectedIds = cleaned;
+      }
+
+      int scanned = 0;
+      final scanner = MediaScanner(
+        db: _db,
+        uploadedKeys: uploadedKeys,
+        selectedLocalIds: selectedIds,
+        onProgress: (count) {
+          scanned = count;
+          _progressController.add(SyncProgress(isScanning: true, scannedCount: scanned));
+        },
+      );
+
+      final newItems = await scanner.scanAndEnqueue();
+      debugPrint('[AutoSync] Scanned: $newItems new items enqueued');
+
+      if (!coldStartDone) {
+        await prefs.setBool(_kColdStartKey, true);
+      }
+    } catch (e) {
+      debugPrint('[AutoSync] Scan phase failed: $e');
+      _isRunning = false;
+      _progressController.add(const SyncProgress());
+      return;
+    }
+
+    // ФАЗА 2: Загрузка
+    _isRunning = false;
+    await startSync();
+>>>>>>> Stashed changes
   }
 
   static final AutoSyncService _instance = AutoSyncService._internal();
@@ -558,6 +635,7 @@ class AutoSyncService {
       currentFileProgress: currentProgress,
       currentFileName: _currentFileName,
       totalInBatch: _totalInBatch,
+<<<<<<< Updated upstream
       scannedCount: _scannedCount,
       isScanning: _isScanning,
       totalFiles: _totalFiles,
@@ -576,6 +654,9 @@ class AutoSyncService {
       scannedCount: _scannedCount,
       isScanning: true,
       totalFiles: _totalFiles,
+=======
+      isScanning: false,
+>>>>>>> Stashed changes
     ));
   }
 
@@ -588,9 +669,13 @@ class AutoSyncService {
       currentFileProgress: currentProgress,
       currentFileName: _currentFileName,
       totalInBatch: _totalInBatch,
+<<<<<<< Updated upstream
       scannedCount: _scannedCount,
       isScanning: _isScanning,
       totalFiles: _totalFiles,
+=======
+      isScanning: false,
+>>>>>>> Stashed changes
     ));
   }
 >>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")

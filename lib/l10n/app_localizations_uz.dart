@@ -148,8 +148,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get noFavourites => 'Sevimli fayllar yo\'q';
 
   @override
-  String get noFavouritesSubtitle =>
-      'Qo\'shish uchun fayl ustidagi yulduzni bosing';
+  String get noFavouritesSubtitle => 'Qo\'shish uchun fayl ustidagi yulduzni bosing';
 
   @override
   String get filter => 'Filtr';
@@ -281,8 +280,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get reviewAccessRequest => 'Ruxsat so\'rovini ko\'rib chiqish';
 
   @override
-  String get reviewAccessRequestSubtitle =>
-      'Bu foydalanuvchi ulashilgan kontentga kirish huquqiga ega bo\'lishi kerakmi?';
+  String get reviewAccessRequestSubtitle => 'Bu foydalanuvchi ulashilgan kontentga kirish huquqiga ega bo\'lishi kerakmi?';
 
   @override
   String get reject => 'Rad etish';
@@ -300,8 +298,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get noShareRequests => 'Ulashish so\'rovlari yo\'q';
 
   @override
-  String get noShareRequestsSubtitle =>
-      'Fayllarni havola orqali ulashing va ular bu yerda paydo bo\'ladi';
+  String get noShareRequestsSubtitle => 'Fayllarni havola orqali ulashing va ular bu yerda paydo bo\'ladi';
 
   @override
   String get personalData => 'SHAXSIY MA\'LUMOTLAR';
@@ -419,15 +416,13 @@ class AppLocalizationsUz extends AppLocalizations {
   String get noSharedWithMe => 'Hech kim fayl ulashmagan';
 
   @override
-  String get noSharedWithMeSubtitle =>
-      'Kimdir fayl ulashsa — bu yerda ko\'rinadi';
+  String get noSharedWithMeSubtitle => 'Kimdir fayl ulashsa — bu yerda ko\'rinadi';
 
   @override
   String get noSharedByMe => 'Siz hali hech kim bilan ulashmadingiz';
 
   @override
-  String get noSharedByMeSubtitle =>
-      'Fayllarni ulashish uchun ulashish tugmasini bosing';
+  String get noSharedByMeSubtitle => 'Fayllarni ulashish uchun ulashish tugmasini bosing';
 
   @override
   String get noSharedItems => 'Ulashilgan elementlar yo\'q';
@@ -516,15 +511,23 @@ class AppLocalizationsUz extends AppLocalizations {
   String get syncResetButton => 'Navbatni tozalash';
 
   @override
+<<<<<<< Updated upstream
   String get syncFolderReadOnly =>
       'Bu sizning Sinxronizatsiya papkangiz. Bu yerdagi fayllar avtomatik boshqariladi.';
+=======
+  String get syncFolderReadOnly => 'Bu sinxronizatsiya papkasi. Fayllar avtomatik boshqariladi.';
+>>>>>>> Stashed changes
 
   @override
   String get syncResetConfirmTitle => 'Navbatni tozalash?';
 
   @override
+<<<<<<< Updated upstream
   String get syncResetConfirmMessage =>
       'Barcha yozuvlar o\'chiriladi. Keyin ilova galereyani qayta skanerlaydi.';
+=======
+  String get syncResetConfirmMessage => 'Barcha yozuvlar o\'chiriladi. Ilova galereyani qaytadan skanerlaydi.';
+>>>>>>> Stashed changes
 
   @override
   String get syncResetConfirmButton => 'Tozalash';
@@ -549,6 +552,9 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get syncStatusFailed => 'Xatolar';
+
+  @override
+  String get syncStatusScanning => 'Galereya skanlanmoqda...';
 
   @override
   String get syncStop => 'To\'xtatish';

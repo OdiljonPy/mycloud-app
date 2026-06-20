@@ -251,6 +251,7 @@
   "syncStatusUploading2": "Загрузка",
   "syncStatusDone": "Готово",
   "syncStatusFailed": "Ошибки",
+<<<<<<< Updated upstream
   "syncStop": "Остановить",
 <<<<<<< HEAD
   "syncSelectedFiles": "Выбранные файлы",
@@ -288,4 +289,8 @@
   "deleteAccountConfirm": "Удалить аккаунт",
   "deleteAccountConfirmMessage": "Вы уверены, что хотите удалить аккаунт? Это действие необратимо."
 >>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
+=======
+  "syncStatusScanning": "Сканируется галерея...",
+  "syncStop": "Остановить"
+>>>>>>> Stashed changes
 }

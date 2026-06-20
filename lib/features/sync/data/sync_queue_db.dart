@@ -79,7 +79,11 @@ class SyncQueueDb {
 
   Future<List<SyncTask>> getPending({int limit = 10}) async {
     try {
+<<<<<<< Updated upstream
       final rows = await _database.query('sync_queue', where: 'status = ?', whereArgs: ['pending'], orderBy: 'COALESCE(asset_created_at, created_at) ASC',);
+=======
+      final rows = await _database.query('sync_queue', where: 'status = ?', whereArgs: ['pending'], orderBy: 'created_at ASC');
+>>>>>>> Stashed changes
       return rows.map((r) => SyncTask.fromMap(r)).toList();
     } catch (e) {
       debugPrint('[SyncQueueDb] getPending failed: $e');
@@ -89,7 +93,11 @@ class SyncQueueDb {
 
   Future<List<SyncTask>> getPendingOldestFirst({int limit = 10}) async {
     try {
+<<<<<<< Updated upstream
       final rows = await _database.query('sync_queue', where: 'status = ?', whereArgs: ['pending'], orderBy: 'COALESCE(asset_created_at, created_at) ASC', limit: limit);
+=======
+      final rows = await _database.query('sync_queue', where: 'status = ?', whereArgs: ['pending'], orderBy: 'created_at ASC');
+>>>>>>> Stashed changes
       return rows.map((r) => SyncTask.fromMap(r)).toList();
     } catch (e) {
       debugPrint('[SyncQueueDb] getPendingOldestFirst failed: $e');

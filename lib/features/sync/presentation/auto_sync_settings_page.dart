@@ -358,7 +358,55 @@ class _AutoSyncSettingsPageState extends State<AutoSyncSettingsPage> with Automa
                   ),
                   const SizedBox(height: 16),
 
+<<<<<<< Updated upstream
                   if (progress.currentFileName != null) ...[
+=======
+                  if (_lastProgress.isScanning) ...[
+                    Row(
+                      children: [
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.orange,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            t.syncStatusScanning,
+                            style: const TextStyle(color: Colors.orange),
+                          ),
+                        ),
+                        if (_lastProgress.scannedCount > 0)
+                          Text(
+                            '${_lastProgress.scannedCount}',
+                            style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+
+                  _buildStatRow(Icons.hourglass_empty,
+                      t.syncStatusPending, _lastProgress.pending, Colors.orange),
+
+                  const SizedBox(height: 8),
+
+                  // Загрузка — скрыта
+                  _buildStatRow(Icons.check_circle,
+                      t.syncStatusDone, _lastProgress.done, Colors.green),
+
+                  const SizedBox(height: 8),
+
+                  // _buildStatRow(Icons.error_outline,
+                  //     t.syncStatusFailed, _lastProgress.failed, Colors.red),
+
+                  const SizedBox(height: 16),
+                  // Текущий файл — показываем всегда, не мигает
+                  if (_lastProgress.currentFileName != null)
+>>>>>>> Stashed changes
                     Text(
                       progress.currentFileName!,
                       style: const TextStyle(fontSize: 12),
