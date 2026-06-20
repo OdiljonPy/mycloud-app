@@ -4,18 +4,10 @@ import 'package:dio/dio.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../sync/auto_sync_service.dart';
 
 class AuthRepository {
   final Dio _dio = DioClient.instance;
-
-  /// Callback вызывается после успешного login/register.
-  /// Инициализирует sync для нового пользователя.
-  final Future<void> Function()? onLoginSync;
-
-  /// Callback вызывается при logout.
-  final Future<void> Function()? onLogoutSync;
-
-  AuthRepository({this.onLoginSync, this.onLogoutSync});
 
   String _extractError(dynamic data) {
     if (data == null) return 'Unknown error';
@@ -60,10 +52,10 @@ class AuthRepository {
         accessToken: accessToken?.toString() ?? '',
         refreshToken: refreshToken?.toString() ?? '',
       );
-      await onLoginSync?.call();
+      await AutoSyncService().onLogout();
 
       final me = await _dio.get('authentication/users/me/');
-      final meData = me.data is Map && me.data.containsKey('result')
+      final meData = me.data is Map && (me.data as Map).containsKey('result')
           ? me.data['result']
           : me.data;
       if (meData is Map) {
@@ -72,6 +64,12 @@ class AuthRepository {
         final fullName = meData['full_name']?.toString();
         if (fullName != null) await SecureStorage.saveFullName(fullName);
       }
+
+      AutoSyncService().initialize().then((_) async {
+        if (await AutoSyncService().isAutoSyncEnabled()) {
+          AutoSyncService().startAutoSync().catchError((_) {});
+        }
+      }).catchError((_) {});
     } on DioException catch (e) {
       throw AppException(
         message: _extractError(e.response?.data) != 'Unknown error'
@@ -112,7 +110,7 @@ class AuthRepository {
     }
   }
 
-  // VERIFY OTP
+  // VERIFY OTP (registration flow only — saves tokens and starts sync)
   Future<void> verifyOtp({required String otpKey, required int otpCode}) async {
     try {
       final response = await _dio.post(
@@ -133,9 +131,10 @@ class AuthRepository {
           accessToken: accessToken.toString(),
           refreshToken: refreshToken?.toString() ?? '',
         );
-        await onLoginSync?.call();
+        await AutoSyncService().onLogout();
+
         final me = await _dio.get('authentication/users/me/');
-        final meData = me.data is Map && me.data.containsKey('result')
+        final meData = me.data is Map && (me.data as Map).containsKey('result')
             ? me.data['result']
             : me.data;
         if (meData is Map) {
@@ -144,6 +143,12 @@ class AuthRepository {
           final fullName = meData['full_name']?.toString();
           if (fullName != null) await SecureStorage.saveFullName(fullName);
         }
+
+        AutoSyncService().initialize().then((_) async {
+          if (await AutoSyncService().isAutoSyncEnabled()) {
+            AutoSyncService().startAutoSync().catchError((_) {});
+          }
+        }).catchError((_) {});
       }
     } on DioException catch (e) {
       throw AppException(
@@ -221,32 +226,10 @@ class AuthRepository {
     }
   }
 
-  // VERIFY PASSWORD OTP → returns verified otp_key for reset
-  Future<String> verifyPasswordOtp({
-    required String otpKey,
-    required int otpCode,
-  }) async {
-    try {
-      final response = await _dio.post(
-        'authentication/users/password/verify/',
-        data: {'otp_key': otpKey, 'otp_code': otpCode},
-      );
-      final data = response.data is Map
-          ? response.data as Map<String, dynamic>
-          : {};
-      final result = data.containsKey('result') ? data['result'] : data;
-      return result['otp_key']?.toString() ?? '';
-    } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) != 'Unknown error'
-            ? _extractError(e.response?.data)
-            : 'OTP verification failed',
-        statusCode: e.response?.statusCode,
-      );
-    }
-  }
 
-  // RESET PASSWORD
+
+
+
   Future<void> resetPassword({
     required String otpKey,
     required int otpCode,
@@ -272,9 +255,29 @@ class AuthRepository {
     }
   }
 
+  Future<String> verifyPasswordOtp({required String otpKey, required int otpCode}) async {
+    try {
+      final response = await _dio.post(
+        'authentication/users/password/verify/',
+        data: {'otp_key': otpKey, 'otp_code': otpCode},
+      );
+      final data = response.data is Map
+          ? response.data as Map<String, dynamic>
+          : {};
+      final result = data.containsKey('result') ? data['result'] : data;
+      return result['otp_key']?.toString() ?? '';
+    } on DioException catch (e) {
+      throw AppException(
+        message: _extractError(e.response?.data) != 'Unknown error'
+            ? _extractError(e.response?.data)
+            : 'OTP verification failed',
+        statusCode: e.response?.statusCode,
+      );
+    }
+  }
+
   // LOGOUT
   Future<void> logout() async {
     await SecureStorage.clearTokens();
-    await onLogoutSync?.call();
   }
 }
