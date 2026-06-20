@@ -108,7 +108,7 @@
   "approve": "Одобрить",
   "accessApproved": "Доступ одобрен",
   "accessRejected": "Доступ отклонён",
-  "noShareRequests": "Нет share requests",
+  "noShareRequests": "Нет запросов на доступ",
   "noShareRequestsSubtitle": "Поделитесь файлами по ссылке и они появятся здесь",
   "personalData": "ЛИЧНЫЕ ДАННЫЕ",
   "changeName": "Изменить имя",
@@ -252,31 +252,10 @@
   "syncStatusDone": "Готово",
   "syncStatusFailed": "Ошибки",
   "syncStop": "Остановить",
-  "fileTypes": "Типы файлов",
-  "viewAll": "Все",
-  "recentFiles": "Файлы галереи",
-  "sync": "Синхр.",
-  "image": "Изображение",
-  "video": "Видео",
-  "filesLabel": "{count} файлов",
-  "@filesLabel": {
-    "placeholders": {
-      "count": {
-        "type": "String"
-      }
-    }
-  },
-  "today": "Сегодня",
-  "yesterday": "Вчера",
-  "daysAgo": "{count} дней назад",
-  "@daysAgo": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "deleteAccount": "Удалить аккаунт",
-  "deleteAccountConfirm": "Удалить аккаунт",
-  "deleteAccountConfirmMessage": "Вы уверены, что хотите удалить аккаунт? Это действие необратимо."
+  "syncSelectedFiles": "Выбранные файлы",
+  "syncSelectedFilesSubtitle": "Синхронизировать только выбранные",
+  "syncTotal": "Всего",
+  "uploadedLabel": "Загружено",
+  "uploadPageTitle": "Загрузка",
+  "cancelledLabel": "Отменено"
 }

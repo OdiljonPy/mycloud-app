@@ -1,3 +1,7 @@
+# Binaries
+*.apk
+*.zip
+
 # Flutter
 .dart_tool/
 .flutter-plugins
@@ -20,14 +24,6 @@ android/key.properties
 **/*.keystore
 **/*.jks
 
-# Debug symbols va APK fayllar
-debug-info/
-**/*.apk
-**/*.symbols
-**/app.android-arm.symbols
-**/app.android-arm64.symbols
-**/app.android-x64.symbols
-
 # Environment
 .env
 lib/core/config/app_config_local.dart
@@ -37,15 +33,6 @@ lib/core/config/app_config_local.dart
 *.iml
 .vscode/
 .DS_Store
-
-# FVM Version Cache
-.fvm/
-
-# Personal / local files
-CLAUDE.md
-*.md
-*.jpg
-*.jpeg
-*.png
-*.JPG
-*.PNG
+patch_*.py
+android/app/bulutcha.jks
+android/key.properties

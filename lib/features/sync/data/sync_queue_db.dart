@@ -13,7 +13,7 @@ class SyncQueueDb {
       final path = p.join(dbPath, 'sync_queue.db');
       _db = await openDatabase(
         path,
-        version: 2,
+        version: 3,
         onCreate: (db, version) async {
           await db.execute('''
             CREATE TABLE sync_queue (
@@ -29,7 +29,10 @@ class SyncQueueDb {
               retry_count INTEGER NOT NULL DEFAULT 0,
               server_uuid TEXT,
               created_at INTEGER NOT NULL,
-              updated_at INTEGER NOT NULL
+              updated_at INTEGER NOT NULL,
+              asset_created_at INTEGER,
+              bucket_day TEXT,
+              session_uploaded INTEGER NOT NULL DEFAULT 0
             )
           ''');
         },
@@ -40,6 +43,16 @@ class SyncQueueDb {
               debugPrint('[SyncQueueDb] Migrated to v2: added session_id column');
             } catch (e) {
               debugPrint('[SyncQueueDb] Migration v2 skipped (column already exists): $e');
+            }
+          }
+          if (oldVersion < 3) {
+            try {
+              await db.execute('ALTER TABLE sync_queue ADD COLUMN asset_created_at INTEGER');
+              await db.execute('ALTER TABLE sync_queue ADD COLUMN bucket_day TEXT');
+              await db.execute('ALTER TABLE sync_queue ADD COLUMN session_uploaded INTEGER NOT NULL DEFAULT 0');
+              debugPrint('[SyncQueueDb] Migrated to v3: added asset_created_at, bucket_day, session_uploaded');
+            } catch (e) {
+              debugPrint('[SyncQueueDb] Migration v3 skipped: $e');
             }
           }
         },
@@ -66,7 +79,7 @@ class SyncQueueDb {
 
   Future<List<SyncTask>> getPending({int limit = 10}) async {
     try {
-      final rows = await _database.query('sync_queue', where: 'status = ?', whereArgs: ['pending'], orderBy: 'created_at ASC',);
+      final rows = await _database.query('sync_queue', where: 'status = ?', whereArgs: ['pending'], orderBy: 'COALESCE(asset_created_at, created_at) ASC',);
       return rows.map((r) => SyncTask.fromMap(r)).toList();
     } catch (e) {
       debugPrint('[SyncQueueDb] getPending failed: $e');
@@ -76,7 +89,7 @@ class SyncQueueDb {
 
   Future<List<SyncTask>> getPendingOldestFirst({int limit = 10}) async {
     try {
-      final rows = await _database.query('sync_queue', where: 'status = ?', whereArgs: ['pending'], orderBy: 'created_at ASC', limit: limit);
+      final rows = await _database.query('sync_queue', where: 'status = ?', whereArgs: ['pending'], orderBy: 'COALESCE(asset_created_at, created_at) ASC', limit: limit);
       return rows.map((r) => SyncTask.fromMap(r)).toList();
     } catch (e) {
       debugPrint('[SyncQueueDb] getPendingOldestFirst failed: $e');
@@ -102,9 +115,12 @@ class SyncQueueDb {
 
   Future<void> markFailed(int id) async {
     try {
+      final current = Sqflite.firstIntValue(
+        await _database.rawQuery('SELECT retry_count FROM sync_queue WHERE id = ?', [id]),
+      ) ?? 0;
       await _database.update('sync_queue', {
         'status': SyncStatus.failed.name,
-        'retry_count': Sqflite.firstIntValue(await _database.rawQuery('SELECT retry_count FROM sync_queue WHERE id = ?', [id])) ?? 0 + 1,
+        'retry_count': current + 1,
         'updated_at': DateTime.now().millisecondsSinceEpoch,
       }, where: 'id = ?', whereArgs: [id]);
     } catch (e) {
@@ -122,39 +138,6 @@ class SyncQueueDb {
     }
   }
 
-  Future<bool> isDoneByFingerprint({
-    required String sha256,
-    required int fileSize,
-    required String mimeType,
-  }) async {
-    try {
-      final hashPreview = sha256.length > 16 ? '${sha256.substring(0, 16)}...' : sha256;
-      debugPrint('[SyncQueueDb] 🔍 Dublikat tekshirish:');
-      debugPrint('  - SHA256: $hashPreview');
-      debugPrint('  - Size: $fileSize bytes');
-      debugPrint('  - MIME: $mimeType');
-
-      final result = await _database.query(
-        'sync_queue',
-        where: 'sha256 = ? AND file_size = ? AND mime_type = ? AND status = ?',
-        whereArgs: [sha256, fileSize, mimeType, SyncStatus.done.name],
-        limit: 1,
-      );
-
-      final isDuplicate = result.isNotEmpty;
-      if (isDuplicate) {
-        debugPrint('  ✅ DUBLIKAT topildi! (yuklanmaydi)');
-      } else {
-        debugPrint('  ➕ YANGI fayl (yuklanadi)');
-      }
-
-      return isDuplicate;
-    } catch (e) {
-      debugPrint('[SyncQueueDb] ❌ isDoneByFingerprint failed: $e');
-      return false;
-    }
-  }
-
   Future<bool> exists(String localId) async {
     try {
       final result = await _database.query('sync_queue', where: 'local_id = ?', whereArgs: [localId], limit: 1);
@@ -162,27 +145,6 @@ class SyncQueueDb {
     } catch (e) {
       debugPrint('[SyncQueueDb] exists failed: $e');
       return false;
-    }
-  }
-
-  Future<SyncStatus?> getStatus(String localId) async {
-    try {
-      final result = await _database.query('sync_queue', where: 'local_id = ?', whereArgs: [localId], limit: 1);
-      if (result.isEmpty) return null;
-      final statusStr = result.first['status'] as String;
-      return SyncStatus.values.firstWhere((s) => s.name == statusStr);
-    } catch (e) {
-      debugPrint('[SyncQueueDb] getStatus failed: $e');
-      return null;
-    }
-  }
-
-  Future<void> deleteByLocalId(String localId) async {
-    try {
-      await _database.delete('sync_queue', where: 'local_id = ?', whereArgs: [localId]);
-      debugPrint('[SyncQueueDb] Deleted task with localId: $localId');
-    } catch (e) {
-      debugPrint('[SyncQueueDb] deleteByLocalId failed: $e');
     }
   }
 
@@ -240,6 +202,105 @@ class SyncQueueDb {
       }
     } catch (e) {
       debugPrint('[SyncQueueDb] resetStuckUploading failed: $e');
+    }
+  }
+
+  /// Помечает задачу как done и увеличивает session_uploaded счётчик.
+  Future<void> markDoneWithSession(int id, String serverUuid) async {
+    try {
+      await _database.update('sync_queue', {
+        'status': SyncStatus.done.name,
+        'server_uuid': serverUuid,
+        'session_uploaded': 1,
+        'updated_at': DateTime.now().millisecondsSinceEpoch,
+      }, where: 'id = ?', whereArgs: [id]);
+    } catch (e) {
+      debugPrint('[SyncQueueDb] markDoneWithSession failed: $e');
+    }
+  }
+
+  /// Сколько файлов загружено в текущей сессии.
+  Future<int> countSessionUploaded() async {
+    try {
+      final result = await _database.rawQuery(
+        'SELECT COUNT(*) as count FROM sync_queue WHERE session_uploaded = 1',
+      );
+      return Sqflite.firstIntValue(result) ?? 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  /// Сбрасывает session_uploaded счётчик при старте новой сессии.
+  Future<void> resetSessionCounter() async {
+    try {
+      await _database.update('sync_queue', {'session_uploaded': 0});
+      debugPrint('[SyncQueueDb] Session counter reset');
+    } catch (e) {
+      debugPrint('[SyncQueueDb] resetSessionCounter failed: $e');
+    }
+  }
+
+  /// Проверяет есть ли файл с таким же именем и размером
+  /// уже помеченный как done в локальной DB.
+  Future<bool> isDoneByNameAndSize(String fileName, int fileSize) async {
+    try {
+      final result = await _database.query(
+        'sync_queue',
+        where: 'file_name = ? AND file_size = ? AND status = ?',
+        whereArgs: [fileName, fileSize, SyncStatus.done.name],
+        limit: 1,
+      );
+      return result.isNotEmpty;
+    } catch (e) {
+      debugPrint('[SyncQueueDb] isDoneByNameAndSize failed: $e');
+      return false;
+    }
+  }
+
+  /// Сбрасывает failed задачи обратно в pending по exponential backoff.
+  /// retry_count 0 → ждать 1мин, 1 → 5мин, 2 → 30мин. После 3 попыток — не трогать.
+  Future<void> resetFailedForRetry() async {
+    try {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      const backoffMs = [
+        60 * 1000,        // 1 мин
+        5 * 60 * 1000,    // 5 мин
+        30 * 60 * 1000,   // 30 мин
+      ];
+      for (int i = 0; i < backoffMs.length; i++) {
+        final cutoff = now - backoffMs[i];
+        final count = await _database.update(
+          'sync_queue',
+          {'status': SyncStatus.pending.name, 'updated_at': now},
+          where: 'status = ? AND retry_count = ? AND updated_at <= ?',
+          whereArgs: [SyncStatus.failed.name, i, cutoff],
+        );
+        if (count > 0) {
+          debugPrint('[SyncQueueDb] Retry: $count задач (retry=$i) → pending');
+        }
+      }
+    } catch (e) {
+      debugPrint('[SyncQueueDb] resetFailedForRetry failed: $e');
+    }
+  }
+
+  /// Обновляет file_path и file_size для задачи с size=0.
+  /// Вызывается перед checkDuplicates чтобы сервер получил реальные данные.
+  Future<void> updatePathAndSize(int id, String filePath, int fileSize) async {
+    try {
+      await _database.update(
+        'sync_queue',
+        {
+          'file_path': filePath,
+          'file_size': fileSize,
+          'updated_at': DateTime.now().millisecondsSinceEpoch,
+        },
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    } catch (e) {
+      debugPrint('[SyncQueueDb] updatePathAndSize failed: $e');
     }
   }
 }

@@ -1,12 +1,5 @@
-import 'dart:convert';
-import 'dart:io';
-
-import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path/path.dart' as p;
 import 'package:photo_manager/photo_manager.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../data/sync_queue_db.dart';
 import '../data/sync_task.dart';
@@ -18,12 +11,22 @@ class MediaScanner {
   final String? sessionId;
   final void Function(int pending)? onProgress;
 
+  /// Если задан — сканировать только ассеты созданные ПОСЛЕ этого timestamp (мс).
+  /// Используется для delta scan. Null = полный scan.
+  final int? filterFromMs;
+
+  /// false = не резолвить originFile во время скана (быстрый режим).
+  /// _resolveTaskSizes в startSync() доделает это перед загрузкой.
+  final bool resolveFiles;
+
   MediaScanner({
     required this.db,
     required this.uploadedKeys,
     this.selectedLocalIds,
     this.sessionId,
     this.onProgress,
+    this.filterFromMs,
+    this.resolveFiles = true,
   });
 
   /// Быстро считает общее кол-во файлов в галерее без сканирования.
@@ -85,6 +88,7 @@ class MediaScanner {
             end: offset + count,
           );
 
+          await Future.delayed(Duration.zero);
           for (final asset in assets) {
             try {
               // Skip if selective sync is on and asset not selected
@@ -93,70 +97,74 @@ class MediaScanner {
                 continue;
               }
 
-              // Delete existing record if any (to allow re-sync)
-              if (await db.exists(asset.id)) {
-                await db.deleteByLocalId(asset.id);
-              }
+              // Delta filter: пропускаем если ассет старее watermark
+              final assetCreatedMs = asset.createDateTime.millisecondsSinceEpoch;
+              if (filterFromMs != null && assetCreatedMs < filterFromMs!) continue;
 
-              // Get file reference
-              final file = await asset.originFile;
-              if (file == null) continue;
+              // Metadata-only for name/mime — originFile for real size + path
+              final name = asset.title ?? '${asset.id}.${asset.type == AssetType.video ? 'mp4' : 'jpg'}';
+              final mimeType = _mimeForAsset(asset);
 
-              // Get original filename - try multiple sources
-              String originalName = asset.title ?? '';
-              if (originalName.isEmpty || originalName.contains('/')) {
-                // asset.title is null or contains path - extract from file path
-                originalName = p.basename(file.path);
-              }
-              if (originalName.isEmpty) {
-                // Last resort: generate filename from timestamp
-                final timestamp = asset.createDateTime?.millisecondsSinceEpoch ?? DateTime.now().millisecondsSinceEpoch;
-                final ext = p.extension(file.path);
-                originalName = 'IMG_$timestamp${ext.isEmpty ? '.jpg' : ext}';
-              }
+              // bucket_day для группировки
+              final bucketDay = '${asset.createDateTime.year.toString().padLeft(4, '0')}'
+                  '-${asset.createDateTime.month.toString().padLeft(2, '0')}'
+                  '-${asset.createDateTime.day.toString().padLeft(2, '0')}';
 
-              debugPrint('[MediaScanner] 📝 File: $originalName (${(file.lengthSync() / 1024 / 1024).toStringAsFixed(2)} MB)');
-
-              // Convert HEIC/HEIF to JPEG if needed
-              File finalFile = file;
-              String finalName = originalName;
-              String finalMimeType = _mimeForAsset(asset);
-
-              if (asset.type == AssetType.image && _isHeicFormat(file.path)) {
+              // В быстром режиме (resolveFiles=false) пропускаем IO.
+              // _resolveTaskSizes в startSync доделает это перед загрузкой.
+              int realSize = 0;
+              String resolvedPath = '';
+              if (resolveFiles) {
                 try {
-                  final converted = await _convertHeicToJpeg(file, asset.id);
-                  if (converted != null) {
-                    finalFile = converted;
-                    // Replace extension in original filename
-                    finalName = originalName.replaceAll(RegExp(r'\.(heic|heif)$', caseSensitive: false), '.jpg');
-                    // If no extension was replaced, add .jpg
-                    if (finalName == originalName) {
-                      finalName = '$originalName.jpg';
-                    }
-                    finalMimeType = 'image/jpeg';
-                    debugPrint('[MediaScanner] ✅ Converted HEIC to JPEG: $originalName -> $finalName');
+                  final file = await asset.originFile;
+                  if (file != null && file.existsSync()) {
+                    realSize = await file.length();
+                    resolvedPath = file.path;
                   }
-                } catch (e) {
-                  debugPrint('[MediaScanner] ❌ HEIC conversion failed for ${asset.id}: $e');
-                  // Continue with original file if conversion fails
-                }
+                } catch (_) {}
               }
 
-              final size = finalFile.lengthSync();
+              // Skip if already in local DB
+              if (await db.exists(asset.id)) continue;
 
-              // Compute hash (optional, for logging/debugging)
-              final hash = await _computeHash(asset, finalFile, size);
+              // Дополнительно: проверка по имени+размеру для случая после logout
+              if (realSize > 0) {
+                final alreadyDone = await db.isDoneByNameAndSize(name, realSize);
+                if (alreadyDone) continue;
+              }
 
-              // Always enqueue as pending - backend will check duplicates
+              // Key для server-side dedup
+              final key = '$name|$realSize';
+
+              // Check if already uploaded to server (cold start dedup)
+              if (uploadedKeys.contains(key)) {
+                await db.insertOrIgnore(SyncTask(
+                  localId: asset.id,
+                  filePath: resolvedPath,
+                  fileName: name,
+                  fileSize: realSize,
+                  mimeType: mimeType,
+                  sessionId: sessionId,
+                  status: SyncStatus.done,
+                  assetCreatedAt: assetCreatedMs,
+                  bucketDay: bucketDay,
+                  createdAt: now,
+                  updatedAt: now,
+                ));
+                continue;
+              }
+
+              // Enqueue as pending
               await db.insertOrIgnore(SyncTask(
                 localId: asset.id,
-                filePath: finalFile.path,
-                fileName: finalName,
-                fileSize: size,
-                mimeType: finalMimeType,
-                sha256: hash,
+                filePath: resolvedPath,
+                fileName: name,
+                fileSize: realSize,
+                mimeType: mimeType,
                 sessionId: sessionId,
                 status: SyncStatus.pending,
+                assetCreatedAt: assetCreatedMs,
+                bucketDay: bucketDay,
                 createdAt: now,
                 updatedAt: now,
               ));
@@ -177,28 +185,6 @@ class MediaScanner {
     }
   }
 
-  static const int _isolateHashThreshold = 256 * 1024; // 256KB
-
-  Future<String?> _computeHash(AssetEntity asset, File file, int size) async {
-    try {
-      // Skip hash for missing files
-      if (!file.existsSync()) return null;
-
-      final isVideo = asset.type == AssetType.video;
-      final args = _HashArgs(file.path, size, isVideo);
-
-      // Use compute() only for files above threshold to avoid isolate overhead
-      if (size > _isolateHashThreshold) {
-        return await compute(_computeHashIsolate, args);
-      } else {
-        return _computeHashIsolate(args);
-      }
-    } catch (e) {
-      debugPrint('[MediaScanner] Hash computation failed: $e');
-      return null;
-    }
-  }
-
   String _mimeForAsset(AssetEntity asset) {
     switch (asset.type) {
       case AssetType.image:
@@ -208,79 +194,5 @@ class MediaScanner {
       default:
         return 'application/octet-stream';
     }
-  }
-
-  /// Check if file is HEIC/HEIF format
-  bool _isHeicFormat(String filePath) {
-    final ext = p.extension(filePath).toLowerCase();
-    return ext == '.heic' || ext == '.heif';
-  }
-
-  /// Convert HEIC/HEIF to JPEG
-  Future<File?> _convertHeicToJpeg(File heicFile, String assetId) async {
-    try {
-      final tempDir = await getTemporaryDirectory();
-      final targetPath = p.join(
-        tempDir.path,
-        'converted_$assetId.jpg',
-      );
-
-      debugPrint('[MediaScanner] Converting HEIC: ${heicFile.path} -> $targetPath');
-
-      final result = await FlutterImageCompress.compressAndGetFile(
-        heicFile.path,
-        targetPath,
-        quality: 90,
-        format: CompressFormat.jpeg,
-      );
-
-      if (result != null) {
-        debugPrint('[MediaScanner] HEIC conversion successful: ${result.path}');
-        return File(result.path);
-      } else {
-        debugPrint('[MediaScanner] HEIC conversion returned null');
-        return null;
-      }
-    } catch (e) {
-      debugPrint('[MediaScanner] HEIC conversion error: $e');
-      return null;
-    }
-  }
-}
-
-// ── Isolate-safe hash computation ───────────────────────────────────────────
-
-class _HashArgs {
-  final String filePath;
-  final int fileSize;
-  final bool isVideo;
-  const _HashArgs(this.filePath, this.fileSize, this.isVideo);
-}
-
-String? _computeHashIsolate(_HashArgs args) {
-  try {
-    final file = File(args.filePath);
-    Uint8List bytes;
-    if (args.isVideo) {
-      const maxBytes = 1024 * 1024;
-      final raf = file.openSync(mode: FileMode.read);
-      try {
-        final readLength = args.fileSize < maxBytes ? args.fileSize : maxBytes;
-        bytes = raf.readSync(readLength);
-      } finally {
-        raf.closeSync();
-      }
-      final sizeBytes = utf8.encode(args.fileSize.toString());
-      final combined = Uint8List(bytes.length + sizeBytes.length);
-      combined.setRange(0, bytes.length, bytes);
-      combined.setRange(bytes.length, combined.length, sizeBytes);
-      bytes = combined;
-    } else {
-      bytes = file.readAsBytesSync();
-    }
-    final digest = sha256.convert(bytes);
-    return digest.toString();
-  } catch (_) {
-    return null;
   }
 }

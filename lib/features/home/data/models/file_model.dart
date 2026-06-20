@@ -14,6 +14,7 @@ class FileModel {
   final bool isFavourite;
   final String? favouriteId;
   final String? thumbnailPath;
+  final DateTime? capturedAt;
 
   const FileModel({
     required this.id,
@@ -25,6 +26,7 @@ class FileModel {
     this.isFavourite = false,
     this.favouriteId,
     this.thumbnailPath,
+    this.capturedAt,
   });
 
   factory FileModel.fromJson(Map<String, dynamic> json) {
@@ -39,6 +41,9 @@ class FileModel {
       isFavourite: json['is_favourite'] ?? false,
       favouriteId: json['favourite_id']?.toString(),
       thumbnailPath: _normalizeUrl(json['thumbnail_path']?.toString()),
+      capturedAt: json['captured_at'] != null
+          ? DateTime.tryParse(json['captured_at'].toString())
+          : null,
     );
   }
 
@@ -54,6 +59,7 @@ class FileModel {
     bool? isFavourite,
     Object? favouriteId = _absent, // ← Object? вместо String?
     String? thumbnailPath,
+    Object? capturedAt = _absent,
   }) {
     return FileModel(
       id: id ?? this.id,
@@ -69,6 +75,9 @@ class FileModel {
           ? this.favouriteId
           : favouriteId as String?,
       thumbnailPath: thumbnailPath ?? this.thumbnailPath,
+      capturedAt: identical(capturedAt, _absent)
+          ? this.capturedAt
+          : capturedAt as DateTime?,
     );
   }
 

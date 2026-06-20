@@ -64,7 +64,7 @@ import 'app_localizations_uz.dart';
 /// property.
 abstract class AppLocalizations {
   AppLocalizations(String locale)
-      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -87,17 +87,17 @@ abstract class AppLocalizations {
   /// of delegates is preferred or required.
   static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
       <LocalizationsDelegate<dynamic>>[
-    delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-  ];
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
     Locale('ru'),
-    Locale('uz')
+    Locale('uz'),
   ];
 
   /// No description provided for @appName.
@@ -1132,83 +1132,41 @@ abstract class AppLocalizations {
   /// **'Stop'**
   String get syncStop;
 
-  /// No description provided for @fileTypes.
+  /// No description provided for @syncSelectedFiles.
   ///
   /// In en, this message translates to:
-  /// **'File types'**
-  String get fileTypes;
+  /// **'Selected files'**
+  String get syncSelectedFiles;
 
-  /// No description provided for @viewAll.
+  /// No description provided for @syncSelectedFilesSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'View all'**
-  String get viewAll;
+  /// **'Sync only selected'**
+  String get syncSelectedFilesSubtitle;
 
-  /// No description provided for @recentFiles.
+  /// No description provided for @syncTotal.
   ///
   /// In en, this message translates to:
-  /// **'Gallery files'**
-  String get recentFiles;
+  /// **'Total'**
+  String get syncTotal;
 
-  /// No description provided for @sync.
+  /// No description provided for @uploadedLabel.
   ///
   /// In en, this message translates to:
-  /// **'Sync'**
-  String get sync;
+  /// **'Uploaded'**
+  String get uploadedLabel;
 
-  /// No description provided for @image.
+  /// No description provided for @uploadPageTitle.
   ///
   /// In en, this message translates to:
-  /// **'Image'**
-  String get image;
+  /// **'Upload'**
+  String get uploadPageTitle;
 
-  /// No description provided for @video.
+  /// No description provided for @cancelledLabel.
   ///
   /// In en, this message translates to:
-  /// **'Video'**
-  String get video;
-
-  /// No description provided for @filesLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} files'**
-  String filesLabel(String count);
-
-  /// No description provided for @today.
-  ///
-  /// In en, this message translates to:
-  /// **'Today'**
-  String get today;
-
-  /// No description provided for @yesterday.
-  ///
-  /// In en, this message translates to:
-  /// **'Yesterday'**
-  String get yesterday;
-
-  /// No description provided for @daysAgo.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} days ago'**
-  String daysAgo(int count);
-
-  /// No description provided for @deleteAccount.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete account'**
-  String get deleteAccount;
-
-  /// No description provided for @deleteAccountConfirm.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete account'**
-  String get deleteAccountConfirm;
-
-  /// No description provided for @deleteAccountConfirmMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Are you sure you want to delete your account? This action is irreversible.'**
-  String get deleteAccountConfirmMessage;
+  /// **'Cancelled'**
+  String get cancelledLabel;
 }
 
 class _AppLocalizationsDelegate
@@ -1240,8 +1198,9 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   }
 
   throw FlutterError(
-      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-      'an issue with the localizations generation tool. Please file an issue '
-      'on GitHub with a reproducible sample app and the gen-l10n configuration '
-      'that was used.');
+    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.',
+  );
 }

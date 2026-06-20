@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/config/app_config.dart';
-import 'package:video_player/video_player.dart';
 
 class PhotoViewerPage extends StatefulWidget {
-  final List<({String url, String name, String fileId, String mimeType})> files;
+  final List<({String url, String name, String fileId})> files;
   final int initialIndex;
   final String? authToken;
   final Future<String?> Function(String fileId)? onNeedFullUrl;
@@ -22,10 +21,9 @@ class PhotoViewerPage extends StatefulWidget {
     required String fileName,
     String? authToken,
     String fileId = '',
-    String mimeType = 'image/jpeg',
   }) {
     return PhotoViewerPage(
-      files: [(url: imageUrl, name: fileName, fileId: fileId, mimeType: mimeType)],
+      files: [(url: imageUrl, name: fileName, fileId: fileId)],
       initialIndex: 0,
       authToken: authToken,
     );
@@ -128,7 +126,6 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
 
   Widget _buildPage(int index) {
     final item = widget.files[index];
-    final isVideo = item.mimeType.toLowerCase().startsWith('video/');
 
     // Determine which URL to show:
     // 1. Full presigned URL if already loaded
@@ -147,14 +144,6 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
     final displayUrl = (fullUrl != null && fullUrl.isNotEmpty)
         ? fullUrl
         : item.url;
-
-    // If it's a video, show video player
-    if (isVideo && fullUrl != null && fullUrl.isNotEmpty) {
-      return _VideoPlayerWidget(
-        videoUrl: displayUrl,
-        authToken: widget.authToken,
-      );
-    }
 
     final headers = _buildHeaders(displayUrl);
 
@@ -234,157 +223,5 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
     }
     // Pre-signed MinIO links must NOT include Authorization header.
     return {};
-  }
-}
-
-// Video Player Widget
-class _VideoPlayerWidget extends StatefulWidget {
-  final String videoUrl;
-  final String? authToken;
-
-  const _VideoPlayerWidget({
-    required this.videoUrl,
-    this.authToken,
-  });
-
-  @override
-  State<_VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
-}
-
-class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
-  late VideoPlayerController _controller;
-  bool _isInitialized = false;
-  bool _hasError = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeVideo();
-  }
-
-  Map<String, String> _buildHeaders() {
-    if (widget.authToken == null) return {};
-    final uri = Uri.tryParse(widget.videoUrl);
-    if (uri == null) return {};
-    final apiHost = Uri.parse(AppConfig.instance.baseUrl).host;
-
-    // Only add Authorization header for API host, not for MinIO presigned URLs
-    if (uri.host == apiHost) {
-      return {'Authorization': 'Bearer ${widget.authToken}'};
-    }
-    return {};
-  }
-
-  Future<void> _initializeVideo() async {
-    try {
-      final uri = Uri.parse(widget.videoUrl);
-      final headers = _buildHeaders();
-
-      _controller = VideoPlayerController.networkUrl(
-        uri,
-        httpHeaders: headers,
-      );
-
-      await _controller.initialize();
-      if (mounted) {
-        setState(() => _isInitialized = true);
-        _controller.play();
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _hasError = true);
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_hasError) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, color: Colors.grey, size: 64),
-            SizedBox(height: 12),
-            Text(
-              'Не удалось загрузить видео',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (!_isInitialized) {
-      return const Center(
-        child: CircularProgressIndicator(color: Colors.white),
-      );
-    }
-
-    return Center(
-      child: AspectRatio(
-        aspectRatio: _controller.value.aspectRatio,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            VideoPlayer(_controller),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: VideoProgressIndicator(
-                _controller,
-                allowScrubbing: true,
-                colors: const VideoProgressColors(
-                  playedColor: Colors.blue,
-                  bufferedColor: Colors.grey,
-                  backgroundColor: Colors.black26,
-                ),
-              ),
-            ),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  if (_controller.value.isPlaying) {
-                    _controller.pause();
-                  } else {
-                    _controller.play();
-                  }
-                });
-              },
-              child: Container(
-                color: Colors.transparent,
-                child: Center(
-                  child: AnimatedOpacity(
-                    opacity: _controller.value.isPlaying ? 0.0 : 1.0,
-                    duration: const Duration(milliseconds: 200),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(50),
-                      ),
-                      child: Icon(
-                        _controller.value.isPlaying
-                            ? Icons.pause
-                            : Icons.play_arrow,
-                        color: Colors.white,
-                        size: 48,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

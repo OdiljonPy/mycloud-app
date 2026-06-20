@@ -1,11 +1,8 @@
 import 'dart:ui';
-import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
-import 'package:photo_manager/photo_manager.dart';
-import 'package:image_picker/image_picker.dart';
 import '../data/home_repository.dart';
 import '../data/download_repository.dart';
 import '../data/models/folder_model.dart';
@@ -163,6 +160,7 @@ class FilesPageState extends State<FilesPage> {
   }
 
   void _toggleFolderSelection(String id) {
+    // Sync folder cannot be selected
     if (_folders.any((f) => f.id == id && f.isSync)) return;
     setState(() {
       if (_selectedFolders.contains(id)) {
@@ -220,6 +218,14 @@ class FilesPageState extends State<FilesPage> {
     FavouritesProvider.instance.loadFavourites();
     _loadContent();
     _loadAuthToken();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 300) {
+        if (_hasNextPage && !_isLoadingMore && !_isLoading) {
+          _loadMoreContent();
+        }
+      }
+    });
     _shareBloc = ShareBloc(
       ShareRepositoryImpl(
         ShareRemoteDataSourceImpl(DioClient.instance),
@@ -241,33 +247,39 @@ class FilesPageState extends State<FilesPage> {
 
 
 
+  bool _isOpeningFile = false;
+
   Future<void> _openFileViewer(FileModel file) async {
+    if (_isOpeningFile) return;
+    _isOpeningFile = true;
     final t = AppLocalizations.of(context)!;
+    try {
     final mime = file.mimeType.toLowerCase();
-
-    if (mime.startsWith('image/') || mime.startsWith('video/')) {
-      final allMediaFiles = _displayFiles
-          .where((f) {
-            final m = f.mimeType.toLowerCase();
-            return m.startsWith('image/') || m.startsWith('video/');
-          })
-          .toList();
-
-      final idx = allMediaFiles.indexWhere((f) => f.id == file.id);
-
+    if (mime.startsWith('image/')) {
+      final fullUrl = await _repo.getPreviewUrl(file.id);
+      if (fullUrl == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(t.couldNotOpenImage)),
+          );
+        }
+        return;
+      }
       if (!mounted) return;
-
+      final allImageFiles = _displayFiles
+          .where((f) => f.mimeType.toLowerCase().startsWith('image/'))
+          .toList();
+      final idx = allImageFiles.indexWhere((f) => f.id == file.id);
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => PhotoViewerPage(
-            files: allMediaFiles
+            files: allImageFiles
                 .map((f) => (
-                  url: f.thumbnailPath ?? '',
-                  name: f.name,
-                  fileId: f.id,
-                  mimeType: f.mimeType,
-                ))
+            url: f.thumbnailPath ?? '',
+            name: f.name,
+            fileId: f.id,
+            ))
                 .toList(),
             initialIndex: idx < 0 ? 0 : idx,
             authToken: _authToken,
@@ -275,6 +287,30 @@ class FilesPageState extends State<FilesPage> {
           ),
         ),
       );
+    } else if (mime.startsWith('video/')) {
+      final url = await _repo.getPreviewUrl(file.id);
+      if (url == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(t.couldNotOpenVideo)),
+          );
+        }
+        return;
+      }
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => VideoPlayerPage(
+            videoUrl: url,
+            fileName: file.name,
+            authToken: _authToken,
+          ),
+        ),
+      );
+    }
+    } finally {
+      if (mounted) setState(() => _isOpeningFile = false);
     }
   }
 
@@ -389,35 +425,19 @@ class FilesPageState extends State<FilesPage> {
   }
 
   Future<void> _pickAndUploadFiles() async {
-    final ImagePicker picker = ImagePicker();
-
-    // Pick multiple images/videos from gallery
-    final List<XFile> selectedFiles = await picker.pickMultipleMedia();
-
-    if (selectedFiles.isEmpty) return;
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      type: FileType.media,
+    );
+    if (result == null || result.files.isEmpty) return;
     if (!mounted) return;
-
-    // Convert XFile to PlatformFile
-    final List<PlatformFile> files = [];
-    for (final xFile in selectedFiles) {
-      final file = File(xFile.path);
-      files.add(PlatformFile(
-        name: xFile.name,
-        size: await file.length(),
-        path: xFile.path,
-      ));
-    }
-
-    if (files.isEmpty) return;
-    if (!mounted) return;
-
     final currentFolder = _currentFolderId;
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => UploadPage(
           parentId: currentFolder,
-          initialFiles: files,
+          initialFiles: result.files,
           onUploadComplete: () async {
             await Future.delayed(const Duration(seconds: 2));
             _loadContent();
@@ -2000,10 +2020,57 @@ class FilesPageState extends State<FilesPage> {
       ));
     }
 
-    // ── 2. Files sliver (virtualized) ──
+    // ── 2. Files sliver (virtualized, grouped by date) ──
     if (_displayFiles.isNotEmpty) {
       if (_isGrid && !_showFavourites) {
-        slivers.add(_buildFilesGridSliver());
+        final grouped = _groupFilesByDate(_displayFiles);
+        for (final entry in grouped) {
+          slivers.add(SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text(
+                entry.key,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ));
+          slivers.add(SliverGrid(
+            delegate: SliverChildBuilderDelegate(
+              (ctx, i) {
+                final f = entry.value[i];
+                return RepaintBoundary(
+                  child: _FileGridCard(
+                    key: ValueKey(f.id),
+                    file: f,
+                    isSelected: _selectedFiles.contains(f.id),
+                    isSelectionMode: _isSelectionMode,
+                    onTap: () {
+                      if (_isSelectionMode) {
+                        _toggleFileSelection(f.id);
+                      } else {
+                        _openFileViewer(f);
+                      }
+                    },
+                    onSelectTap: () => _toggleFileSelection(f.id),
+                    onMenuTap: () => _showFileMenu(f),
+                    onFavouriteTap: () =>
+                        FavouritesProvider.instance.toggleFavourite(f),
+                  ),
+                );
+              },
+              childCount: entry.value.length,
+            ),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 2,
+              mainAxisSpacing: 2,
+              childAspectRatio: 1.0,
+            ),
+          ));
+        }
       } else {
         slivers.add(_buildFilesListSliver());
       }
@@ -2102,27 +2169,33 @@ class FilesPageState extends State<FilesPage> {
     );
   }
 
-  Widget _buildFilesGridSliver() {
-    // Index-based pagination: show loading indicator as last item
-    final itemCount = _displayFiles.length + (_hasNextPage ? 1 : 0);
+  List<MapEntry<String, List<FileModel>>> _groupFilesByDate(List<FileModel> files) {
+    final Map<String, List<FileModel>> groups = {};
+    for (final file in files) {
+      // Используем capturedAt (дата съёмки) если есть, иначе createdAt
+      final date = file.capturedAt ?? file.createdAt;
+      final key = [
+        date.year.toString().padLeft(4, '0'),
+        date.month.toString().padLeft(2, '0'),
+        date.day.toString().padLeft(2, '0'),
+      ].join('-');
+      groups.putIfAbsent(key, () => []).add(file);
+    }
+    final sorted = groups.entries.toList()..sort((a, b) => b.key.compareTo(a.key));
+    for (final entry in sorted) {
+      entry.value.sort((a, b) {
+        final aDate = a.capturedAt ?? a.createdAt;
+        final bDate = b.capturedAt ?? b.createdAt;
+        return bDate.compareTo(aDate);
+      });
+    }
+    return sorted;
+  }
 
+  Widget _buildFilesGridSliver() {
     return SliverGrid(
       delegate: SliverChildBuilderDelegate(
         (context, i) {
-          // Loading indicator at the end
-          if (i == _displayFiles.length) {
-            // Trigger loading more when reaching the last item
-            if (_hasNextPage && !_isLoadingMore) {
-              Future.microtask(() => _loadMoreContent());
-            }
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            );
-          }
-
           final f = _displayFiles[i];
           return RepaintBoundary(
             child: _FileGridCard(
@@ -2144,7 +2217,7 @@ class FilesPageState extends State<FilesPage> {
             ),
           );
         },
-        childCount: itemCount,
+        childCount: _displayFiles.length,
       ),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
@@ -2156,26 +2229,9 @@ class FilesPageState extends State<FilesPage> {
   }
 
   Widget _buildFilesListSliver() {
-    // Index-based pagination: show loading indicator as last item
-    final itemCount = _displayFiles.length + (_hasNextPage ? 1 : 0);
-
     return SliverList(
       delegate: SliverChildBuilderDelegate(
         (context, i) {
-          // Loading indicator at the end
-          if (i == _displayFiles.length) {
-            // Trigger loading more when reaching the last item
-            if (_hasNextPage && !_isLoadingMore) {
-              Future.microtask(() => _loadMoreContent());
-            }
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            );
-          }
-
           final f = _displayFiles[i];
           return RepaintBoundary(
             child: _FileTile(
@@ -2200,7 +2256,7 @@ class FilesPageState extends State<FilesPage> {
             ),
           );
         },
-        childCount: itemCount,
+        childCount: _displayFiles.length,
       ),
     );
   }

@@ -10,6 +10,7 @@ import '../../auth/presentation/login_page.dart';
 import '../data/profile_repository.dart';
 import '../../../main.dart';
 import '../../share/presentation/share_requests_page.dart';
+import '../../sync/presentation/auto_sync_settings_page.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -78,26 +79,6 @@ class _ProfilePageState extends State<ProfilePage> {
     if (b >= 1073741824) return '${(b / 1073741824).toStringAsFixed(2)} GB';
     if (b >= 1048576) return '${(b / 1048576).toStringAsFixed(1)} MB';
     return '${(b / 1024).toStringAsFixed(0)} KB';
-  }
-
-  Future<void> _deleteAccount() async {
-    try {
-      await _repo.disableAccount();
-      await SecureStorage.clearTokens();
-      DioClient.reset();
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginPage()),
-          (_) => false,
-        );
-      }
-    } on AppException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
-        );
-      }
-    }
   }
 
   Future<void> _logout() async {
@@ -582,11 +563,11 @@ class _ProfilePageState extends State<ProfilePage> {
                       const SizedBox(height: 16),
                       _buildShareRequests(),
                       const SizedBox(height: 16),
+                      _buildAutoSync(),
+                      const SizedBox(height: 16),
                       _buildTheme(),
                       const SizedBox(height: 24),
                       _buildLogout(),
-                      const SizedBox(height: 12),
-                      _buildDeleteAccount(),
                       const SizedBox(height: 40),
                     ],
                   ),
@@ -900,6 +881,71 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  // Auto-Sync
+  Widget _buildAutoSync() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const AutoSyncSettingsPage(),
+          ),
+        ),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding:
+          const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.sync_rounded,
+                    color: Colors.green, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Авто-синхронизация',
+                      style: TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w500),
+                    ),
+                    Text(
+                      'Автоматическая загрузка фото и видео',
+                      style: TextStyle(
+                          fontSize: 13, color: Colors.grey.shade500),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right,
+                  color: Colors.grey.shade400, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // Theme
   Widget _buildTheme() {
     final t = AppLocalizations.of(context)!;
@@ -1003,59 +1049,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   },
                   child: Text(t.logout,
                       style: const TextStyle(color: Colors.red)),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildDeleteAccount() {
-    final t = AppLocalizations.of(context)!;
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        icon: const Icon(Icons.delete_forever_rounded, color: Colors.red),
-        label: Text(
-          t.deleteAccount,
-          style: const TextStyle(
-            color: Colors.red,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          side: BorderSide(color: Colors.red.withValues(alpha: 0.4)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              title: Text(t.deleteAccountConfirm),
-              content: Text(t.deleteAccountConfirmMessage),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: Text(t.cancel),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _deleteAccount();
-                  },
-                  child: Text(
-                    t.deleteAccount,
-                    style: const TextStyle(color: Colors.red),
-                  ),
                 ),
               ],
             ),

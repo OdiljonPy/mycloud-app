@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/storage/secure_storage.dart';
 
 class ProfileRepository {
   final Dio _dio = DioClient.instance;
@@ -24,13 +25,8 @@ class ProfileRepository {
 
   Future<Map<String, dynamic>> getMe() async {
     try {
-      final r = await _dio.get('authentication/users/me/');
-      if (r.data is! Map<String, dynamic>) return {};
-      final data = r.data as Map<String, dynamic>;
-      if (data.containsKey('result') && data['result'] is Map<String, dynamic>) {
-        return data['result'] as Map<String, dynamic>;
-      }
-      return data;
+      final r = await _dio.get('/authentication/users/me/');
+      return r.data is Map<String, dynamic> ? r.data : {};
     } on DioException catch (e) {
       throw AppException(
         message: _extractError(e.response?.data),
@@ -41,15 +37,12 @@ class ProfileRepository {
 
   Future<void> updateProfile({String? fullName, String? phone}) async {
     try {
-      final me = await getMe();
-      final userId = me['id']?.toString();
-      if (userId == null) {
-        throw const AppException(message: 'Не удалось получить ID пользователя');
-      }
+      final userId = await SecureStorage.getUserId();
+      if (userId == null) throw const AppException(message: 'User ID not found');
       final data = <String, dynamic>{};
       if (fullName != null) data['full_name'] = fullName;
       if (phone != null) data['phone_number'] = phone;
-      await _dio.patch('authentication/users/$userId/', data: data);
+      await _dio.patch('/authentication/users/$userId/', data: data);
     } on DioException catch (e) {
       throw AppException(
         message: _extractError(e.response?.data),
@@ -63,12 +56,9 @@ class ProfileRepository {
     required String newPass,
   }) async {
     try {
-      final me = await getMe();
-      final userId = me['id']?.toString();
-      if (userId == null) {
-        throw const AppException(message: 'Не удалось получить ID пользователя');
-      }
-      await _dio.patch('authentication/users/$userId/', data: {
+      final userId = await SecureStorage.getUserId();
+      if (userId == null) throw const AppException(message: 'User ID not found');
+      await _dio.patch('/authentication/users/$userId/', data: {
         'old_password': current,
         'new_password': newPass,
         'confirm_password': newPass,
@@ -83,7 +73,7 @@ class ProfileRepository {
 
   Future<Map<String, dynamic>> getStorageUsed() async {
     try {
-      final r = await _dio.get('storage/used/');
+      final r = await _dio.get('/storage/used/');
       return r.data is Map<String, dynamic> ? r.data : {};
     } on DioException catch (e) {
       throw AppException(
@@ -95,7 +85,7 @@ class ProfileRepository {
 
   Future<Map<String, dynamic>> getStorageUsage() async {
     try {
-      final r = await _dio.get('storage/usage/');
+      final r = await _dio.get('/storage/usage/');
       return r.data is Map<String, dynamic> ? r.data : {};
     } on DioException catch (e) {
       throw AppException(
@@ -107,7 +97,7 @@ class ProfileRepository {
 
   Future<Map<String, dynamic>> getContentStatistics() async {
     try {
-      final r = await _dio.get('content/statistics/');
+      final r = await _dio.get('/content/statistics/');
       return r.data is Map<String, dynamic> ? r.data : {};
     } on DioException catch (e) {
       throw AppException(
@@ -122,19 +112,8 @@ class ProfileRepository {
     required String type,
   }) async {
     try {
-      final r = await _dio.post('content/info/', data: {'id': id, 'type': type});
+      final r = await _dio.post('/content/info/', data: {'id': id, 'type': type});
       return r.data is Map<String, dynamic> ? r.data : {};
-    } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data),
-        statusCode: e.response?.statusCode,
-      );
-    }
-  }
-
-  Future<void> disableAccount() async {
-    try {
-      await _dio.patch('authentication/users/disable/', data: {'verified': true});
     } on DioException catch (e) {
       throw AppException(
         message: _extractError(e.response?.data),
@@ -157,7 +136,7 @@ class ProfileRepository {
           contentType: DioMediaType('image', 'jpeg'),
         ),
       });
-      await _dio.patch('authentication/users/$userId/', data: formData);
+      await _dio.patch('/authentication/users/$userId/', data: formData);
     } on DioException catch (e) {
       throw AppException(
         message: _extractError(e.response?.data),

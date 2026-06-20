@@ -296,7 +296,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get accessRejected => 'Доступ отклонён';
 
   @override
-  String get noShareRequests => 'Нет share requests';
+  String get noShareRequests => 'Нет запросов на доступ';
 
   @override
   String get noShareRequestsSubtitle =>
@@ -554,46 +554,20 @@ class AppLocalizationsRu extends AppLocalizations {
   String get syncStop => 'Остановить';
 
   @override
-  String get fileTypes => 'Типы файлов';
+  String get syncSelectedFiles => 'Выбранные файлы';
 
   @override
-  String get viewAll => 'Все';
+  String get syncSelectedFilesSubtitle => 'Синхронизировать только выбранные';
 
   @override
-  String get recentFiles => 'Файлы галереи';
+  String get syncTotal => 'Всего';
 
   @override
-  String get sync => 'Синхр.';
+  String get uploadedLabel => 'Загружено';
 
   @override
-  String get image => 'Изображение';
+  String get uploadPageTitle => 'Загрузка';
 
   @override
-  String get video => 'Видео';
-
-  @override
-  String filesLabel(String count) {
-    return '$count файлов';
-  }
-
-  @override
-  String get today => 'Сегодня';
-
-  @override
-  String get yesterday => 'Вчера';
-
-  @override
-  String daysAgo(int count) {
-    return '$count дней назад';
-  }
-
-  @override
-  String get deleteAccount => 'Удалить аккаунт';
-
-  @override
-  String get deleteAccountConfirm => 'Удалить аккаунт';
-
-  @override
-  String get deleteAccountConfirmMessage =>
-      'Вы уверены, что хотите удалить аккаунт? Это действие необратимо.';
+  String get cancelledLabel => 'Отменено';
 }

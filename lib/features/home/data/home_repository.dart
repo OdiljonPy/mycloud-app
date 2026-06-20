@@ -156,7 +156,7 @@ class HomeRepository {
     try {
       final response = await _dio.post(
         '/content/folder/',
-        data: {'name': 'Sync', 'parent': null},
+        data: {'name': 'Sync', 'parent': null, 'is_sync': true},
       );
       return FolderModel.fromJson(response.data);
     } catch (e) {
@@ -395,12 +395,9 @@ class HomeRepository {
     }
   }
 
-  Future<List<dynamic>> getRecentFiles({int size = 20}) async {
+  Future<List<dynamic>> getRecentFiles() async {
     try {
-      final response = await _dio.get(
-        '/content/recent-files/',
-        queryParameters: {'size': size},
-      );
+      final response = await _dio.get('/content/recent-files/');
       if (response.data is List) return response.data as List;
       return response.data['results'] ?? [];
     } on DioException catch (e) {

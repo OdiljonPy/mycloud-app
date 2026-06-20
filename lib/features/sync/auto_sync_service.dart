@@ -2,54 +2,31 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:photo_manager/photo_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/config/app_config.dart';
 import '../../core/storage/secure_storage.dart';
 import 'data/gallery_service.dart';
 import 'data/sync_queue_db.dart';
+import 'data/sync_task.dart';
 import 'data/tus_sync_uploader.dart';
 import 'domain/media_scanner.dart';
+import 'sync_progress.dart';
 import '../home/data/home_repository.dart';
 import '../home/data/models/folder_model.dart';
 
-class SyncProgress {
-  final int pending;
-  final int uploading;
-  final int done;
-  final int failed;
-  final double currentFileProgress;
-  final String? currentFileName;
-  final int totalInBatch;
-  final int scannedCount;
-  final bool isScanning;
-  final int totalFiles;
-
-  const SyncProgress({
-    this.pending = 0,
-    this.uploading = 0,
-    this.done = 0,
-    this.failed = 0,
-    this.currentFileProgress = 0.0,
-    this.currentFileName,
-    this.totalInBatch = 0,
-    this.scannedCount = 0,
-    this.isScanning = false,
-    this.totalFiles = 0,
-  });
-}
 
 class AutoSyncService {
 
-  // FIX 1: startAutoSync теперь всегда пересканирует галерею перед
-  // запуском — чтобы новые файлы добавились в очередь (pending > 0).
   Future<void> startAutoSync() async {
     if (_isRunning || _isScanning) {
       debugPrint("[AutoSync] Already running/scanning, skip");
       return;
     }
-    await _rescan();
-    await startSync();
+    _syncSessionId++;
+    await _emitDeviceTotal();
+    await Future.wait([_rescan(), startSync()]);
   }
 
   static final AutoSyncService _instance = AutoSyncService._internal();
@@ -58,6 +35,7 @@ class AutoSyncService {
 
   static const String _kColdStartKey = 'sync_cold_start_done';
   static const String _kAutoSyncEnabledKey = 'auto_sync_enabled';
+  static const String _kWatermarkKey = 'sync_last_watermark_ms';
 
   final SyncQueueDb _db = SyncQueueDb();
   final StreamController<SyncProgress> _progressController =
@@ -73,13 +51,31 @@ class AutoSyncService {
   Future<void> initialize() async {
     await _db.init();
 
+    // Emit device total immediately — before any scan or token check
+    unawaited(_emitDeviceTotal());
+
     final token = await SecureStorage.getAccessToken();
     if (token == null || token.isEmpty) {
       debugPrint('[AutoSync] No auth token found, skipping initialize');
       return;
     }
 
+    final baseUrl = AppConfig.instance.baseUrl;
+    final galleryService = GalleryService(baseUrl: baseUrl, token: token);
+
+    Set<String> uploadedKeys = {};
     final prefs = await SharedPreferences.getInstance();
+    final coldStartDone = prefs.getBool(_kColdStartKey) ?? false;
+
+    if (!coldStartDone) {
+      try {
+        uploadedKeys = await galleryService.getUploadedFileKeys();
+        debugPrint('[AutoSync] Cold start: loaded ${uploadedKeys.length} keys from server');
+      } catch (e) {
+        debugPrint('[AutoSync] Cold start gallery fetch failed: $e');
+      }
+    }
+
     Set<String>? selectedIds;
     final selectiveOn = prefs.getBool('auto_sync_selected_only') ?? false;
     if (selectiveOn) {
@@ -90,20 +86,52 @@ class AutoSyncService {
       }
     }
 
+    final watermarkMs = prefs.getInt(_kWatermarkKey);
+    debugPrint('[AutoSync] Watermark: ${watermarkMs != null ? DateTime.fromMillisecondsSinceEpoch(watermarkMs) : 'none (full scan)'}');
+
+    // Delta scan: только от watermark - 1 день, чтобы не пропустить
+    // фото сделанные после закрытия приложения
+    final filterFromMs = watermarkMs != null
+        ? watermarkMs - const Duration(hours: 2).inMilliseconds
+        : null;
+
     final scanner = MediaScanner(
       db: _db,
-      uploadedKeys: {}, // No longer used - backend checks duplicates
+      uploadedKeys: uploadedKeys,
       selectedLocalIds: selectedIds,
+      filterFromMs: filterFromMs,
     );
     final newItems = await scanner.scanAndEnqueue();
     debugPrint('[AutoSync] Scanned: $newItems new items enqueued');
 
-    await _emitProgress();
+    // Обновляем watermark = now после каждого scan
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    await prefs.setInt(_kWatermarkKey, nowMs);
+    debugPrint('[AutoSync] Watermark updated: ${DateTime.fromMillisecondsSinceEpoch(nowMs)}');
+
+    if (!coldStartDone) {
+      await prefs.setBool(_kColdStartKey, true);
+    }
+
+    final counts = await _db.getStatusCounts();
+    _emit(_currentProgress.copyWith(
+      pending: counts['pending'] ?? 0,
+      uploading: counts['uploading'] ?? 0,
+      done: counts['done'] ?? 0,
+      failed: counts['failed'] ?? 0,
+      sessionUploaded: _sessionUploadedCount,
+      scannedCount: _scannedCount,
+      isScanning: _isScanning,
+      currentFileProgress: 0.0,
+      currentFileName: _currentFileName,
+      totalInBatch: _totalInBatch,
+    ));
   }
 
   // FIX 1: Пересканирует галерею без cold-start логики.
   // Вызывается при каждом нажатии "Синхронизировать сейчас".
   Future<void> _rescan() async {
+    final mySession = _syncSessionId;
     _isScanning = true;
     final token = await SecureStorage.getAccessToken();
     if (token == null || token.isEmpty) return;
@@ -117,24 +145,48 @@ class AutoSyncService {
       if (cleaned.isNotEmpty) selectedIds = cleaned;
     }
 
+    // Delta scan: сканируем только файлы после последнего синка
+    final watermarkMs = prefs.getInt(_kWatermarkKey);
+    final filterFromMs = watermarkMs != null
+        ? watermarkMs - const Duration(hours: 2).inMilliseconds
+        : null;
+    debugPrint('[AutoSync] Rescan watermark: ${watermarkMs != null ? DateTime.fromMillisecondsSinceEpoch(watermarkMs) : 'none (full scan)'}');
+
+    // uploadedKeys = {} т.к. дубли уже есть в локальной БД (status=done)
     _scannedCount = 0;
+    if (mySession != _syncSessionId) {
+      _isScanning = false;
+      return;
+    }
     final scanner = MediaScanner(
       db: _db,
       uploadedKeys: {},
       selectedLocalIds: selectedIds,
+      filterFromMs: filterFromMs,
+      resolveFiles: false,
       onProgress: (count) {
         _scannedCount = count;
-        _emitScanProgress();
+        _emit(_currentProgress.copyWith(scannedCount: _scannedCount, isScanning: true, sessionUploaded: _sessionUploadedCount));
       },
     );
-
-    _totalFiles = await scanner.countTotal();
-    debugPrint('[AutoSync] Jami fayllar: $_totalFiles');
-    await _emitProgress();
-
     final newItems = await scanner.scanAndEnqueue();
     debugPrint('[AutoSync] Rescan: $newItems new items enqueued');
-    await _emitProgress();
+
+    // Обновляем watermark после скана
+    await prefs.setInt(_kWatermarkKey, DateTime.now().millisecondsSinceEpoch);
+    final counts = await _db.getStatusCounts();
+    _emit(_currentProgress.copyWith(
+      pending: counts['pending'] ?? 0,
+      uploading: counts['uploading'] ?? 0,
+      done: counts['done'] ?? 0,
+      failed: counts['failed'] ?? 0,
+      sessionUploaded: _sessionUploadedCount,
+      scannedCount: _scannedCount,
+      isScanning: _isScanning,
+      currentFileProgress: 0.0,
+      currentFileName: _currentFileName,
+      totalInBatch: _totalInBatch,
+    ));
     _isScanning = false;
   }
 
@@ -148,14 +200,16 @@ class AutoSyncService {
     }
 
     _isRunning = true;
-    _syncSessionId++;
     final sessionId = _syncSessionId;
     _totalInBatch = 0;
     _currentFileName = null;
 
-    // FIX 1: Сбрасываем зависшие uploading -> pending
-    // (остались после предыдущего краша/стопа)
+    // Сбрасываем зависшие uploading -> pending (после краша/стопа)
     await _db.resetStuckUploading();
+    // Retry failed файлов по backoff: 1мин → 5мин → 30мин (макс 3 попытки)
+    await _db.resetFailedForRetry();
+    _sessionUploadedCount = 0;
+    await _db.resetSessionCounter();
 
     try {
       final repo = HomeRepository();
@@ -182,58 +236,152 @@ class AutoSyncService {
       final uploader = TusSyncUploader();
 
       while (_isRunning && sessionId == _syncSessionId) {
-        final tasks = await _db.getPendingOldestFirst(limit: 200);
+        final tasks = await _db.getPendingOldestFirst(limit: 50);
         if (tasks.isEmpty) {
+          if (_isScanning) {
+            await Future.delayed(const Duration(milliseconds: 500));
+            continue;
+          }
           debugPrint('[Sync] No pending tasks, sync complete');
           break;
         }
 
         _totalInBatch = tasks.length;
 
+        // Резолвим реальный путь и размер для задач с fileSize=0
+        // до checkDuplicates — иначе сервер не распознаёт дубли
+        final resolvedTasks = await _resolveTaskSizes(tasks);
+
         Map<String, bool> duplicateMap;
         try {
-          duplicateMap = await galleryService.checkDuplicates(tasks);
+          duplicateMap = await galleryService.checkDuplicates(
+            resolvedTasks,
+            folderId: syncFolderUuid,
+          );
         } catch (e) {
           debugPrint('[Sync] Duplicate check failed (uploading all): $e');
           duplicateMap = {};
         }
 
-        for (final task in tasks) {
+        for (final task in resolvedTasks) {
           if (!_isRunning || sessionId != _syncSessionId) break;
           if (task.id == null) continue;
 
-          final isDuplicate = duplicateMap[task.localId] ?? false;
+          Map<String, int> counts;
+
+          // Проверка 1: ответ бекенда
+          final isServerDuplicate = duplicateMap[task.localId] ?? false;
+
+          // Проверка 2: локальная DB — файл с таким именем уже done
+          final isLocalDuplicate = await _db.isDoneByNameAndSize(
+            task.fileName, task.fileSize);
+
+          final isDuplicate = isServerDuplicate || isLocalDuplicate;
+
           if (isDuplicate) {
-            await _db.markDone(task.id!, 'duplicate_skipped');
-            debugPrint('[Sync] Skipped duplicate: ${task.fileName}');
-            await _emitProgress();
+            final reason = isServerDuplicate ? 'server' : 'local_db';
+            await _db.markDoneWithSession(task.id!, 'duplicate_skipped_$reason');
+            debugPrint('[Sync] SKIP duplicate ($reason): ${task.fileName}');
+            counts = await _db.getStatusCounts();
+            _emit(_currentProgress.copyWith(
+              pending: counts['pending'] ?? 0,
+              uploading: counts['uploading'] ?? 0,
+              done: counts['done'] ?? 0,
+              failed: counts['failed'] ?? 0,
+              sessionUploaded: _sessionUploadedCount,
+              scannedCount: _scannedCount,
+              isScanning: _isScanning,
+              currentFileProgress: 0.0,
+              currentFileName: _currentFileName,
+              totalInBatch: _totalInBatch,
+            ));
             continue;
           }
 
-          final file = File(task.filePath);
+          // filePath резолвится здесь — не во время scan
+          String resolvedPath = task.filePath;
+          if (resolvedPath.isEmpty) {
+            // Резолвим через photo_manager по localId
+            try {
+              final asset = await AssetEntity.fromId(task.localId);
+              final originFile = await asset?.originFile;
+              if (originFile == null) {
+                await _db.markFailed(task.id!);
+                debugPrint('[Sync] Cannot resolve file for ${task.fileName}');
+                counts = await _db.getStatusCounts();
+                _emit(_currentProgress.copyWith(
+                  pending: counts['pending'] ?? 0,
+                  uploading: counts['uploading'] ?? 0,
+                  done: counts['done'] ?? 0,
+                  failed: counts['failed'] ?? 0,
+                  sessionUploaded: _sessionUploadedCount,
+                  scannedCount: _scannedCount,
+                  isScanning: _isScanning,
+                  currentFileProgress: 0.0,
+                  currentFileName: _currentFileName,
+                  totalInBatch: _totalInBatch,
+                ));
+                continue;
+              }
+              resolvedPath = originFile.path;
+            } catch (e) {
+              await _db.markFailed(task.id!);
+              debugPrint('[Sync] resolveFile error for ${task.fileName}: $e');
+              continue;
+            }
+          }
+
+          final file = File(resolvedPath);
           if (!file.existsSync()) {
             await _db.markFailed(task.id!);
-            debugPrint('[Sync] File missing, skipped: ${task.filePath}');
-            await _emitProgress();
+            debugPrint('[Sync] File missing, skipped: $resolvedPath');
+            counts = await _db.getStatusCounts();
+            _emit(_currentProgress.copyWith(
+              pending: counts['pending'] ?? 0,
+              uploading: counts['uploading'] ?? 0,
+              done: counts['done'] ?? 0,
+              failed: counts['failed'] ?? 0,
+              sessionUploaded: _sessionUploadedCount,
+              scannedCount: _scannedCount,
+              isScanning: _isScanning,
+              currentFileProgress: 0.0,
+              currentFileName: _currentFileName,
+              totalInBatch: _totalInBatch,
+            ));
             continue;
           }
 
           _currentFileName = task.fileName;
           await _db.markUploading(task.id!);
-          await _emitProgress(currentProgress: 0.0);
-
-          debugPrint('[Sync] 📤 Uploading: ${task.fileName} (${(task.fileSize / 1024 / 1024).toStringAsFixed(2)} MB, ${task.mimeType})');
+          counts = await _db.getStatusCounts();
+          _emit(_currentProgress.copyWith(
+            pending: counts['pending'] ?? 0,
+            uploading: counts['uploading'] ?? 0,
+            done: counts['done'] ?? 0,
+            failed: counts['failed'] ?? 0,
+            sessionUploaded: _sessionUploadedCount,
+            scannedCount: _scannedCount,
+            isScanning: _isScanning,
+            currentFileProgress: 0.0,
+            currentFileName: _currentFileName,
+            totalInBatch: _totalInBatch,
+          ));
 
           try {
+            final uploadTask = resolvedPath != task.filePath
+                ? task.copyWith(filePath: resolvedPath)
+                : task;
+
             final serverUuid = await uploader.upload(
-              task,
+              uploadTask,
               folderId: syncFolderUuid,
               onProgress: (progress) {
-                _emitProgressSync(currentProgress: progress);
+                _emit(_currentProgress.copyWith(currentFileProgress: progress, sessionUploaded: _sessionUploadedCount));
               },
             );
-            await _db.markDone(task.id!, serverUuid);
-            debugPrint('[Sync] ✅ Uploaded: ${task.fileName} -> $serverUuid');
+            await _db.markDoneWithSession(task.id!, serverUuid);
+            _sessionUploadedCount++;
+            debugPrint('[Sync] Uploaded: ${task.fileName} -> $serverUuid (session: $_sessionUploadedCount)');
           } on TusUploadException catch (e) {
             await _db.markFailed(task.id!);
             debugPrint('[Sync][ERROR] Upload failed: ${task.fileName} — $e');
@@ -242,14 +390,69 @@ class AutoSyncService {
             debugPrint('[Sync][ERROR] Unexpected: ${task.fileName} — $e');
           }
 
-          await _emitProgress();
+          counts = await _db.getStatusCounts();
+          _emit(_currentProgress.copyWith(
+            pending: counts['pending'] ?? 0,
+            uploading: counts['uploading'] ?? 0,
+            done: counts['done'] ?? 0,
+            failed: counts['failed'] ?? 0,
+            sessionUploaded: _sessionUploadedCount,
+            scannedCount: _scannedCount,
+            isScanning: _isScanning,
+            currentFileProgress: 0.0,
+            currentFileName: _currentFileName,
+            totalInBatch: _totalInBatch,
+          ));
         }
       }
     } finally {
       _isRunning = false;
       _currentFileName = null;
-      await _emitProgress();
+      final counts = await _db.getStatusCounts();
+      _emit(_currentProgress.copyWith(
+        pending: counts['pending'] ?? 0,
+        uploading: counts['uploading'] ?? 0,
+        done: counts['done'] ?? 0,
+        failed: counts['failed'] ?? 0,
+        sessionUploaded: _sessionUploadedCount,
+        scannedCount: _scannedCount,
+        isScanning: _isScanning,
+        currentFileProgress: 0.0,
+        currentFileName: _currentFileName,
+        totalInBatch: _totalInBatch,
+      ));
     }
+  }
+
+  /// Для задач с fileSize=0 или пустым filePath резолвит реальный файл
+  /// через photo_manager и обновляет DB. Возвращает список с корректными данными.
+  Future<List<SyncTask>> _resolveTaskSizes(List<SyncTask> tasks) async {
+    final result = <SyncTask>[];
+    for (final task in tasks) {
+      if (task.fileSize > 0 && task.filePath.isNotEmpty) {
+        result.add(task);
+        continue;
+      }
+      try {
+        final asset = await AssetEntity.fromId(task.localId);
+        final file = await asset?.originFile;
+        if (file == null || !file.existsSync()) {
+          result.add(task);
+          continue;
+        }
+        final realSize = await file.length();
+        final resolvedPath = file.path;
+        if (task.id != null) {
+          await _db.updatePathAndSize(task.id!, resolvedPath, realSize);
+        }
+        result.add(task.copyWith(filePath: resolvedPath, fileSize: realSize));
+        debugPrint('[Sync] Resolved size for ${task.fileName}: $realSize bytes');
+      } catch (e) {
+        debugPrint('[Sync] _resolveTaskSizes failed for ${task.fileName}: $e');
+        result.add(task);
+      }
+    }
+    return result;
   }
 
   Future<void> stopSync() async {
@@ -265,6 +468,7 @@ class AutoSyncService {
     await _db.reset();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kColdStartKey);
+    await prefs.remove(_kWatermarkKey);
     debugPrint('[AutoSync] Logout: queue cleared');
   }
 
@@ -281,55 +485,23 @@ class AutoSyncService {
   String? _currentFileName;
   int _totalInBatch = 0;
   int _scannedCount = 0;
-  int _totalFiles = 0;
-  Map<String, int> _lastCounts = {'pending': 0, 'uploading': 0, 'done': 0, 'failed': 0};
+  int _sessionUploadedCount = 0;
+  SyncProgress _currentProgress = const SyncProgress();
 
-  // FIX 2: done берётся напрямую из БД (после markDone уже там).
-  // Убрали _batchDone — он давал двойной счёт.
-  Future<void> _emitProgress({double currentProgress = 0.0}) async {
-    final counts = await _db.getStatusCounts();
-    _lastCounts = counts;
-    _progressController.add(SyncProgress(
-      pending: counts['pending'] ?? 0,
-      uploading: counts['uploading'] ?? 0,
-      done: counts['done'] ?? 0,
-      failed: counts['failed'] ?? 0,
-      currentFileProgress: currentProgress,
-      currentFileName: _currentFileName,
-      totalInBatch: _totalInBatch,
-      scannedCount: _scannedCount,
-      isScanning: _isScanning,
-      totalFiles: _totalFiles,
-    ));
+  Future<void> _emitDeviceTotal() async {
+    try {
+      final scanner = MediaScanner(db: _db, uploadedKeys: {});
+      final total = await scanner.countTotal();
+      _emit(_currentProgress.copyWith(deviceTotal: total));
+      debugPrint('[AutoSync] Device total: $total');
+    } catch (e) {
+      debugPrint('[AutoSync] _emitDeviceTotal failed: $e');
+    }
   }
 
-  void _emitScanProgress() {
-    _progressController.add(SyncProgress(
-      pending: _lastCounts['pending'] ?? 0,
-      uploading: _lastCounts['uploading'] ?? 0,
-      done: _lastCounts['done'] ?? 0,
-      failed: _lastCounts['failed'] ?? 0,
-      currentFileProgress: 0.0,
-      currentFileName: _currentFileName,
-      totalInBatch: _totalInBatch,
-      scannedCount: _scannedCount,
-      isScanning: true,
-      totalFiles: _totalFiles,
-    ));
+  void _emit(SyncProgress progress) {
+    _currentProgress = progress;
+    _progressController.add(progress);
   }
 
-  void _emitProgressSync({double currentProgress = 0.0}) {
-    _progressController.add(SyncProgress(
-      pending: _lastCounts['pending'] ?? 0,
-      uploading: _lastCounts['uploading'] ?? 0,
-      done: _lastCounts['done'] ?? 0,
-      failed: _lastCounts['failed'] ?? 0,
-      currentFileProgress: currentProgress,
-      currentFileName: _currentFileName,
-      totalInBatch: _totalInBatch,
-      scannedCount: _scannedCount,
-      isScanning: _isScanning,
-      totalFiles: _totalFiles,
-    ));
-  }
 }

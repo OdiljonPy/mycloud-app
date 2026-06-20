@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/foundation.dart';
@@ -23,14 +24,18 @@ class AppInitializer {
     }
 
     debugPrint('[AppInit] AutoSyncService (background)...');
-    AutoSyncService().initialize().then((_) {
-      // После перезапуска приложения — возобновляем sync автоматически
-      AutoSyncService().startAutoSync().catchError((e) {
-        debugPrint('[AppInit] startAutoSync error: $e');
-      });
-    }).catchError((e) {
-      debugPrint('[AppInit] AutoSyncService error (non-critical): $e');
-    });
+    () async {
+      try {
+        final service = AutoSyncService();
+        await service.initialize();
+        final autoEnabled = await service.isAutoSyncEnabled();
+        if (autoEnabled) {
+          unawaited(service.startAutoSync());
+        }
+      } catch (e) {
+        debugPrint('[AppInit] AutoSyncService error (non-critical): $e');
+      }
+    }();
 
     debugPrint('[AppInit] ALL DONE');
   }
