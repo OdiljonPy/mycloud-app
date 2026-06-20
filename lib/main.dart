@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/config/app_config.dart';
 import 'core/services/language_notifier.dart';
@@ -83,7 +84,7 @@ final ThemeData _darkTheme = ThemeData(
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   AppConfig.initialize(Environment.prod);
-  runApp(const CloudApp());
+  runApp(const ProviderScope(child: CloudApp()));
 }
 
 class CloudApp extends StatelessWidget {

@@ -4,6 +4,7 @@ import 'package:cross_file/cross_file.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/errors/app_exception.dart';
 import '../data/upload_repository.dart';
+import '../../../l10n/app_localizations.dart';
 
 enum _FileStatus { waiting, uploading, paused, done, error, cancelled }
 
@@ -45,7 +46,8 @@ class _UploadPageState extends State<UploadPage> {
   final List<_FileItem> _queue = [];
   bool _isUploading = false;
   bool _allDone = false;
-  static const int _maxFiles = 50;
+  // Лимит убран — загружаем сколько выбрал пользователь
+  static const int _maxFiles = 10000;
   int _currentIndex = 0;
 
 
@@ -268,26 +270,23 @@ class _UploadPageState extends State<UploadPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: null,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
             expandedHeight: 110,
             floating: false,
             pinned: true,
-            backgroundColor: Colors.white,
             elevation: 0,
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
-              title: const Text(
-                'Загрузка',
-                style: TextStyle(
-                  color: Colors.black,
+              title: Text(
+                AppLocalizations.of(context)!.uploadPageTitle,
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 22,
                 ),
               ),
-              background: Container(color: Colors.white),
+              background: Container(color: Colors.transparent),
             ),
             actions: [
               if (_queue.isNotEmpty && !_isUploading)
@@ -313,7 +312,7 @@ class _UploadPageState extends State<UploadPage> {
                       width: double.infinity,
                       height: 150,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: _pausedCount > 0
@@ -373,12 +372,12 @@ class _UploadPageState extends State<UploadPage> {
                                   ? Colors.green
                                   : _pausedCount > 0
                                   ? Colors.orange
-                                  : Colors.black87,
+                                  : Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            'Только фото и видео · до $_maxFiles файлов',
+                            'Только фото и видео',
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[500],
@@ -425,7 +424,7 @@ class _UploadPageState extends State<UploadPage> {
                             ),
                           ),
                         const Spacer(),
-                        if (!_isUploading && _queue.length < _maxFiles)
+                        if (!_isUploading)
                           TextButton.icon(
                             onPressed: _pickFiles,
                             icon: const Icon(Icons.add, size: 15),
@@ -686,15 +685,15 @@ class _FileItemTile extends StatelessWidget {
           ],
           if (item.status == _FileStatus.done) ...[
             const SizedBox(height: 4),
-            const Text(
-              'Загружено',
-              style: TextStyle(fontSize: 11, color: Colors.green),
+            Text(
+              AppLocalizations.of(context)!.uploadedLabel,
+              style: const TextStyle(fontSize: 11, color: Colors.green),
             ),
           ],
           if (item.status == _FileStatus.cancelled) ...[
             const SizedBox(height: 4),
             Text(
-              'Отменено',
+              AppLocalizations.of(context)!.cancelledLabel,
               style: TextStyle(fontSize: 11, color: Colors.grey[500]),
             ),
           ],

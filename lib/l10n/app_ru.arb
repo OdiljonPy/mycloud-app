@@ -108,7 +108,7 @@
   "approve": "Одобрить",
   "accessApproved": "Доступ одобрен",
   "accessRejected": "Доступ отклонён",
-  "noShareRequests": "Нет share requests",
+  "noShareRequests": "Нет запросов на доступ",
   "noShareRequestsSubtitle": "Поделитесь файлами по ссылке и они появятся здесь",
   "personalData": "ЛИЧНЫЕ ДАННЫЕ",
   "changeName": "Изменить имя",
@@ -251,5 +251,11 @@
   "syncStatusUploading2": "Загрузка",
   "syncStatusDone": "Готово",
   "syncStatusFailed": "Ошибки",
-  "syncStop": "Остановить"
+  "syncStop": "Остановить",
+  "syncSelectedFiles": "Выбранные файлы",
+  "syncSelectedFilesSubtitle": "Синхронизировать только выбранные",
+  "syncTotal": "Всего",
+  "uploadedLabel": "Загружено",
+  "uploadPageTitle": "Загрузка",
+  "cancelledLabel": "Отменено"
 }

@@ -1131,6 +1131,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stop'**
   String get syncStop;
+
+  /// No description provided for @syncSelectedFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected files'**
+  String get syncSelectedFiles;
+
+  /// No description provided for @syncSelectedFilesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync only selected'**
+  String get syncSelectedFilesSubtitle;
+
+  /// No description provided for @syncTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get syncTotal;
+
+  /// No description provided for @uploadedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploaded'**
+  String get uploadedLabel;
+
+  /// No description provided for @uploadPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload'**
+  String get uploadPageTitle;
+
+  /// No description provided for @cancelledLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get cancelledLabel;
 }
 
 class _AppLocalizationsDelegate

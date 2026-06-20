@@ -552,4 +552,23 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get syncStop => 'To\'xtatish';
+
+  @override
+  String get syncSelectedFiles => 'Tanlangan fayllar';
+
+  @override
+  String get syncSelectedFilesSubtitle =>
+      'Faqat tanlanganlarni sinxronlashtirish';
+
+  @override
+  String get syncTotal => 'Jami';
+
+  @override
+  String get uploadedLabel => 'Yuklandi';
+
+  @override
+  String get uploadPageTitle => 'Yuklash';
+
+  @override
+  String get cancelledLabel => 'Bekor qilindi';
 }

@@ -247,8 +247,13 @@ class FilesPageState extends State<FilesPage> {
 
 
 
+  bool _isOpeningFile = false;
+
   Future<void> _openFileViewer(FileModel file) async {
+    if (_isOpeningFile) return;
+    _isOpeningFile = true;
     final t = AppLocalizations.of(context)!;
+    try {
     final mime = file.mimeType.toLowerCase();
     if (mime.startsWith('image/')) {
       final fullUrl = await _repo.getPreviewUrl(file.id);
@@ -303,6 +308,9 @@ class FilesPageState extends State<FilesPage> {
           ),
         ),
       );
+    }
+    } finally {
+      if (mounted) setState(() => _isOpeningFile = false);
     }
   }
 
@@ -2012,10 +2020,57 @@ class FilesPageState extends State<FilesPage> {
       ));
     }
 
-    // ── 2. Files sliver (virtualized) ──
+    // ── 2. Files sliver (virtualized, grouped by date) ──
     if (_displayFiles.isNotEmpty) {
       if (_isGrid && !_showFavourites) {
-        slivers.add(_buildFilesGridSliver());
+        final grouped = _groupFilesByDate(_displayFiles);
+        for (final entry in grouped) {
+          slivers.add(SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text(
+                entry.key,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ));
+          slivers.add(SliverGrid(
+            delegate: SliverChildBuilderDelegate(
+              (ctx, i) {
+                final f = entry.value[i];
+                return RepaintBoundary(
+                  child: _FileGridCard(
+                    key: ValueKey(f.id),
+                    file: f,
+                    isSelected: _selectedFiles.contains(f.id),
+                    isSelectionMode: _isSelectionMode,
+                    onTap: () {
+                      if (_isSelectionMode) {
+                        _toggleFileSelection(f.id);
+                      } else {
+                        _openFileViewer(f);
+                      }
+                    },
+                    onSelectTap: () => _toggleFileSelection(f.id),
+                    onMenuTap: () => _showFileMenu(f),
+                    onFavouriteTap: () =>
+                        FavouritesProvider.instance.toggleFavourite(f),
+                  ),
+                );
+              },
+              childCount: entry.value.length,
+            ),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 2,
+              mainAxisSpacing: 2,
+              childAspectRatio: 1.0,
+            ),
+          ));
+        }
       } else {
         slivers.add(_buildFilesListSliver());
       }
@@ -2112,6 +2167,29 @@ class FilesPageState extends State<FilesPage> {
         },
       ),
     );
+  }
+
+  List<MapEntry<String, List<FileModel>>> _groupFilesByDate(List<FileModel> files) {
+    final Map<String, List<FileModel>> groups = {};
+    for (final file in files) {
+      // Используем capturedAt (дата съёмки) если есть, иначе createdAt
+      final date = file.capturedAt ?? file.createdAt;
+      final key = [
+        date.year.toString().padLeft(4, '0'),
+        date.month.toString().padLeft(2, '0'),
+        date.day.toString().padLeft(2, '0'),
+      ].join('-');
+      groups.putIfAbsent(key, () => []).add(file);
+    }
+    final sorted = groups.entries.toList()..sort((a, b) => b.key.compareTo(a.key));
+    for (final entry in sorted) {
+      entry.value.sort((a, b) {
+        final aDate = a.capturedAt ?? a.createdAt;
+        final bDate = b.capturedAt ?? b.createdAt;
+        return bDate.compareTo(aDate);
+      });
+    }
+    return sorted;
   }
 
   Widget _buildFilesGridSliver() {

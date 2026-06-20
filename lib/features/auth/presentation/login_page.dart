@@ -5,6 +5,7 @@ import '../../../core/utils/uzbek_phone_formatter.dart';
 import '../../home/presentation/main_page.dart';
 import 'forgot_password_page.dart';
 import 'register_page.dart';
+import 'package:cloud_app/features/sync/sync_providers.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -16,7 +17,10 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _phoneController = TextEditingController(text: '+998 ');
   final _passwordController = TextEditingController();
-  final _authRepo = AuthRepository();
+  final _authRepo = AuthRepository(
+    onLoginSync: syncOnLoginCallback,
+    onLogoutSync: syncOnLogoutCallback,
+  );
 
   final _phoneFocus = FocusNode();
   final _passwordFocus = FocusNode();
@@ -91,7 +95,6 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -128,12 +131,12 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 32),
 
-              const Text(
+              Text(
                 'Welcome back to\nBulutcha',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: Theme.of(context).colorScheme.onSurface,
                   height: 1.2,
                 ),
               ),
@@ -146,12 +149,12 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 48),
 
               // Phone field
-              const Text(
+              Text(
                 'Phone Number',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
@@ -166,7 +169,9 @@ class _LoginPageState extends State<LoginPage> {
                   hintText: '+998 XX XXX XX XX',
                   hintStyle: TextStyle(color: Colors.grey[400]),
                   filled: true,
-                  fillColor: const Color(0xFFF5F7FA),
+                  fillColor: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF21262D)
+                      : const Color(0xFFF5F7FA),
                   prefixIcon: Container(
                     margin: const EdgeInsets.all(10),
                     padding: const EdgeInsets.all(8),
@@ -216,12 +221,12 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 16),
 
               // Password field
-              const Text(
+              Text(
                 'Password',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
@@ -235,7 +240,9 @@ class _LoginPageState extends State<LoginPage> {
                   hintText: 'Enter your password',
                   hintStyle: TextStyle(color: Colors.grey[400]),
                   filled: true,
-                  fillColor: const Color(0xFFF5F7FA),
+                  fillColor: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF21262D)
+                      : const Color(0xFFF5F7FA),
                   prefixIcon: Container(
                     margin: const EdgeInsets.all(10),
                     padding: const EdgeInsets.all(8),

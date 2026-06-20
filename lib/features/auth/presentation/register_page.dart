@@ -122,10 +122,10 @@ class _RegisterPageState extends State<RegisterPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
+          icon: Icon(Icons.arrow_back_ios, color: Theme.of(context).colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -349,7 +349,9 @@ class _RegisterPageState extends State<RegisterPage> {
             hintText: hint,
             hintStyle: TextStyle(color: Colors.grey[400]),
             filled: true,
-            fillColor: const Color(0xFFF5F7FA),
+            fillColor: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF2A2A2A)
+                    : const Color(0xFFF5F7FA),
             prefixIcon: Container(
               margin: const EdgeInsets.all(10),
               padding: const EdgeInsets.all(8),

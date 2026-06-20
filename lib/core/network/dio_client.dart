@@ -75,23 +75,33 @@ class _AuthInterceptor extends Interceptor {
           BaseOptions(baseUrl: AppConfig.instance.baseUrl),
         );
 
-        // ✅ ИСПРАВЛЕНО: правильный endpoint для refresh
-        // POST /authentication/users/token/refresh/
-        // body: {refresh: token}
-        // response: {access: newToken}
         final response = await refreshDio.post(
-          '/authentication/users/token/refresh/',
-          data: {'refresh': refreshToken},
+          '/authentication/users/token-refresh/',
+          data: {'refresh_token': refreshToken},
         );
 
-        // ✅ ИСПРАВЛЕНО: ответ содержит просто {access: "..."}
-        // не вложенный result
-        final newAccessToken = response.data['access'] as String;
+        final result = response.data is Map &&
+                response.data.containsKey('result')
+            ? response.data['result']
+            : response.data;
+
+        final newAccessToken = (result['access_token'] ??
+                result['access'] ??
+                response.data['access_token'] ??
+                response.data['access'])
+            ?.toString();
+
+        final newRefreshToken = (result['refresh_token'] ??
+                result['refresh'] ??
+                response.data['refresh_token'] ??
+                response.data['refresh'])
+            ?.toString();
+
+        if (newAccessToken == null) throw Exception('No access token in refresh response');
 
         await SecureStorage.saveTokens(
           accessToken: newAccessToken,
-          // refresh токен остаётся тем же (если backend не выдаёт новый)
-          refreshToken: refreshToken,
+          refreshToken: newRefreshToken ?? refreshToken,
         );
 
         err.requestOptions.headers['Authorization'] =

@@ -550,4 +550,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncStop => 'Stop';
+
+  @override
+  String get syncSelectedFiles => 'Selected files';
+
+  @override
+  String get syncSelectedFilesSubtitle => 'Sync only selected';
+
+  @override
+  String get syncTotal => 'Total';
+
+  @override
+  String get uploadedLabel => 'Uploaded';
+
+  @override
+  String get uploadPageTitle => 'Upload';
+
+  @override
+  String get cancelledLabel => 'Cancelled';
 }

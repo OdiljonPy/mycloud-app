@@ -1,4 +1,4 @@
-import 'package:cloud_app/features/sync/auto_sync_service.dart';
+import 'package:cloud_app/features/sync/sync_providers.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -112,7 +112,7 @@ class _MainPageState extends State<MainPage> {
 
   Future<void> _logout() async {
     await SecureStorage.clearTokens();
-    await AutoSyncService().onLogout();
+    await syncOnLogoutCallback();
     if (mounted) {
       Navigator.of(
         context,
