@@ -15,6 +15,10 @@ class MediaScanner {
   /// Используется для delta scan. Null = полный scan.
   final int? filterFromMs;
 
+  /// false = не резолвить originFile во время скана (быстрый режим).
+  /// _resolveTaskSizes в startSync() доделает это перед загрузкой.
+  final bool resolveFiles;
+
   MediaScanner({
     required this.db,
     required this.uploadedKeys,
@@ -22,6 +26,7 @@ class MediaScanner {
     this.sessionId,
     this.onProgress,
     this.filterFromMs,
+    this.resolveFiles = true,
   });
 
   /// Быстро считает общее кол-во файлов в галерее без сканирования.
@@ -83,6 +88,7 @@ class MediaScanner {
             end: offset + count,
           );
 
+          await Future.delayed(Duration.zero);
           for (final asset in assets) {
             try {
               // Skip if selective sync is on and asset not selected
@@ -104,16 +110,19 @@ class MediaScanner {
                   '-${asset.createDateTime.month.toString().padLeft(2, '0')}'
                   '-${asset.createDateTime.day.toString().padLeft(2, '0')}';
 
-              // Получаем реальный размер файла для корректной дедупликации
+              // В быстром режиме (resolveFiles=false) пропускаем IO.
+              // _resolveTaskSizes в startSync доделает это перед загрузкой.
               int realSize = 0;
               String resolvedPath = '';
-              try {
-                final file = await asset.originFile;
-                if (file != null && file.existsSync()) {
-                  realSize = await file.length();
-                  resolvedPath = file.path;
-                }
-              } catch (_) {}
+              if (resolveFiles) {
+                try {
+                  final file = await asset.originFile;
+                  if (file != null && file.existsSync()) {
+                    realSize = await file.length();
+                    resolvedPath = file.path;
+                  }
+                } catch (_) {}
+              }
 
               // Skip if already in local DB
               if (await db.exists(asset.id)) continue;

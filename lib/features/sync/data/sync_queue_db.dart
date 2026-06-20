@@ -115,9 +115,12 @@ class SyncQueueDb {
 
   Future<void> markFailed(int id) async {
     try {
+      final current = Sqflite.firstIntValue(
+        await _database.rawQuery('SELECT retry_count FROM sync_queue WHERE id = ?', [id]),
+      ) ?? 0;
       await _database.update('sync_queue', {
         'status': SyncStatus.failed.name,
-        'retry_count': Sqflite.firstIntValue(await _database.rawQuery('SELECT retry_count FROM sync_queue WHERE id = ?', [id])) ?? 0 + 1,
+        'retry_count': current + 1,
         'updated_at': DateTime.now().millisecondsSinceEpoch,
       }, where: 'id = ?', whereArgs: [id]);
     } catch (e) {
@@ -252,6 +255,52 @@ class SyncQueueDb {
     } catch (e) {
       debugPrint('[SyncQueueDb] isDoneByNameAndSize failed: $e');
       return false;
+    }
+  }
+
+  /// Сбрасывает failed задачи обратно в pending по exponential backoff.
+  /// retry_count 0 → ждать 1мин, 1 → 5мин, 2 → 30мин. После 3 попыток — не трогать.
+  Future<void> resetFailedForRetry() async {
+    try {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      const backoffMs = [
+        60 * 1000,        // 1 мин
+        5 * 60 * 1000,    // 5 мин
+        30 * 60 * 1000,   // 30 мин
+      ];
+      for (int i = 0; i < backoffMs.length; i++) {
+        final cutoff = now - backoffMs[i];
+        final count = await _database.update(
+          'sync_queue',
+          {'status': SyncStatus.pending.name, 'updated_at': now},
+          where: 'status = ? AND retry_count = ? AND updated_at <= ?',
+          whereArgs: [SyncStatus.failed.name, i, cutoff],
+        );
+        if (count > 0) {
+          debugPrint('[SyncQueueDb] Retry: $count задач (retry=$i) → pending');
+        }
+      }
+    } catch (e) {
+      debugPrint('[SyncQueueDb] resetFailedForRetry failed: $e');
+    }
+  }
+
+  /// Обновляет file_path и file_size для задачи с size=0.
+  /// Вызывается перед checkDuplicates чтобы сервер получил реальные данные.
+  Future<void> updatePathAndSize(int id, String filePath, int fileSize) async {
+    try {
+      await _database.update(
+        'sync_queue',
+        {
+          'file_path': filePath,
+          'file_size': fileSize,
+          'updated_at': DateTime.now().millisecondsSinceEpoch,
+        },
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    } catch (e) {
+      debugPrint('[SyncQueueDb] updatePathAndSize failed: $e');
     }
   }
 }

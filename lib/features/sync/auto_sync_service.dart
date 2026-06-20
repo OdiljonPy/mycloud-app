@@ -9,6 +9,7 @@ import '../../core/config/app_config.dart';
 import '../../core/storage/secure_storage.dart';
 import 'data/gallery_service.dart';
 import 'data/sync_queue_db.dart';
+import 'data/sync_task.dart';
 import 'data/tus_sync_uploader.dart';
 import 'domain/media_scanner.dart';
 import 'sync_progress.dart';
@@ -18,17 +19,14 @@ import '../home/data/models/folder_model.dart';
 
 class AutoSyncService {
 
-  // FIX 1: startAutoSync теперь всегда пересканирует галерею перед
-  // запуском — чтобы новые файлы добавились в очередь (pending > 0).
   Future<void> startAutoSync() async {
     if (_isRunning || _isScanning) {
       debugPrint("[AutoSync] Already running/scanning, skip");
       return;
     }
-    // Инвалидируем предыдущую сессию перед новым scan
     _syncSessionId++;
-    await _rescan();
-    await startSync();
+    await _emitDeviceTotal();
+    await Future.wait([_rescan(), startSync()]);
   }
 
   static final AutoSyncService _instance = AutoSyncService._internal();
@@ -52,6 +50,9 @@ class AutoSyncService {
 
   Future<void> initialize() async {
     await _db.init();
+
+    // Emit device total immediately — before any scan or token check
+    unawaited(_emitDeviceTotal());
 
     final token = await SecureStorage.getAccessToken();
     if (token == null || token.isEmpty) {
@@ -91,7 +92,7 @@ class AutoSyncService {
     // Delta scan: только от watermark - 1 день, чтобы не пропустить
     // фото сделанные после закрытия приложения
     final filterFromMs = watermarkMs != null
-        ? watermarkMs - const Duration(days: 1).inMilliseconds
+        ? watermarkMs - const Duration(hours: 2).inMilliseconds
         : null;
 
     final scanner = MediaScanner(
@@ -144,6 +145,13 @@ class AutoSyncService {
       if (cleaned.isNotEmpty) selectedIds = cleaned;
     }
 
+    // Delta scan: сканируем только файлы после последнего синка
+    final watermarkMs = prefs.getInt(_kWatermarkKey);
+    final filterFromMs = watermarkMs != null
+        ? watermarkMs - const Duration(hours: 2).inMilliseconds
+        : null;
+    debugPrint('[AutoSync] Rescan watermark: ${watermarkMs != null ? DateTime.fromMillisecondsSinceEpoch(watermarkMs) : 'none (full scan)'}');
+
     // uploadedKeys = {} т.к. дубли уже есть в локальной БД (status=done)
     _scannedCount = 0;
     if (mySession != _syncSessionId) {
@@ -154,6 +162,8 @@ class AutoSyncService {
       db: _db,
       uploadedKeys: {},
       selectedLocalIds: selectedIds,
+      filterFromMs: filterFromMs,
+      resolveFiles: false,
       onProgress: (count) {
         _scannedCount = count;
         _emit(_currentProgress.copyWith(scannedCount: _scannedCount, isScanning: true, sessionUploaded: _sessionUploadedCount));
@@ -161,6 +171,9 @@ class AutoSyncService {
     );
     final newItems = await scanner.scanAndEnqueue();
     debugPrint('[AutoSync] Rescan: $newItems new items enqueued');
+
+    // Обновляем watermark после скана
+    await prefs.setInt(_kWatermarkKey, DateTime.now().millisecondsSinceEpoch);
     final counts = await _db.getStatusCounts();
     _emit(_currentProgress.copyWith(
       pending: counts['pending'] ?? 0,
@@ -187,14 +200,14 @@ class AutoSyncService {
     }
 
     _isRunning = true;
-    _syncSessionId++;
     final sessionId = _syncSessionId;
     _totalInBatch = 0;
     _currentFileName = null;
 
-    // FIX 1: Сбрасываем зависшие uploading -> pending
-    // (остались после предыдущего краша/стопа)
+    // Сбрасываем зависшие uploading -> pending (после краша/стопа)
     await _db.resetStuckUploading();
+    // Retry failed файлов по backoff: 1мин → 5мин → 30мин (макс 3 попытки)
+    await _db.resetFailedForRetry();
     _sessionUploadedCount = 0;
     await _db.resetSessionCounter();
 
@@ -225,16 +238,24 @@ class AutoSyncService {
       while (_isRunning && sessionId == _syncSessionId) {
         final tasks = await _db.getPendingOldestFirst(limit: 50);
         if (tasks.isEmpty) {
+          if (_isScanning) {
+            await Future.delayed(const Duration(milliseconds: 500));
+            continue;
+          }
           debugPrint('[Sync] No pending tasks, sync complete');
           break;
         }
 
         _totalInBatch = tasks.length;
 
+        // Резолвим реальный путь и размер для задач с fileSize=0
+        // до checkDuplicates — иначе сервер не распознаёт дубли
+        final resolvedTasks = await _resolveTaskSizes(tasks);
+
         Map<String, bool> duplicateMap;
         try {
           duplicateMap = await galleryService.checkDuplicates(
-            tasks,
+            resolvedTasks,
             folderId: syncFolderUuid,
           );
         } catch (e) {
@@ -242,7 +263,7 @@ class AutoSyncService {
           duplicateMap = {};
         }
 
-        for (final task in tasks) {
+        for (final task in resolvedTasks) {
           if (!_isRunning || sessionId != _syncSessionId) break;
           if (task.id == null) continue;
 
@@ -403,6 +424,37 @@ class AutoSyncService {
     }
   }
 
+  /// Для задач с fileSize=0 или пустым filePath резолвит реальный файл
+  /// через photo_manager и обновляет DB. Возвращает список с корректными данными.
+  Future<List<SyncTask>> _resolveTaskSizes(List<SyncTask> tasks) async {
+    final result = <SyncTask>[];
+    for (final task in tasks) {
+      if (task.fileSize > 0 && task.filePath.isNotEmpty) {
+        result.add(task);
+        continue;
+      }
+      try {
+        final asset = await AssetEntity.fromId(task.localId);
+        final file = await asset?.originFile;
+        if (file == null || !file.existsSync()) {
+          result.add(task);
+          continue;
+        }
+        final realSize = await file.length();
+        final resolvedPath = file.path;
+        if (task.id != null) {
+          await _db.updatePathAndSize(task.id!, resolvedPath, realSize);
+        }
+        result.add(task.copyWith(filePath: resolvedPath, fileSize: realSize));
+        debugPrint('[Sync] Resolved size for ${task.fileName}: $realSize bytes');
+      } catch (e) {
+        debugPrint('[Sync] _resolveTaskSizes failed for ${task.fileName}: $e');
+        result.add(task);
+      }
+    }
+    return result;
+  }
+
   Future<void> stopSync() async {
     _isRunning = false;
     _syncSessionId++;
@@ -435,6 +487,17 @@ class AutoSyncService {
   int _scannedCount = 0;
   int _sessionUploadedCount = 0;
   SyncProgress _currentProgress = const SyncProgress();
+
+  Future<void> _emitDeviceTotal() async {
+    try {
+      final scanner = MediaScanner(db: _db, uploadedKeys: {});
+      final total = await scanner.countTotal();
+      _emit(_currentProgress.copyWith(deviceTotal: total));
+      debugPrint('[AutoSync] Device total: $total');
+    } catch (e) {
+      debugPrint('[AutoSync] _emitDeviceTotal failed: $e');
+    }
+  }
 
   void _emit(SyncProgress progress) {
     _currentProgress = progress;

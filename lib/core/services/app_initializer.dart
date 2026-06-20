@@ -1,9 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'language_notifier.dart';
 import '../../main.dart';
-import '../../features/sync/sync_providers.dart';
+import '../../features/sync/auto_sync_service.dart';
 
 class AppInitializer {
   static Future<void> init() async {
@@ -23,9 +24,18 @@ class AppInitializer {
     }
 
     debugPrint('[AppInit] AutoSyncService (background)...');
-    syncOnLoginCallback().catchError((e) {
-      debugPrint('[AppInit] AutoSyncService error (non-critical): $e');
-    });
+    () async {
+      try {
+        final service = AutoSyncService();
+        await service.initialize();
+        final autoEnabled = await service.isAutoSyncEnabled();
+        if (autoEnabled) {
+          unawaited(service.startAutoSync());
+        }
+      } catch (e) {
+        debugPrint('[AppInit] AutoSyncService error (non-critical): $e');
+      }
+    }();
 
     debugPrint('[AppInit] ALL DONE');
   }

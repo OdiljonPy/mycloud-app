@@ -22,6 +22,11 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
 
   Future<void> _setAutoSync(bool value) async {
     await ref.read(syncSettingsProvider.notifier).setAutoSync(value);
+    if (value) {
+      ref.read(syncRepositoryProvider).startAutoSync();
+    } else {
+      ref.read(syncRepositoryProvider).stopSync();
+    }
   }
 
   Future<void> _setWifiOnly(bool value) async {
@@ -151,8 +156,8 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
                   SwitchListTile(
                     activeTrackColor: _accent,
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Выбранные файлы'),
-                    subtitle: const Text('Синхронизировать только выбранные'),
+                    title: Text(t.syncSelectedFiles),
+                    subtitle: Text(t.syncSelectedFilesSubtitle),
                     value: settings.useSelectedFiles,
                     onChanged: _setUseSelected,
                   ),
@@ -187,35 +192,19 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  if (progress.isScanning)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        children: [
-                          const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Color(0xFF2563EB),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text('Сканирование галереи'),
-                          const Spacer(),
-                          Text(
-                            '${progress.scannedCount} файлов',
-                            style: const TextStyle(color: Color(0xFF2563EB)),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                  _buildStatRow(Icons.hourglass_empty,
-                      t.syncStatusPending, progress.pending, Colors.orange),
+                  _buildStatRow(
+                    Icons.photo_library_outlined,
+                    t.syncTotal,
+                    (progress.deviceTotal - progress.done).clamp(0, progress.deviceTotal),
+                    Colors.blueGrey,
+                  ),
                   const SizedBox(height: 8),
-                  _buildStatRow(Icons.check_circle,
-                      t.syncStatusDone, progress.sessionUploaded, Colors.green),
+                  _buildStatRow(
+                    Icons.check_circle,
+                    t.syncStatusDone,
+                    progress.done,
+                    Colors.green,
+                  ),
                   const SizedBox(height: 16),
 
                   if (progress.currentFileName != null) ...[

@@ -296,7 +296,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get accessRejected => 'Доступ отклонён';
 
   @override
-  String get noShareRequests => 'Нет share requests';
+  String get noShareRequests => 'Нет запросов на доступ';
 
   @override
   String get noShareRequestsSubtitle =>
@@ -552,4 +552,22 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get syncStop => 'Остановить';
+
+  @override
+  String get syncSelectedFiles => 'Выбранные файлы';
+
+  @override
+  String get syncSelectedFilesSubtitle => 'Синхронизировать только выбранные';
+
+  @override
+  String get syncTotal => 'Всего';
+
+  @override
+  String get uploadedLabel => 'Загружено';
+
+  @override
+  String get uploadPageTitle => 'Загрузка';
+
+  @override
+  String get cancelledLabel => 'Отменено';
 }

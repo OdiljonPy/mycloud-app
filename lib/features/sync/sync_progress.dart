@@ -15,5 +15,6 @@ class SyncProgress with _$SyncProgress {
     @Default(0) int scannedCount,
     @Default(false) bool isScanning,
     @Default(0) int sessionUploaded,
+    @Default(0) int deviceTotal,
   }) = _SyncProgress;
 }

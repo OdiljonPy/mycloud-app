@@ -4,6 +4,7 @@ import 'package:cross_file/cross_file.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/errors/app_exception.dart';
 import '../data/upload_repository.dart';
+import '../../../l10n/app_localizations.dart';
 
 enum _FileStatus { waiting, uploading, paused, done, error, cancelled }
 
@@ -278,9 +279,9 @@ class _UploadPageState extends State<UploadPage> {
             elevation: 0,
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
-              title: const Text(
-                'Загрузка',
-                style: TextStyle(
+              title: Text(
+                AppLocalizations.of(context)!.uploadPageTitle,
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 22,
                 ),
@@ -684,15 +685,15 @@ class _FileItemTile extends StatelessWidget {
           ],
           if (item.status == _FileStatus.done) ...[
             const SizedBox(height: 4),
-            const Text(
-              'Загружено',
-              style: TextStyle(fontSize: 11, color: Colors.green),
+            Text(
+              AppLocalizations.of(context)!.uploadedLabel,
+              style: const TextStyle(fontSize: 11, color: Colors.green),
             ),
           ],
           if (item.status == _FileStatus.cancelled) ...[
             const SizedBox(height: 4),
             Text(
-              'Отменено',
+              AppLocalizations.of(context)!.cancelledLabel,
               style: TextStyle(fontSize: 11, color: Colors.grey[500]),
             ),
           ],

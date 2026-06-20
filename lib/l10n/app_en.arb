@@ -243,5 +243,11 @@
   "syncStatusUploading2": "Uploading",
   "syncStatusDone": "Done",
   "syncStatusFailed": "Errors",
-  "syncStop": "Stop"
+  "syncStop": "Stop",
+  "syncSelectedFiles": "Selected files",
+  "syncSelectedFilesSubtitle": "Sync only selected",
+  "syncTotal": "Total",
+  "uploadedLabel": "Uploaded",
+  "uploadPageTitle": "Upload",
+  "cancelledLabel": "Cancelled"
 }
