@@ -119,24 +119,13 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // iOS HIG ranglar
-    final bgColor = isDark ? const Color(0xFF000000) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black87;
-    final subtitleColor = isDark ? const Color(0xFF98989D) : const Color(0xFF8E8E93);
-    final inputFillColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF5F7FA);
-    final hintColor = isDark ? const Color(0xFF636366) : const Color(0xFFC7C7CC);
-    final accentColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF1A73E8);
-    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
-
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: bgColor,
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -147,18 +136,18 @@ class _RegisterPageState extends State<RegisterPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 8),
-              Text(
+              const Text(
                 'Create Account',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: textColor,
+                  color: Colors.black87,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Register a new user with phone number.',
-                style: TextStyle(fontSize: 14, color: subtitleColor),
+                style: TextStyle(fontSize: 14, color: Colors.grey[500]),
               ),
               const SizedBox(height: 32),
 
@@ -168,10 +157,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 hint: 'John Doe',
                 controller: _nameController,
                 icon: Icons.person_rounded,
-                textColor: textColor,
-                inputFillColor: inputFillColor,
-                hintColor: hintColor,
-                accentColor: accentColor,
               ),
               const SizedBox(height: 16),
 
@@ -184,16 +169,12 @@ class _RegisterPageState extends State<RegisterPage> {
                 keyboardType: TextInputType.phone,
                 focusNode: _phoneFocus,
                 inputFormatters: [UzbekPhoneFormatter()],
-                textColor: textColor,
-                inputFillColor: inputFillColor,
-                hintColor: hintColor,
-                accentColor: accentColor,
               ),
               if (_phoneTouched && !_isPhoneValid) ...[
                 const SizedBox(height: 6),
-                Text(
+                const Text(
                   'Неверный номер телефона',
-                  style: TextStyle(color: errorColor, fontSize: 12),
+                  style: TextStyle(color: Colors.red, fontSize: 12),
                 ),
               ],
               const SizedBox(height: 16),
@@ -211,22 +192,18 @@ class _RegisterPageState extends State<RegisterPage> {
                     _obscurePassword
                         ? Icons.visibility_off_rounded
                         : Icons.visibility_rounded,
-                    color: hintColor,
+                    color: Colors.grey[400],
                     size: 20,
                   ),
                   onPressed: () =>
                       setState(() => _obscurePassword = !_obscurePassword),
                 ),
-                textColor: textColor,
-                inputFillColor: inputFillColor,
-                hintColor: hintColor,
-                accentColor: accentColor,
               ),
               if (_passwordTouched && !_isPasswordValid) ...[
                 const SizedBox(height: 6),
-                Text(
+                const Text(
                   'Минимум 8 символов',
-                  style: TextStyle(color: errorColor, fontSize: 12),
+                  style: TextStyle(color: Colors.red, fontSize: 12),
                 ),
               ],
               const SizedBox(height: 16),
@@ -244,23 +221,19 @@ class _RegisterPageState extends State<RegisterPage> {
                     _obscureConfirmPassword
                         ? Icons.visibility_off_rounded
                         : Icons.visibility_rounded,
-                    color: hintColor,
+                    color: Colors.grey[400],
                     size: 20,
                   ),
                   onPressed: () => setState(
                     () => _obscureConfirmPassword = !_obscureConfirmPassword,
                   ),
                 ),
-                textColor: textColor,
-                inputFillColor: inputFillColor,
-                hintColor: hintColor,
-                accentColor: accentColor,
               ),
               if (_confirmPasswordTouched && !_isConfirmValid) ...[
                 const SizedBox(height: 6),
-                Text(
+                const Text(
                   'Пароли не совпадают',
-                  style: TextStyle(color: errorColor, fontSize: 12),
+                  style: TextStyle(color: Colors.red, fontSize: 12),
                 ),
               ],
 
@@ -269,25 +242,25 @@ class _RegisterPageState extends State<RegisterPage> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: errorColor.withValues(alpha: 0.08),
+                    color: Colors.red.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: errorColor.withValues(alpha: 0.2),
+                      color: Colors.red.withValues(alpha: 0.2),
                     ),
                   ),
                   child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.error_outline,
-                        color: errorColor,
+                        color: Colors.red,
                         size: 18,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _error!,
-                          style: TextStyle(
-                            color: errorColor,
+                          style: const TextStyle(
+                            color: Colors.red,
                             fontSize: 13,
                           ),
                         ),
@@ -305,8 +278,10 @@ class _RegisterPageState extends State<RegisterPage> {
                 child: ElevatedButton(
                   onPressed: _isLoading || !_isFormValid ? null : _register,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: accentColor,
-                    disabledBackgroundColor: accentColor.withValues(alpha: 0.4),
+                    backgroundColor: const Color(0xFF1A73E8),
+                    disabledBackgroundColor: const Color(
+                      0xFF1A73E8,
+                    ).withValues(alpha: 0.4),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -344,10 +319,6 @@ class _RegisterPageState extends State<RegisterPage> {
     required String hint,
     required TextEditingController controller,
     required IconData icon,
-    required Color textColor,
-    required Color inputFillColor,
-    required Color hintColor,
-    required Color accentColor,
     bool obscure = false,
     Widget? suffixIcon,
     TextInputType? keyboardType,
@@ -359,10 +330,10 @@ class _RegisterPageState extends State<RegisterPage> {
       children: [
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: textColor,
+            color: Colors.black87,
           ),
         ),
         const SizedBox(height: 8),
@@ -372,21 +343,21 @@ class _RegisterPageState extends State<RegisterPage> {
           keyboardType: keyboardType,
           focusNode: focusNode,
           inputFormatters: inputFormatters,
-          style: TextStyle(fontSize: 15, color: textColor),
+          style: const TextStyle(fontSize: 15),
           onChanged: (_) => setState(() {}),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: hintColor),
+            hintStyle: TextStyle(color: Colors.grey[400]),
             filled: true,
-            fillColor: inputFillColor,
+            fillColor: const Color(0xFFF5F7FA),
             prefixIcon: Container(
               margin: const EdgeInsets.all(10),
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.1),
+                color: const Color(0xFF1A73E8).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: accentColor, size: 18),
+              child: Icon(icon, color: const Color(0xFF1A73E8), size: 18),
             ),
             suffixIcon: suffixIcon,
             border: OutlineInputBorder(
@@ -395,8 +366,8 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(
-                color: accentColor,
+              borderSide: const BorderSide(
+                color: Color(0xFF1A73E8),
                 width: 1.5,
               ),
             ),

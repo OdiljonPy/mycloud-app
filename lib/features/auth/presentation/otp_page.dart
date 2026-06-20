@@ -20,7 +20,7 @@ class OtpPage extends StatefulWidget {
 
 class _OtpPageState extends State<OtpPage> {
   final List<TextEditingController> _controllers =
-      List.generate(6, (_) => TextEditingController());
+  List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
   final _authRepo = AuthRepository();
@@ -36,7 +36,8 @@ class _OtpPageState extends State<OtpPage> {
     _otpKey = widget.otpKey;
   }
 
-  String get _otpCode => _controllers.map((c) => c.text).join();
+  String get _otpCode =>
+      _controllers.map((c) => c.text).join();
 
   Future<void> _verify() async {
     if (_otpCode.length < 6) {
@@ -57,7 +58,7 @@ class _OtpPageState extends State<OtpPage> {
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const MainPage()),
-          (_) => false,
+              (_) => false,
         );
       }
     } on AppException catch (e) {
@@ -70,7 +71,8 @@ class _OtpPageState extends State<OtpPage> {
   Future<void> _resend() async {
     setState(() => _isResending = true);
     try {
-      final newKey = await _authRepo.resendOtp(phoneNumber: widget.phoneNumber);
+      final newKey = await _authRepo.resendOtp(
+          phoneNumber: widget.phoneNumber);
       setState(() => _otpKey = newKey);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -89,34 +91,21 @@ class _OtpPageState extends State<OtpPage> {
 
   @override
   void dispose() {
-    for (final c in _controllers) {
-      c.dispose();
-    }
-    for (final f in _focusNodes) {
-      f.dispose();
-    }
+    for (final c in _controllers) c.dispose();
+    for (final f in _focusNodes) f.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // iOS HIG ranglar
-    final bgColor = isDark ? const Color(0xFF000000) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black87;
-    final subtitleColor = isDark ? const Color(0xFF98989D) : const Color(0xFF8E8E93);
-    final inputFillColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF5F7FA);
-    final accentColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF1A73E8);
-    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
-
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: bgColor,
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20),
+          icon: const Icon(Icons.arrow_back_ios,
+              color: Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -132,32 +121,34 @@ class _OtpPageState extends State<OtpPage> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.1),
+                  color: const Color(0xFF1A73E8).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(Icons.message_rounded, color: accentColor, size: 28),
+                child: const Icon(Icons.message_rounded,
+                    color: Color(0xFF1A73E8), size: 28),
               ),
 
               const SizedBox(height: 24),
 
-              Text(
+              const Text(
                 'Enter OTP Code',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: textColor,
+                  color: Colors.black87,
                 ),
               ),
               const SizedBox(height: 8),
               RichText(
                 text: TextSpan(
-                  style: TextStyle(fontSize: 14, color: subtitleColor),
+                  style: TextStyle(
+                      fontSize: 14, color: Colors.grey[500]),
                   children: [
                     const TextSpan(text: 'We sent a 6-digit code to '),
                     TextSpan(
                       text: widget.phoneNumber,
-                      style: TextStyle(
-                        color: accentColor,
+                      style: const TextStyle(
+                        color: Color(0xFF1A73E8),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -172,7 +163,7 @@ class _OtpPageState extends State<OtpPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(
                   6,
-                  (i) => SizedBox(
+                      (i) => SizedBox(
                     width: 46,
                     height: 56,
                     child: TextField(
@@ -184,21 +175,22 @@ class _OtpPageState extends State<OtpPage> {
                         LengthLimitingTextInputFormatter(1),
                         FilteringTextInputFormatter.digitsOnly,
                       ],
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: accentColor,
+                        color: Color(0xFF1A73E8),
                       ),
                       decoration: InputDecoration(
                         filled: true,
-                        fillColor: inputFillColor,
+                        fillColor: const Color(0xFFF5F7FA),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: accentColor, width: 2),
+                          borderSide: const BorderSide(
+                              color: Color(0xFF1A73E8), width: 2),
                         ),
                         contentPadding: EdgeInsets.zero,
                       ),
@@ -221,19 +213,20 @@ class _OtpPageState extends State<OtpPage> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: errorColor.withValues(alpha: 0.08),
+                    color: Colors.red.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: errorColor.withValues(alpha: 0.2)),
+                    border: Border.all(
+                        color: Colors.red.withValues(alpha: 0.2)),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.error_outline, color: errorColor, size: 18),
+                      const Icon(Icons.error_outline,
+                          color: Colors.red, size: 18),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(
-                          _error!,
-                          style: TextStyle(color: errorColor, fontSize: 13),
-                        ),
+                        child: Text(_error!,
+                            style: const TextStyle(
+                                color: Colors.red, fontSize: 13)),
                       ),
                     ],
                   ),
@@ -248,8 +241,7 @@ class _OtpPageState extends State<OtpPage> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _verify,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: accentColor,
-                    disabledBackgroundColor: accentColor.withValues(alpha: 0.5),
+                    backgroundColor: const Color(0xFF1A73E8),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -257,21 +249,19 @@ class _OtpPageState extends State<OtpPage> {
                   ),
                   child: _isLoading
                       ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2),
+                  )
                       : const Text(
-                          'Verify',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                    'Verify',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
 
@@ -281,21 +271,19 @@ class _OtpPageState extends State<OtpPage> {
                 child: TextButton(
                   onPressed: _isResending ? null : _resend,
                   child: _isResending
-                      ? SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: accentColor,
-                          ),
-                        )
-                      : Text(
-                          'Resend Code',
-                          style: TextStyle(
-                            color: accentColor,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                      ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2),
+                  )
+                      : const Text(
+                    'Resend Code',
+                    style: TextStyle(
+                      color: Color(0xFF1A73E8),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
             ],

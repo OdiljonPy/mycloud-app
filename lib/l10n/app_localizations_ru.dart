@@ -552,48 +552,4 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get syncStop => 'Остановить';
-
-  @override
-  String get fileTypes => 'Типы файлов';
-
-  @override
-  String get viewAll => 'Все';
-
-  @override
-  String get recentFiles => 'Файлы галереи';
-
-  @override
-  String get sync => 'Синхр.';
-
-  @override
-  String get image => 'Изображение';
-
-  @override
-  String get video => 'Видео';
-
-  @override
-  String filesLabel(String count) {
-    return '$count файлов';
-  }
-
-  @override
-  String get today => 'Сегодня';
-
-  @override
-  String get yesterday => 'Вчера';
-
-  @override
-  String daysAgo(int count) {
-    return '$count дней назад';
-  }
-
-  @override
-  String get deleteAccount => 'Удалить аккаунт';
-
-  @override
-  String get deleteAccountConfirm => 'Удалить аккаунт';
-
-  @override
-  String get deleteAccountConfirmMessage =>
-      'Вы уверены, что хотите удалить аккаунт? Это действие необратимо.';
 }
