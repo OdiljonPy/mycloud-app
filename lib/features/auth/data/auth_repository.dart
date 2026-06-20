@@ -252,7 +252,6 @@ class AuthRepository {
     }
   }
 
-  // VERIFY PASSWORD OTP → returns new otp_key
   Future<String> verifyPasswordOtp({required String otpKey, required int otpCode}) async {
     try {
       final response = await _dio.post(
