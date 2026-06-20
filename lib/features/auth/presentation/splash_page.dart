@@ -77,11 +77,19 @@ class _SplashPageState extends State<SplashPage>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+<<<<<<< HEAD
+=======
+      backgroundColor: isDark ? const Color(0xFF000000) : const Color(0xFF1A73E8),
+>>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF1A73E8), Color(0xFF0D47A1)],
+            colors: isDark
+                ? [const Color(0xFF000000), const Color(0xFF1C1C1E)]
+                : [const Color(0xFF1A73E8), const Color(0xFF0D47A1)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -98,8 +106,13 @@ class _SplashPageState extends State<SplashPage>
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
+<<<<<<< HEAD
                       color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(28),
+=======
+                      color: Colors.white.withValues(alpha: isDark ? 0.1 : 0.2),
+                      borderRadius: BorderRadius.circular(24),
+>>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(28),
@@ -180,11 +193,15 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF1A73E8), Color(0xFF0D47A1)],
+            colors: isDark
+                ? [const Color(0xFF000000), const Color(0xFF1C1C1E)]
+                : [const Color(0xFF1A73E8), const Color(0xFF0D47A1)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -199,8 +216,13 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
+<<<<<<< HEAD
                     color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(22),
+=======
+                    color: Colors.white.withValues(alpha: isDark ? 0.1 : 0.15),
+                    borderRadius: BorderRadius.circular(32),
+>>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(22),
@@ -275,7 +297,9 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
                     onPressed: _confirm,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF1A73E8),
+                      foregroundColor: isDark
+                          ? const Color(0xFF0A84FF)
+                          : const Color(0xFF1A73E8),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16)),
@@ -285,7 +309,35 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
                             fontWeight: FontWeight.bold)),
                   ),
                 ),
+<<<<<<< HEAD
                 const SizedBox(height: 40),
+=======
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginPage()),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: BorderSide(
+                        color: Colors.white.withValues(alpha: isDark ? 0.3 : 0.5),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text(
+                      'Log In',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+>>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
               ],
             ),
           ),
@@ -293,6 +345,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
       ),
     );
   }
+<<<<<<< HEAD
 }
 
 // ─── Onboarding ───────────────────────────────────────────────────────────────
@@ -544,3 +597,6 @@ class _SlideWidget extends StatelessWidget {
     );
   }
 }
+=======
+}
+>>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
