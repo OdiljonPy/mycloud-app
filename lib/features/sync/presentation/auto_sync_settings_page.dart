@@ -12,7 +12,7 @@ class AutoSyncSettingsPage extends StatefulWidget {
   State<AutoSyncSettingsPage> createState() => _AutoSyncSettingsPageState();
 }
 
-class _AutoSyncSettingsPageState extends State<AutoSyncSettingsPage> with AutomaticKeepAliveClientMixin {
+class _AutoSyncSettingsPageState extends State<AutoSyncSettingsPage> {
   static const _accent = Color(0xFF2563EB);
 
   final AutoSyncService _syncService = AutoSyncService();
@@ -26,9 +26,6 @@ class _AutoSyncSettingsPageState extends State<AutoSyncSettingsPage> with Automa
 
   StreamSubscription<SyncProgress>? _progressSub;
   SyncProgress _lastProgress = const SyncProgress();
-
-  @override
-  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -155,493 +152,224 @@ class _AutoSyncSettingsPageState extends State<AutoSyncSettingsPage> with Automa
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // AutomaticKeepAliveClientMixin uchun kerak
     final t = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // iOS ranglar
-    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final bgColor = isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7);
-    final secondaryBgColor = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFFFFFFF);
-    final labelColor = isDark ? const Color(0xFFEBEBF5).withOpacity(0.6) : const Color(0xFF3C3C43).withOpacity(0.6);
-    final textColor = isDark ? Colors.white : Colors.black;
-    final separatorColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF5F7FA);
 
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-        elevation: 0,
-        title: Text(
-          t.syncSettingsTitle,
-          style: TextStyle(
-            color: textColor,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        title: Text(t.syncSettingsTitle),
         centerTitle: true,
-        iconTheme: IconThemeData(color: isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF)),
       ),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            const SizedBox(height: 20),
-
-            // Sozlamalar kartasi
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
+            _buildCard(
+              cardColor: cardColor,
               child: Column(
                 children: [
-                  _buildIOSSwitchTile(
-                    title: t.syncEnableToggle,
-                    subtitle: t.syncAutoUpload,
+                  SwitchListTile(
+                    activeTrackColor: _accent,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(t.syncEnableToggle),
+                    subtitle: Text(t.syncAutoUpload),
                     value: _autoSyncEnabled,
                     onChanged: _setAutoSync,
-                    isDark: isDark,
-                    textColor: textColor,
-                    labelColor: labelColor,
-                    showDivider: true,
                   ),
-                  _buildIOSSwitchTile(
-                    title: t.syncWifiOnly,
-                    subtitle: t.syncNoMobileData,
+                  const Divider(height: 1),
+                  SwitchListTile(
+                    activeTrackColor: _accent,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(t.syncWifiOnly),
+                    subtitle: Text(t.syncNoMobileData),
                     value: _wifiOnly,
                     onChanged: _setWifiOnly,
-                    isDark: isDark,
-                    textColor: textColor,
-                    labelColor: labelColor,
-                    showDivider: true,
                   ),
-                  _buildIOSSwitchTile(
-                    title: 'Tanlangan fayllar',
-                    subtitle: 'Faqat tanlanganlarni sinxronlash',
+                  const Divider(height: 1),
+
+                  // 👇 НОВЫЙ БЛОК
+                  SwitchListTile(
+                    activeTrackColor: _accent,
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Выбранные файлы'),
+                    subtitle: const Text(
+                        'Синхронизировать только выбранные'),
                     value: _useSelectedFiles,
                     onChanged: _setUseSelected,
-                    isDark: isDark,
-                    textColor: textColor,
-                    labelColor: labelColor,
-                    showDivider: false,
                   ),
                 ],
               ),
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
 
-            // Status kartasi
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
+            _buildCard(
+              cardColor: cardColor,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: _accent.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          Icons.sync_rounded,
-                          color: isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF),
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        t.syncStatusTitle,
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          color: textColor,
-                        ),
-                      ),
+                      const Icon(Icons.sync, color: _accent, size: 20),
+                      const SizedBox(width: 8),
+                      Text(t.syncStatusTitle),
                       const Spacer(),
                       if (_isSyncing)
-                        SizedBox(
-                          width: 20,
-                          height: 20,
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
                           child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF),
+                            strokeWidth: 2,
+                            color: _accent,
                           ),
                         ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
 
-                  if (_lastProgress.totalFiles > 0) ...[
-                    _buildIOSStatRow(
-                      icon: Icons.photo_library_outlined,
-                      label: 'Jami fayllar',
-                      value: '${_lastProgress.totalFiles}',
-                      color: isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF),
-                      isDark: isDark,
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-
-                  if (_lastProgress.isScanning) ...[
-                    _buildIOSScanningRow(
-                      label: 'Tekshirilmoqda',
-                      count: _lastProgress.scannedCount,
-                      isDark: isDark,
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-
-                  _buildIOSStatRow(
-                    icon: Icons.hourglass_empty_rounded,
-                    label: t.syncStatusPending,
-                    value: '${_lastProgress.pending}',
-                    color: isDark ? const Color(0xFFFF9F0A) : const Color(0xFFFF9500),
-                    isDark: isDark,
-                  ),
-                  const SizedBox(height: 12),
-
-                  _buildIOSStatRow(
-                    icon: Icons.check_circle_outline_rounded,
-                    label: t.syncStatusDone,
-                    value: '${_lastProgress.done}',
-                    color: isDark ? const Color(0xFF32D74B) : const Color(0xFF34C759),
-                    isDark: isDark,
-                  ),
-
-                  if (_lastProgress.currentFileName != null) ...[
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF2C2C2E)
-                            : const Color(0xFFF2F2F7),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  if (_lastProgress.isScanning)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
                         children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.cloud_upload_outlined,
-                                size: 18,
-                                color: isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _lastProgress.currentFileName!,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: isDark ? Colors.white : Colors.black87,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
+                          const SizedBox(
+                            width: 18, height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2563EB)),
                           ),
-                          const SizedBox(height: 12),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: _lastProgress.currentFileProgress > 0
-                                  ? _lastProgress.currentFileProgress
-                                  : null,
-                              minHeight: 4,
-                              backgroundColor: isDark
-                                  ? const Color(0xFF3A3A3C)
-                                  : const Color(0xFFE5E5EA),
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF),
-                              ),
-                            ),
+                          const SizedBox(width: 8),
+                          const Text('Сканирование галереи'),
+                          const Spacer(),
+                          Text(
+                            '${_lastProgress.scannedCount} файлов',
+                            style: const TextStyle(color: Color(0xFF2563EB)),
                           ),
-                          if (_lastProgress.currentFileProgress > 0) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              '${(_lastProgress.currentFileProgress * 100).toStringAsFixed(0)}%',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: isDark ? const Color(0xFF98989D) : const Color(0xFF8E8E93),
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                     ),
-                  ],
-                ],
-              ),
-            ),
+                  _buildStatRow(Icons.hourglass_empty,
+                      t.syncStatusPending, _lastProgress.pending, Colors.orange),
 
-            const SizedBox(height: 32),
+                  const SizedBox(height: 8),
 
-            // Tugmalar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _isSyncing ? null : _startSync,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF),
-                        disabledBackgroundColor: isDark
-                            ? const Color(0xFF0A84FF).withOpacity(0.3)
-                            : const Color(0xFF007AFF).withOpacity(0.3),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                  // Загрузка — скрыта
+                  _buildStatRow(Icons.check_circle,
+                      t.syncStatusDone, _lastProgress.done, Colors.green),
+
+                  const SizedBox(height: 8),
+
+                  // _buildStatRow(Icons.error_outline,
+                  //     t.syncStatusFailed, _lastProgress.failed, Colors.red),
+
+                  const SizedBox(height: 16),
+                  // Текущий файл — показываем всегда, не мигает
+                  if (_lastProgress.currentFileName != null)
+                    Text(
+                      _lastProgress.currentFileName!,
+                      style: const TextStyle(fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  if (_lastProgress.currentFileName != null)
+                    const SizedBox(height: 6),
+                  if (_lastProgress.currentFileName != null)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: _lastProgress.currentFileProgress > 0
+                            ? _lastProgress.currentFileProgress
+                            : null,
+                        minHeight: 6,
                       ),
+                    ),
+                  if (_lastProgress.currentFileName != null)
+                    const SizedBox(height: 4),
+                  if (_lastProgress.currentFileName != null)
+                    Align(
+                      alignment: Alignment.centerRight,
                       child: Text(
-                        t.syncNowButton,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
+                        _lastProgress.currentFileProgress > 0
+                            ? '${(_lastProgress.currentFileProgress * 100).toStringAsFixed(0)}%'
+                            : '',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[500],
                         ),
                       ),
                     ),
-                  ),
-                  if (_isSyncing) ...[
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _stopSync,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          t.syncStop,
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                  // const SizedBox(height: 12),
-                  // SizedBox(
-                  //   width: double.infinity,
-                  //   height: 50,
-                  //   child: OutlinedButton(
-                  //     onPressed: _resetQueue,
-                  //     style: OutlinedButton.styleFrom(
-                  //       foregroundColor: isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30),
-                  //       side: BorderSide(
-                  //         color: isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30),
-                  //         width: 1.5,
-                  //       ),
-                  //       shape: RoundedRectangleBorder(
-                  //         borderRadius: BorderRadius.circular(12),
-                  //       ),
-                  //     ),
-                  //     child: Text(
-                  //       t.syncResetButton,
-                  //       style: const TextStyle(
-                  //         fontSize: 17,
-                  //         fontWeight: FontWeight.w600,
-                  //       ),
-                  //     ),
-                  //   ),
-                  // ),
                 ],
               ),
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.sync, color: Colors.white),
+                label: Text(t.syncNowButton),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _accent,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                onPressed: _isSyncing ? null : _startSync,
+              ),
+            ),
+
+            if (_isSyncing) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.stop, color: Colors.white),
+                  label: Text(t.syncStop),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  onPressed: _stopSync,
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 12),
+
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                label: Text(t.syncResetButton),
+                onPressed: _resetQueue,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildIOSSwitchTile({
-    required String title,
-    required String subtitle,
-    required bool value,
-    required Function(bool) onChanged,
-    required bool isDark,
-    required Color textColor,
-    required Color labelColor,
-    required bool showDivider,
-  }) {
-    return Column(
+  Widget _buildCard({required Color cardColor, required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildStatRow(
+      IconData icon, String label, int count, Color color) {
+    return Row(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w400,
-                        color: textColor,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                        color: labelColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Transform.scale(
-                scale: 0.85,
-                child: Switch.adaptive(
-                  value: value,
-                  onChanged: onChanged,
-                  activeColor: isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF),
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (showDivider)
-          Padding(
-            padding: const EdgeInsets.only(left: 16),
-            child: Divider(
-              height: 1,
-              thickness: 0.5,
-              color: isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA),
-            ),
-          ),
+        Icon(icon, color: color, size: 18),
+        const SizedBox(width: 8),
+        Text(label),
+        const Spacer(),
+        Text('$count', style: TextStyle(color: color)),
       ],
-    );
-  }
-
-  Widget _buildIOSStatRow({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-    required bool isDark,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 16),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: isDark ? Colors.white : Colors.black87,
-              ),
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildIOSScanningRow({
-    required String label,
-    required int count,
-    required bool isDark,
-  }) {
-    const color = Color(0xFF2563EB);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                color: color,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: isDark ? Colors.white : Colors.black87,
-              ),
-            ),
-          ),
-          Text(
-            '$count ta',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

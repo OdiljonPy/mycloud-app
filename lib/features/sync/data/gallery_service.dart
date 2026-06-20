@@ -14,8 +14,6 @@ class GalleryFile {
   final String uploadStatus;
   final String? capturedAt;
   final String? thumbnailPath;
-  final String? previewType;
-  final Map<String, dynamic>? previewMeta;
 
   const GalleryFile({
     required this.id,
@@ -25,8 +23,6 @@ class GalleryFile {
     required this.uploadStatus,
     this.capturedAt,
     this.thumbnailPath,
-    this.previewType,
-    this.previewMeta,
   });
 
   factory GalleryFile.fromJson(Map<String, dynamic> json) {
@@ -38,37 +34,6 @@ class GalleryFile {
       uploadStatus: json['upload_status'] as String? ?? '',
       capturedAt: json['captured_at'] as String?,
       thumbnailPath: json['thumbnail_path'] as String?,
-      previewType: json['preview_type'] as String?,
-      previewMeta: json['preview_meta'] as Map<String, dynamic>?,
-    );
-  }
-
-  bool get isVideo => previewType == 'video' || mimeType.startsWith('video/');
-  bool get isImage => previewType == 'image' || mimeType.startsWith('image/');
-}
-
-class GalleryResponse {
-  final int count;
-  final String? next;
-  final String? previous;
-  final List<GalleryFile> results;
-
-  const GalleryResponse({
-    required this.count,
-    this.next,
-    this.previous,
-    required this.results,
-  });
-
-  factory GalleryResponse.fromJson(Map<String, dynamic> json) {
-    return GalleryResponse(
-      count: (json['count'] as num?)?.toInt() ?? 0,
-      next: json['next'] as String?,
-      previous: json['previous'] as String?,
-      results: (json['results'] as List<dynamic>?)
-              ?.map((e) => GalleryFile.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
     );
   }
 }
@@ -122,27 +87,6 @@ class GalleryService {
           .toList();
     } catch (e) {
       debugPrint('[GalleryService] getGallery failed: $e');
-      rethrow;
-    }
-  }
-
-  /// GET /content/gallery/?page=X&page_size=Y
-  /// Returns paginated gallery files with next/previous links.
-  Future<GalleryResponse> getGalleryPaginated({
-    int page = 1,
-    int pageSize = 48,
-  }) async {
-    try {
-      final response = await _dio.get(
-        '/content/gallery/',
-        queryParameters: {
-          'page': page,
-          'page_size': pageSize,
-        },
-      );
-      return GalleryResponse.fromJson(response.data as Map<String, dynamic>);
-    } catch (e) {
-      debugPrint('[GalleryService] getGalleryPaginated failed: $e');
       rethrow;
     }
   }
@@ -209,7 +153,6 @@ class GalleryService {
       final filesPayload = tasks.map((task) {
         final id = _uuidGen.v4();
         uuidToTask[id] = task;
-        debugPrint('[GalleryService] 🔍 Checking: ${task.fileName} (${task.fileSize} bytes, ${task.mimeType})');
         return {
           'name': task.fileName,
           'size': task.fileSize,
@@ -218,22 +161,20 @@ class GalleryService {
         };
       }).toList();
 
-      debugPrint('[GalleryService] 📤 Sending ${filesPayload.length} files to check-duplicate API');
-
       final response = await _dio.post(
         '/content/files/check-duplicate/',
         data: {'files': filesPayload},
       );
 
-      // Response: [{"is_duplicate": true, "uuid": "uuid-string"}]
+      // Response: [{"key": "uuid-string", "value": true/false}]
       final List result = response.data as List;
 
       // Map: localTaskId → is_duplicate
       final Map<String, bool> duplicateMap = {};
       for (final item in result) {
-        final uuid = item['uuid']?.toString();
-        final isDuplicate = item['is_duplicate'] as bool? ?? false;
-        if (uuid != null && uuidToTask.containsKey(uuid)) {
+        final uuid = item['key'].toString();
+        final isDuplicate = item['value'] as bool;
+        if (uuidToTask.containsKey(uuid)) {
           final task = uuidToTask[uuid]!;
           duplicateMap[task.localId] = isDuplicate;
         }

@@ -251,32 +251,5 @@
   "syncStatusUploading2": "Загрузка",
   "syncStatusDone": "Готово",
   "syncStatusFailed": "Ошибки",
-  "syncStop": "Остановить",
-  "fileTypes": "Типы файлов",
-  "viewAll": "Все",
-  "recentFiles": "Файлы галереи",
-  "sync": "Синхр.",
-  "image": "Изображение",
-  "video": "Видео",
-  "filesLabel": "{count} файлов",
-  "@filesLabel": {
-    "placeholders": {
-      "count": {
-        "type": "String"
-      }
-    }
-  },
-  "today": "Сегодня",
-  "yesterday": "Вчера",
-  "daysAgo": "{count} дней назад",
-  "@daysAgo": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "deleteAccount": "Удалить аккаунт",
-  "deleteAccountConfirm": "Удалить аккаунт",
-  "deleteAccountConfirmMessage": "Вы уверены, что хотите удалить аккаунт? Это действие необратимо."
+  "syncStop": "Остановить"
 }

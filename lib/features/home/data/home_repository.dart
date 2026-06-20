@@ -395,12 +395,9 @@ class HomeRepository {
     }
   }
 
-  Future<List<dynamic>> getRecentFiles({int size = 20}) async {
+  Future<List<dynamic>> getRecentFiles() async {
     try {
-      final response = await _dio.get(
-        '/content/recent-files/',
-        queryParameters: {'size': size},
-      );
+      final response = await _dio.get('/content/recent-files/');
       if (response.data is List) return response.data as List;
       return response.data['results'] ?? [];
     } on DioException catch (e) {
