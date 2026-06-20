@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/storage/secure_storage.dart';
 
 class ProfileRepository {
   final Dio _dio = DioClient.instance;
@@ -36,10 +37,12 @@ class ProfileRepository {
 
   Future<void> updateProfile({String? fullName, String? phone}) async {
     try {
+      final userId = await SecureStorage.getUserId();
+      if (userId == null) throw const AppException(message: 'User ID not found');
       final data = <String, dynamic>{};
       if (fullName != null) data['full_name'] = fullName;
       if (phone != null) data['phone_number'] = phone;
-      await _dio.patch('/authentication/users/me/', data: data);
+      await _dio.patch('/authentication/users/$userId/', data: data);
     } on DioException catch (e) {
       throw AppException(
         message: _extractError(e.response?.data),
@@ -53,9 +56,12 @@ class ProfileRepository {
     required String newPass,
   }) async {
     try {
-      await _dio.post('/authentication/users/set_password/', data: {
-        'current_password': current,
+      final userId = await SecureStorage.getUserId();
+      if (userId == null) throw const AppException(message: 'User ID not found');
+      await _dio.patch('/authentication/users/$userId/', data: {
+        'old_password': current,
         'new_password': newPass,
+        'confirm_password': newPass,
       });
     } on DioException catch (e) {
       throw AppException(

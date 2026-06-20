@@ -156,7 +156,7 @@ class HomeRepository {
     try {
       final response = await _dio.post(
         '/content/folder/',
-        data: {'name': 'Sync', 'parent': null},
+        data: {'name': 'Sync', 'parent': null, 'is_sync': true},
       );
       return FolderModel.fromJson(response.data);
     } catch (e) {

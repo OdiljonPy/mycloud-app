@@ -221,6 +221,31 @@ class AuthRepository {
     }
   }
 
+  // VERIFY PASSWORD OTP → returns verified otp_key for reset
+  Future<String> verifyPasswordOtp({
+    required String otpKey,
+    required int otpCode,
+  }) async {
+    try {
+      final response = await _dio.post(
+        'authentication/users/password/verify/',
+        data: {'otp_key': otpKey, 'otp_code': otpCode},
+      );
+      final data = response.data is Map
+          ? response.data as Map<String, dynamic>
+          : {};
+      final result = data.containsKey('result') ? data['result'] : data;
+      return result['otp_key']?.toString() ?? '';
+    } on DioException catch (e) {
+      throw AppException(
+        message: _extractError(e.response?.data) != 'Unknown error'
+            ? _extractError(e.response?.data)
+            : 'OTP verification failed',
+        statusCode: e.response?.statusCode,
+      );
+    }
+  }
+
   // RESET PASSWORD
   Future<void> resetPassword({
     required String otpKey,
@@ -233,7 +258,6 @@ class AuthRepository {
         'authentication/users/password/reset/',
         data: {
           'otp_key': otpKey,
-          'otp_code': otpCode,
           'password': password,
           'confirm_password': confirmPassword,
         },
