@@ -13,7 +13,7 @@ class SyncQueueDb {
       final path = p.join(dbPath, 'sync_queue.db');
       _db = await openDatabase(
         path,
-        version: 3,
+        version: 4,
         onCreate: (db, version) async {
           await db.execute('''
             CREATE TABLE sync_queue (
@@ -35,6 +35,9 @@ class SyncQueueDb {
               session_uploaded INTEGER NOT NULL DEFAULT 0
             )
           ''');
+          await db.execute('CREATE INDEX idx_name_size_status ON sync_queue (file_name, file_size, status)');
+          await db.execute('CREATE INDEX idx_fingerprint_status ON sync_queue (sha256, file_size, mime_type, status)');
+          await db.execute('CREATE INDEX idx_status ON sync_queue (status)');
         },
         onUpgrade: (db, oldVersion, newVersion) async {
           if (oldVersion < 2) {
@@ -53,6 +56,16 @@ class SyncQueueDb {
               debugPrint('[SyncQueueDb] Migrated to v3: added asset_created_at, bucket_day, session_uploaded');
             } catch (e) {
               debugPrint('[SyncQueueDb] Migration v3 skipped: $e');
+            }
+          }
+          if (oldVersion < 4) {
+            try {
+              await db.execute('CREATE INDEX IF NOT EXISTS idx_name_size_status ON sync_queue (file_name, file_size, status)');
+              await db.execute('CREATE INDEX IF NOT EXISTS idx_fingerprint_status ON sync_queue (sha256, file_size, mime_type, status)');
+              await db.execute('CREATE INDEX IF NOT EXISTS idx_status ON sync_queue (status)');
+              debugPrint('[SyncQueueDb] Migrated to v4: added deduplication indexes');
+            } catch (e) {
+              debugPrint('[SyncQueueDb] Migration v4 skipped: $e');
             }
           }
         },
@@ -138,39 +151,6 @@ class SyncQueueDb {
     }
   }
 
-  Future<bool> isDoneByFingerprint({
-    required String sha256,
-    required int fileSize,
-    required String mimeType,
-  }) async {
-    try {
-      final hashPreview = sha256.length > 16 ? '${sha256.substring(0, 16)}...' : sha256;
-      debugPrint('[SyncQueueDb] 🔍 Dublikat tekshirish:');
-      debugPrint('  - SHA256: $hashPreview');
-      debugPrint('  - Size: $fileSize bytes');
-      debugPrint('  - MIME: $mimeType');
-
-      final result = await _database.query(
-        'sync_queue',
-        where: 'sha256 = ? AND file_size = ? AND mime_type = ? AND status = ?',
-        whereArgs: [sha256, fileSize, mimeType, SyncStatus.done.name],
-        limit: 1,
-      );
-
-      final isDuplicate = result.isNotEmpty;
-      if (isDuplicate) {
-        debugPrint('  ✅ DUBLIKAT topildi! (yuklanmaydi)');
-      } else {
-        debugPrint('  ➕ YANGI fayl (yuklanadi)');
-      }
-
-      return isDuplicate;
-    } catch (e) {
-      debugPrint('[SyncQueueDb] ❌ isDoneByFingerprint failed: $e');
-      return false;
-    }
-  }
-
   Future<bool> exists(String localId) async {
     try {
       final result = await _database.query('sync_queue', where: 'local_id = ?', whereArgs: [localId], limit: 1);
@@ -178,27 +158,6 @@ class SyncQueueDb {
     } catch (e) {
       debugPrint('[SyncQueueDb] exists failed: $e');
       return false;
-    }
-  }
-
-  Future<SyncStatus?> getStatus(String localId) async {
-    try {
-      final result = await _database.query('sync_queue', where: 'local_id = ?', whereArgs: [localId], limit: 1);
-      if (result.isEmpty) return null;
-      final statusStr = result.first['status'] as String;
-      return SyncStatus.values.firstWhere((s) => s.name == statusStr);
-    } catch (e) {
-      debugPrint('[SyncQueueDb] getStatus failed: $e');
-      return null;
-    }
-  }
-
-  Future<void> deleteByLocalId(String localId) async {
-    try {
-      await _database.delete('sync_queue', where: 'local_id = ?', whereArgs: [localId]);
-      debugPrint('[SyncQueueDb] Deleted task with localId: $localId');
-    } catch (e) {
-      debugPrint('[SyncQueueDb] deleteByLocalId failed: $e');
     }
   }
 
@@ -308,6 +267,28 @@ class SyncQueueDb {
       return result.isNotEmpty;
     } catch (e) {
       debugPrint('[SyncQueueDb] isDoneByNameAndSize failed: $e');
+      return false;
+    }
+  }
+
+  /// Проверяет дубликат по SHA256 + размер + MIME-тип.
+  /// Точнее чем isDoneByNameAndSize: два файла с одним именем но разным содержимым
+  /// не будут считаться дублями.
+  Future<bool> isDoneByFingerprint({
+    required String sha256,
+    required int fileSize,
+    required String mimeType,
+  }) async {
+    try {
+      final result = await _database.query(
+        'sync_queue',
+        where: 'sha256 = ? AND file_size = ? AND mime_type = ? AND status = ?',
+        whereArgs: [sha256, fileSize, mimeType, SyncStatus.done.name],
+        limit: 1,
+      );
+      return result.isNotEmpty;
+    } catch (e) {
+      debugPrint('[SyncQueueDb] isDoneByFingerprint failed: $e');
       return false;
     }
   }

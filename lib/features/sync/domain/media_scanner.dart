@@ -1,7 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:photo_manager/photo_manager.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../data/sync_queue_db.dart';
 import '../data/sync_task.dart';
@@ -99,7 +97,6 @@ class MediaScanner {
                 continue;
               }
 
-<<<<<<< HEAD
               // Delta filter: пропускаем если ассет старее watermark
               final assetCreatedMs = asset.createDateTime.millisecondsSinceEpoch;
               if (filterFromMs != null && assetCreatedMs < filterFromMs!) continue;
@@ -129,12 +126,6 @@ class MediaScanner {
 
               // Skip if already in local DB
               if (await db.exists(asset.id)) continue;
-=======
-              // Delete existing record if any (to allow re-sync)
-              if (await db.exists(asset.id)) {
-                await db.deleteByLocalId(asset.id);
-              }
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
 
               // Дополнительно: проверка по имени+размеру для случая после logout
               if (realSize > 0) {
@@ -142,7 +133,6 @@ class MediaScanner {
                 if (alreadyDone) continue;
               }
 
-<<<<<<< HEAD
               // Key для server-side dedup
               final key = '$name|$realSize';
 
@@ -162,68 +152,15 @@ class MediaScanner {
                   updatedAt: now,
                 ));
                 continue;
-=======
-              // Get original filename - try multiple sources
-              String originalName = asset.title ?? '';
-              if (originalName.isEmpty || originalName.contains('/')) {
-                // asset.title is null or contains path - extract from file path
-                originalName = p.basename(file.path);
-              }
-              if (originalName.isEmpty) {
-                // Last resort: generate filename from timestamp
-                final timestamp = asset.createDateTime?.millisecondsSinceEpoch ?? DateTime.now().millisecondsSinceEpoch;
-                final ext = p.extension(file.path);
-                originalName = 'IMG_$timestamp${ext.isEmpty ? '.jpg' : ext}';
               }
 
-              debugPrint('[MediaScanner] 📝 File: $originalName (${(file.lengthSync() / 1024 / 1024).toStringAsFixed(2)} MB)');
-
-              // Convert HEIC/HEIF to JPEG if needed
-              File finalFile = file;
-              String finalName = originalName;
-              String finalMimeType = _mimeForAsset(asset);
-
-              if (asset.type == AssetType.image && _isHeicFormat(file.path)) {
-                try {
-                  final converted = await _convertHeicToJpeg(file, asset.id);
-                  if (converted != null) {
-                    finalFile = converted;
-                    // Replace extension in original filename
-                    finalName = originalName.replaceAll(RegExp(r'\.(heic|heif)$', caseSensitive: false), '.jpg');
-                    // If no extension was replaced, add .jpg
-                    if (finalName == originalName) {
-                      finalName = '$originalName.jpg';
-                    }
-                    finalMimeType = 'image/jpeg';
-                    debugPrint('[MediaScanner] ✅ Converted HEIC to JPEG: $originalName -> $finalName');
-                  }
-                } catch (e) {
-                  debugPrint('[MediaScanner] ❌ HEIC conversion failed for ${asset.id}: $e');
-                  // Continue with original file if conversion fails
-                }
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
-              }
-
-              final size = finalFile.lengthSync();
-
-              // Compute hash (optional, for logging/debugging)
-              final hash = await _computeHash(asset, finalFile, size);
-
-              // Always enqueue as pending - backend will check duplicates
+              // Enqueue as pending
               await db.insertOrIgnore(SyncTask(
                 localId: asset.id,
-<<<<<<< HEAD
                 filePath: resolvedPath,
                 fileName: name,
                 fileSize: realSize,
                 mimeType: mimeType,
-=======
-                filePath: finalFile.path,
-                fileName: finalName,
-                fileSize: size,
-                mimeType: finalMimeType,
-                sha256: hash,
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
                 sessionId: sessionId,
                 status: SyncStatus.pending,
                 assetCreatedAt: assetCreatedMs,
@@ -256,43 +193,6 @@ class MediaScanner {
         return asset.mimeType ?? 'video/mp4';
       default:
         return 'application/octet-stream';
-    }
-  }
-
-  /// Check if file is HEIC/HEIF format
-  bool _isHeicFormat(String filePath) {
-    final ext = p.extension(filePath).toLowerCase();
-    return ext == '.heic' || ext == '.heif';
-  }
-
-  /// Convert HEIC/HEIF to JPEG
-  Future<File?> _convertHeicToJpeg(File heicFile, String assetId) async {
-    try {
-      final tempDir = await getTemporaryDirectory();
-      final targetPath = p.join(
-        tempDir.path,
-        'converted_$assetId.jpg',
-      );
-
-      debugPrint('[MediaScanner] Converting HEIC: ${heicFile.path} -> $targetPath');
-
-      final result = await FlutterImageCompress.compressAndGetFile(
-        heicFile.path,
-        targetPath,
-        quality: 90,
-        format: CompressFormat.jpeg,
-      );
-
-      if (result != null) {
-        debugPrint('[MediaScanner] HEIC conversion successful: ${result.path}');
-        return File(result.path);
-      } else {
-        debugPrint('[MediaScanner] HEIC conversion returned null');
-        return null;
-      }
-    } catch (e) {
-      debugPrint('[MediaScanner] HEIC conversion error: $e');
-      return null;
     }
   }
 }

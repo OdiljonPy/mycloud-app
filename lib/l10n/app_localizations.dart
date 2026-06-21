@@ -1132,7 +1132,12 @@ abstract class AppLocalizations {
   /// **'Stop'**
   String get syncStop;
 
-<<<<<<< HEAD
+  /// No description provided for @syncResumeButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume Sync'**
+  String get syncResumeButton;
+
   /// No description provided for @syncSelectedFiles.
   ///
   /// In en, this message translates to:
@@ -1168,7 +1173,7 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancelled'**
   String get cancelledLabel;
-=======
+
   /// No description provided for @fileTypes.
   ///
   /// In en, this message translates to:
@@ -1246,7 +1251,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Are you sure you want to delete your account? This action is irreversible.'**
   String get deleteAccountConfirmMessage;
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
 }
 
 class _AppLocalizationsDelegate

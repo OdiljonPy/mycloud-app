@@ -252,14 +252,13 @@
   "syncStatusDone": "Готово",
   "syncStatusFailed": "Ошибки",
   "syncStop": "Остановить",
-<<<<<<< HEAD
+  "syncResumeButton": "Продолжить синк",
   "syncSelectedFiles": "Выбранные файлы",
   "syncSelectedFilesSubtitle": "Синхронизировать только выбранные",
   "syncTotal": "Всего",
   "uploadedLabel": "Загружено",
   "uploadPageTitle": "Загрузка",
-  "cancelledLabel": "Отменено"
-=======
+  "cancelledLabel": "Отменено",
   "fileTypes": "Типы файлов",
   "viewAll": "Все",
   "recentFiles": "Файлы галереи",
@@ -287,5 +286,4 @@
   "deleteAccount": "Удалить аккаунт",
   "deleteAccountConfirm": "Удалить аккаунт",
   "deleteAccountConfirmMessage": "Вы уверены, что хотите удалить аккаунт? Это действие необратимо."
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
 }

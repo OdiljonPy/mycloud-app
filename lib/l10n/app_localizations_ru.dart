@@ -554,7 +554,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get syncStop => 'Остановить';
 
   @override
-<<<<<<< HEAD
+  String get syncResumeButton => 'Продолжить синк';
+
+  @override
   String get syncSelectedFiles => 'Выбранные файлы';
 
   @override
@@ -571,7 +573,8 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get cancelledLabel => 'Отменено';
-=======
+
+  @override
   String get fileTypes => 'Типы файлов';
 
   @override
@@ -614,5 +617,4 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get deleteAccountConfirmMessage =>
       'Вы уверены, что хотите удалить аккаунт? Это действие необратимо.';
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
 }
