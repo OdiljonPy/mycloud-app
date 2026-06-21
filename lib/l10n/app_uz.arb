@@ -262,6 +262,7 @@
   "syncStatusDone": "Tayyor",
   "syncStatusFailed": "Xatolar",
   "syncStop": "To'xtatish",
+  "syncResumeButton": "Sinxronizatsiyani davom ettirish",
   "fileTypes": "Fayl turlari",
   "viewAll": "Barchasi",
   "recentFiles": "Galereya fayllari",

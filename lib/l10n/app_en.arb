@@ -243,16 +243,14 @@
   "syncStatusUploading2": "Uploading",
   "syncStatusDone": "Done",
   "syncStatusFailed": "Errors",
-<<<<<<< Updated upstream
   "syncStop": "Stop",
-<<<<<<< HEAD
+  "syncResumeButton": "Resume Sync",
   "syncSelectedFiles": "Selected files",
   "syncSelectedFilesSubtitle": "Sync only selected",
   "syncTotal": "Total",
   "uploadedLabel": "Uploaded",
   "uploadPageTitle": "Upload",
-  "cancelledLabel": "Cancelled"
-=======
+  "cancelledLabel": "Cancelled",
   "fileTypes": "File types",
   "viewAll": "View all",
   "recentFiles": "Gallery files",
@@ -280,9 +278,4 @@
   "deleteAccount": "Delete account",
   "deleteAccountConfirm": "Delete account",
   "deleteAccountConfirmMessage": "Are you sure you want to delete your account? This action is irreversible."
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
-=======
-  "syncStatusScanning": "Scanning gallery...",
-  "syncStop": "Stop"
->>>>>>> Stashed changes
 }
