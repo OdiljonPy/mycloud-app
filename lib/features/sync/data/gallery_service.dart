@@ -229,7 +229,6 @@ class GalleryService {
           'size': task.fileSize,
           'type': task.mimeType,
           'uuid': id,
-          if (folderId != null) 'folder_id': folderId,
         };
       }).toList();
 
@@ -241,10 +240,7 @@ class GalleryService {
 
       final response = await _dio.post(
         '/content/files/check-duplicate/',
-        data: {
-          'files': filesPayload,
-          if (folderId != null) 'folder_id': folderId,
-        },
+        data: {'files': filesPayload},
       );
 
       // Response: [{"uuid": "uuid-string", "is_duplicate": true/false}]

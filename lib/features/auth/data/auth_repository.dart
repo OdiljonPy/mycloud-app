@@ -4,10 +4,18 @@ import 'package:dio/dio.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/errors/app_exception.dart';
-import '../../sync/auto_sync_service.dart';
 
 class AuthRepository {
   final Dio _dio = DioClient.instance;
+
+  /// Callback вызывается после успешного login/register.
+  /// Инициализирует sync для нового пользователя.
+  final Future<void> Function()? onLoginSync;
+
+  /// Callback вызывается при logout.
+  final Future<void> Function()? onLogoutSync;
+
+  AuthRepository({this.onLoginSync, this.onLogoutSync});
 
   String _extractError(dynamic data) {
     if (data == null) return 'Unknown error';
@@ -52,10 +60,10 @@ class AuthRepository {
         accessToken: accessToken?.toString() ?? '',
         refreshToken: refreshToken?.toString() ?? '',
       );
-      await AutoSyncService().onLogout();
+      await onLoginSync?.call();
 
       final me = await _dio.get('authentication/users/me/');
-      final meData = me.data is Map && (me.data as Map).containsKey('result')
+      final meData = me.data is Map && me.data.containsKey('result')
           ? me.data['result']
           : me.data;
       if (meData is Map) {
@@ -64,12 +72,6 @@ class AuthRepository {
         final fullName = meData['full_name']?.toString();
         if (fullName != null) await SecureStorage.saveFullName(fullName);
       }
-
-      AutoSyncService().initialize().then((_) async {
-        if (await AutoSyncService().isAutoSyncEnabled()) {
-          AutoSyncService().startAutoSync().catchError((_) {});
-        }
-      }).catchError((_) {});
     } on DioException catch (e) {
       throw AppException(
         message: _extractError(e.response?.data) != 'Unknown error'
@@ -110,7 +112,7 @@ class AuthRepository {
     }
   }
 
-  // VERIFY OTP (registration flow only — saves tokens and starts sync)
+  // VERIFY OTP
   Future<void> verifyOtp({required String otpKey, required int otpCode}) async {
     try {
       final response = await _dio.post(
@@ -131,10 +133,9 @@ class AuthRepository {
           accessToken: accessToken.toString(),
           refreshToken: refreshToken?.toString() ?? '',
         );
-        await AutoSyncService().onLogout();
-
+        await onLoginSync?.call();
         final me = await _dio.get('authentication/users/me/');
-        final meData = me.data is Map && (me.data as Map).containsKey('result')
+        final meData = me.data is Map && me.data.containsKey('result')
             ? me.data['result']
             : me.data;
         if (meData is Map) {
@@ -143,12 +144,6 @@ class AuthRepository {
           final fullName = meData['full_name']?.toString();
           if (fullName != null) await SecureStorage.saveFullName(fullName);
         }
-
-        AutoSyncService().initialize().then((_) async {
-          if (await AutoSyncService().isAutoSyncEnabled()) {
-            AutoSyncService().startAutoSync().catchError((_) {});
-          }
-        }).catchError((_) {});
       }
     } on DioException catch (e) {
       throw AppException(
@@ -182,7 +177,8 @@ class AuthRepository {
     }
   }
 
-  // FORGOT PASSWORD → sends OTP, returns otp_key
+  // FORGOT PASSWORD → sends OTP; /password/forgot/ returns no otp_key per Swagger,
+  // so we fall back to /password/resend/ which always returns OTPResponse{otp_key}.
   Future<String> forgotPassword({required String phoneNumber}) async {
     try {
       final response = await _dio.post(
@@ -193,12 +189,39 @@ class AuthRepository {
           ? response.data as Map<String, dynamic>
           : {};
       final result = data.containsKey('result') ? data['result'] : data;
-      return result['otp_key']?.toString() ?? '';
+      final key = result['otp_key']?.toString() ?? '';
+      if (key.isNotEmpty) return key;
+      return resendPasswordOtp(phoneNumber: phoneNumber);
     } on DioException catch (e) {
       throw AppException(
         message: _extractError(e.response?.data) != 'Unknown error'
             ? _extractError(e.response?.data)
             : 'User not found',
+        statusCode: e.response?.statusCode,
+      );
+    }
+  }
+
+  // VERIFY PASSWORD OTP → POST /password/verify/ → returns new otp_key for reset
+  Future<String> verifyPasswordOtp({
+    required String otpKey,
+    required int otpCode,
+  }) async {
+    try {
+      final response = await _dio.post(
+        'authentication/users/password/verify/',
+        data: {'otp_key': otpKey, 'otp_code': otpCode},
+      );
+      final data = response.data is Map
+          ? response.data as Map<String, dynamic>
+          : {};
+      final result = data.containsKey('result') ? data['result'] : data;
+      return result['otp_key']?.toString() ?? '';
+    } on DioException catch (e) {
+      throw AppException(
+        message: _extractError(e.response?.data) != 'Unknown error'
+            ? _extractError(e.response?.data)
+            : 'OTP verification failed',
         statusCode: e.response?.statusCode,
       );
     }
@@ -226,10 +249,7 @@ class AuthRepository {
     }
   }
 
-
-
-
-
+  // RESET PASSWORD
   Future<void> resetPassword({
     required String otpKey,
     required int otpCode,
@@ -255,29 +275,9 @@ class AuthRepository {
     }
   }
 
-  Future<String> verifyPasswordOtp({required String otpKey, required int otpCode}) async {
-    try {
-      final response = await _dio.post(
-        'authentication/users/password/verify/',
-        data: {'otp_key': otpKey, 'otp_code': otpCode},
-      );
-      final data = response.data is Map
-          ? response.data as Map<String, dynamic>
-          : {};
-      final result = data.containsKey('result') ? data['result'] : data;
-      return result['otp_key']?.toString() ?? '';
-    } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) != 'Unknown error'
-            ? _extractError(e.response?.data)
-            : 'OTP verification failed',
-        statusCode: e.response?.statusCode,
-      );
-    }
-  }
-
   // LOGOUT
   Future<void> logout() async {
     await SecureStorage.clearTokens();
+    await onLogoutSync?.call();
   }
 }

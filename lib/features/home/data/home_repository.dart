@@ -298,6 +298,21 @@ class HomeRepository {
     }
   }
 
+  Future<List<dynamic>> getAllFavouriteFiles() async {
+    try {
+      final response = await _dio.get('/content/favourite-file/all/');
+      if (response.data is List) return response.data as List;
+      return (response.data['results'] ?? []) as List;
+    } on DioException catch (e) {
+      throw AppException(
+        message: _extractError(e.response?.data) != 'Unknown error'
+            ? _extractError(e.response?.data)
+            : 'Не удалось загрузить все избранные файлы',
+        statusCode: e.response?.statusCode,
+      );
+    }
+  }
+
   Future<int> addToFavourites(String fileId) async {
     try {
       final response = await _dio.post(
@@ -376,6 +391,70 @@ class HomeRepository {
     } on DioException catch (e) {
       throw AppException(
         message: e.response?.data?['message'] ?? 'Не удалось открепить папку',
+        statusCode: e.response?.statusCode,
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> bulkDownload({
+    List<String> fileIds = const [],
+    List<String> folderIds = const [],
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/content/bulk-download/',
+        data: {
+          'file_ids': fileIds,
+          'folder_ids': folderIds,
+        },
+      );
+      return response.data is Map<String, dynamic> ? response.data as Map<String, dynamic> : {};
+    } on DioException catch (e) {
+      throw AppException(
+        message: _extractError(e.response?.data) != 'Unknown error'
+            ? _extractError(e.response?.data)
+            : 'Не удалось выполнить bulk download',
+        statusCode: e.response?.statusCode,
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> getSelectionInfo({
+    List<String> fileIds = const [],
+    List<String> folderIds = const [],
+    bool isAll = false,
+    String? parent,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/content/selection-info/',
+        data: {
+          'file_ids': fileIds,
+          'folder_ids': folderIds,
+          'is_all': isAll,
+          if (parent != null) 'parent': parent,
+        },
+      );
+      return response.data is Map<String, dynamic> ? response.data as Map<String, dynamic> : {};
+    } on DioException catch (e) {
+      throw AppException(
+        message: _extractError(e.response?.data) != 'Unknown error'
+            ? _extractError(e.response?.data)
+            : 'Не удалось получить информацию о выделении',
+        statusCode: e.response?.statusCode,
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> getFolderBreadcrumb(String id) async {
+    try {
+      final response = await _dio.get('/content/folder/$id/breadcrumb/');
+      return response.data is Map<String, dynamic> ? response.data as Map<String, dynamic> : {};
+    } on DioException catch (e) {
+      throw AppException(
+        message: _extractError(e.response?.data) != 'Unknown error'
+            ? _extractError(e.response?.data)
+            : 'Не удалось загрузить breadcrumb папки',
         statusCode: e.response?.statusCode,
       );
     }

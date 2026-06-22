@@ -124,7 +124,27 @@ class ProfileRepository {
 
   Future<void> disableAccount() async {
     try {
-      await _dio.post('/authentication/users/disable/', data: {'verified': true});
+      await _dio.patch('/authentication/users/disable/', data: {'verified': true});
+    } on DioException catch (e) {
+      throw AppException(
+        message: _extractError(e.response?.data),
+        statusCode: e.response?.statusCode,
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> sendContact({
+    required String email,
+    required String theme,
+    required String message,
+  }) async {
+    try {
+      final r = await _dio.post('/base/contact/', data: {
+        'email': email,
+        'theme': theme,
+        'message': message,
+      });
+      return r.data is Map<String, dynamic> ? r.data : {};
     } on DioException catch (e) {
       throw AppException(
         message: _extractError(e.response?.data),
