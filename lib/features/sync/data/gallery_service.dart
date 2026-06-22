@@ -83,7 +83,7 @@ class GalleryService {
     try {
       final response = await _dio.get('/content/gallery/');
       final data = response.data;
-      final List<dynamic> items = data is List ? data : (data['result'] ?? []);
+      final List<dynamic> items = data is List ? data : (data['results'] ?? data['result'] ?? []);
       final keys = <String>{};
       for (final item in items) {
         if (item is Map<String, dynamic>) {
@@ -108,7 +108,7 @@ class GalleryService {
     try {
       final response = await _dio.get('/content/gallery/');
       final data = response.data;
-      final List<dynamic> items = data is List ? data : (data['result'] ?? []);
+      final List<dynamic> items = data is List ? data : (data['results'] ?? data['result'] ?? []);
       return items
           .whereType<Map<String, dynamic>>()
           .map((e) => GalleryFile.fromJson(e))
@@ -182,7 +182,7 @@ class GalleryService {
         queryParameters: {'size': size},
       );
       final data = response.data;
-      final List<dynamic> items = data is List ? data : (data['result'] ?? []);
+      final List<dynamic> items = data is List ? data : (data['results'] ?? data['result'] ?? []);
       return items
           .whereType<Map<String, dynamic>>()
           .map((e) => GalleryFile.fromJson(e))
