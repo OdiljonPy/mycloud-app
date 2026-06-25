@@ -64,12 +64,12 @@ import 'app_localizations_uz.dart';
 /// property.
 abstract class AppLocalizations {
   AppLocalizations(String locale)
-      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
-  static AppLocalizations? of(BuildContext context) {
-    return Localizations.of<AppLocalizations>(context, AppLocalizations);
+  static AppLocalizations of(BuildContext context) {
+    return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
   }
 
   static const LocalizationsDelegate<AppLocalizations> delegate =
@@ -87,17 +87,17 @@ abstract class AppLocalizations {
   /// of delegates is preferred or required.
   static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
       <LocalizationsDelegate<dynamic>>[
-    delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-  ];
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
     Locale('ru'),
-    Locale('uz')
+    Locale('uz'),
   ];
 
   /// No description provided for @appName.
@@ -327,6 +327,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove from favourites'**
   String get removeFromFavourites;
+
+  /// No description provided for @removedFromFavourites.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from favourites'**
+  String get removedFromFavourites;
 
   /// No description provided for @deleteConfirm.
   ///
@@ -1251,6 +1257,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Are you sure you want to delete your account? This action is irreversible.'**
   String get deleteAccountConfirmMessage;
+
+  /// No description provided for @otpVerifyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify OTP Code'**
+  String get otpVerifyTitle;
+
+  /// No description provided for @otpIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the complete 6-digit code'**
+  String get otpIncomplete;
+
+  /// No description provided for @otpResent.
+  ///
+  /// In en, this message translates to:
+  /// **'OTP code resent'**
+  String get otpResent;
+
+  /// No description provided for @verify.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify'**
+  String get verify;
+
+  /// No description provided for @resendCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend Code'**
+  String get resendCode;
+
+  /// No description provided for @otpSentTo.
+  ///
+  /// In en, this message translates to:
+  /// **'We sent a 6-digit code to {phone}'**
+  String otpSentTo(String phone);
+
+  /// No description provided for @setNewPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set New Password'**
+  String get setNewPasswordTitle;
+
+  /// No description provided for @setNewPasswordSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a strong password with at least 8 characters.'**
+  String get setNewPasswordSubtitle;
+
+  /// No description provided for @newPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter new password'**
+  String get newPasswordHint;
+
+  /// No description provided for @confirmPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm new password'**
+  String get confirmPasswordHint;
+
+  /// No description provided for @passwordResetSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Password reset successfully!'**
+  String get passwordResetSuccess;
+
+  /// No description provided for @resetPasswordButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Password'**
+  String get resetPasswordButton;
 }
 
 class _AppLocalizationsDelegate
@@ -1282,8 +1360,9 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   }
 
   throw FlutterError(
-      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-      'an issue with the localizations generation tool. Please file an issue '
-      'on GitHub with a reproducible sample app and the gen-l10n configuration '
-      'that was used.');
+    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.',
+  );
 }

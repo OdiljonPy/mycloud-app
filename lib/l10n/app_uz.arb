@@ -38,6 +38,7 @@
   "open": "Ochish",
   "addToFavourites": "Sevimlilarga qo'shish",
   "removeFromFavourites": "Sevimlilardan olib tashlash",
+  "removedFromFavourites": "Sevimlilardan olib tashlandi",
   "deleteConfirm": "O'chirilsinmi?",
   "deleteConfirmMessage": "\"{name}\" ni o'chirishni xohlaysizmi?\nBu amalni qaytarib bo'lmaydi.",
   "@deleteConfirmMessage": {
@@ -289,5 +290,17 @@
   },
   "deleteAccount": "Hisobni o'chirish",
   "deleteAccountConfirm": "Hisobni o'chirish",
-  "deleteAccountConfirmMessage": "Hisobingizni o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi."
+  "deleteAccountConfirmMessage": "Hisobingizni o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi.",
+  "otpVerifyTitle": "Kodni tasdiqlash",
+  "otpIncomplete": "To'liq 6 xonali kodni kiriting",
+  "otpResent": "Kod qayta yuborildi",
+  "verify": "Tasdiqlash",
+  "resendCode": "Qayta yuborish",
+  "otpSentTo": "{phone} ga 6 xonali kod yubordik",
+  "setNewPasswordTitle": "Yangi parol o'rnatish",
+  "setNewPasswordSubtitle": "Kamida 8 ta belgidan iborat kuchli parol yarating.",
+  "newPasswordHint": "Yangi parolni kiriting",
+  "confirmPasswordHint": "Yangi parolni takrorlang",
+  "passwordResetSuccess": "Parol muvaffaqiyatli tiklandi!",
+  "resetPasswordButton": "Parolni tiklash"
 }

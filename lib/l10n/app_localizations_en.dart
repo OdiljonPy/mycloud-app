@@ -123,6 +123,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get removeFromFavourites => 'Remove from favourites';
 
   @override
+  String get removedFromFavourites => 'Removed from favourites';
+
+  @override
   String get deleteConfirm => 'Delete?';
 
   @override
@@ -615,4 +618,43 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get deleteAccountConfirmMessage =>
       'Are you sure you want to delete your account? This action is irreversible.';
+
+  @override
+  String get otpVerifyTitle => 'Verify OTP Code';
+
+  @override
+  String get otpIncomplete => 'Enter the complete 6-digit code';
+
+  @override
+  String get otpResent => 'OTP code resent';
+
+  @override
+  String get verify => 'Verify';
+
+  @override
+  String get resendCode => 'Resend Code';
+
+  @override
+  String otpSentTo(String phone) {
+    return 'We sent a 6-digit code to $phone';
+  }
+
+  @override
+  String get setNewPasswordTitle => 'Set New Password';
+
+  @override
+  String get setNewPasswordSubtitle =>
+      'Create a strong password with at least 8 characters.';
+
+  @override
+  String get newPasswordHint => 'Enter new password';
+
+  @override
+  String get confirmPasswordHint => 'Confirm new password';
+
+  @override
+  String get passwordResetSuccess => 'Password reset successfully!';
+
+  @override
+  String get resetPasswordButton => 'Reset Password';
 }

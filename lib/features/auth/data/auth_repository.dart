@@ -56,8 +56,12 @@ class AuthRepository {
           data['refresh_token'] ??
           data['result']?['refresh_token'];
 
+      final accessStr = accessToken?.toString() ?? '';
+      if (accessStr.isEmpty) {
+        throw AppException(message: 'Login failed: no access token in response');
+      }
       await SecureStorage.saveTokens(
-        accessToken: accessToken?.toString() ?? '',
+        accessToken: accessStr,
         refreshToken: refreshToken?.toString() ?? '',
       );
       await onLoginSync?.call();
@@ -252,7 +256,6 @@ class AuthRepository {
   // RESET PASSWORD
   Future<void> resetPassword({
     required String otpKey,
-    required int otpCode,
     required String password,
     required String confirmPassword,
   }) async {

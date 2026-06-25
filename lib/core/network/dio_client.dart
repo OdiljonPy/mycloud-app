@@ -109,8 +109,14 @@ class _AuthInterceptor extends Interceptor {
 
         final retryResponse = await dio.fetch(err.requestOptions);
         handler.resolve(retryResponse);
-      } catch (_) {
-        await SecureStorage.clearTokens();
+      } catch (refreshErr) {
+        // Only clear tokens if the refresh endpoint itself rejected them (401/403).
+        // Network errors or server errors should NOT wipe valid tokens.
+        if (refreshErr is DioException &&
+            (refreshErr.response?.statusCode == 401 ||
+                refreshErr.response?.statusCode == 403)) {
+          await SecureStorage.clearTokens();
+        }
         handler.next(err);
       } finally {
         _isRefreshing = false;

@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import '../data/auth_repository.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../l10n/app_localizations.dart';
 import 'login_page.dart';
 
 class ResetPasswordPage extends StatefulWidget {
   final String otpKey;
-  final int otpCode;
 
   const ResetPasswordPage({
     super.key,
     required this.otpKey,
-    required this.otpCode,
   });
 
   @override
@@ -71,11 +70,10 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     try {
       await _authRepo.resetPassword(
         otpKey: widget.otpKey,
-        otpCode: widget.otpCode,
         password: _passwordController.text,
         confirmPassword: _confirmPasswordController.text,
       );
-      setState(() => _success = 'Password reset successfully!');
+      setState(() => _success = AppLocalizations.of(context).passwordResetSuccess);
       await Future.delayed(const Duration(seconds: 1));
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
@@ -101,6 +99,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // iOS HIG ranglar
@@ -144,7 +143,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               const SizedBox(height: 24),
 
               Text(
-                'Set New Password',
+                t.setNewPasswordTitle,
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -153,7 +152,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Create a strong password with at least 8 characters.',
+                t.setNewPasswordSubtitle,
                 style: TextStyle(fontSize: 14, color: subtitleColor),
               ),
 
@@ -161,7 +160,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
               // Password
               Text(
-                'New Password',
+                t.newPassword,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -176,7 +175,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                 style: TextStyle(fontSize: 15, color: textColor),
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
-                  hintText: 'Enter new password',
+                  hintText: t.newPasswordHint,
                   hintStyle: TextStyle(color: hintColor),
                   filled: true,
                   fillColor: inputFillColor,
@@ -220,7 +219,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               if (_passwordTouched && !_isPasswordValid) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'Минимум 8 символов',
+                  t.passwordTooShort,
                   style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],
@@ -229,7 +228,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
               // Confirm Password
               Text(
-                'Confirm Password',
+                t.confirmPassword,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -245,7 +244,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                 onChanged: (_) => setState(() {}),
                 onSubmitted: (_) => _resetPassword(),
                 decoration: InputDecoration(
-                  hintText: 'Confirm new password',
+                  hintText: t.confirmPasswordHint,
                   hintStyle: TextStyle(color: hintColor),
                   filled: true,
                   fillColor: inputFillColor,
@@ -290,7 +289,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               if (_confirmTouched && !_isConfirmValid) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'Пароли не совпадают',
+                  t.passwordsDoNotMatch,
                   style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],
@@ -374,9 +373,9 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
-                          'Reset Password',
-                          style: TextStyle(
+                      : Text(
+                          t.resetPasswordButton,
+                          style: const TextStyle(
                             fontSize: 16,
                             color: Colors.white,
                             fontWeight: FontWeight.w600,

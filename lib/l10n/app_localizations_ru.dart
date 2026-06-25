@@ -123,6 +123,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get removeFromFavourites => 'Убрать из избранного';
 
   @override
+  String get removedFromFavourites => 'Убрано из избранного';
+
+  @override
   String get deleteConfirm => 'Удалить?';
 
   @override
@@ -617,4 +620,43 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get deleteAccountConfirmMessage =>
       'Вы уверены, что хотите удалить аккаунт? Это действие необратимо.';
+
+  @override
+  String get otpVerifyTitle => 'Подтверждение кода';
+
+  @override
+  String get otpIncomplete => 'Введите полный 6-значный код';
+
+  @override
+  String get otpResent => 'Код отправлен повторно';
+
+  @override
+  String get verify => 'Подтвердить';
+
+  @override
+  String get resendCode => 'Отправить повторно';
+
+  @override
+  String otpSentTo(String phone) {
+    return 'Мы отправили 6-значный код на $phone';
+  }
+
+  @override
+  String get setNewPasswordTitle => 'Установить новый пароль';
+
+  @override
+  String get setNewPasswordSubtitle =>
+      'Создайте надёжный пароль минимум из 8 символов.';
+
+  @override
+  String get newPasswordHint => 'Введите новый пароль';
+
+  @override
+  String get confirmPasswordHint => 'Повторите новый пароль';
+
+  @override
+  String get passwordResetSuccess => 'Пароль успешно сброшен!';
+
+  @override
+  String get resetPasswordButton => 'Сбросить пароль';
 }

@@ -219,9 +219,11 @@ class HomeRepository {
   Future<void> deleteItems({
     required List<String> files,
     required List<String> folders,
+    bool isAll = false,
+    String? parent,
   }) async {
-    // Guard: filter out sync folder from bulk deletion (3 layers)
-    if (folders.isNotEmpty) {
+    // Guard: filter out sync folder from bulk deletion (only when not is_all)
+    if (!isAll && folders.isNotEmpty) {
       final syncIds = _cachedRootFolders
           .where((f) => f.isSync || f.name == '📱 Sync' || f.name == 'Sync')
           .map((f) => f.id)
@@ -235,7 +237,12 @@ class HomeRepository {
     try {
       await _dio.delete(
         '/content/folder-file/delete/',
-        data: {'files': files, 'folders': folders},
+        data: {
+          'files': files,
+          'folders': folders,
+          if (isAll) 'is_all': true,
+          if (parent != null) 'parent': parent,
+        },
       );
     } on DioException catch (e) {
       throw AppException(
@@ -251,6 +258,8 @@ class HomeRepository {
     required String? targetFolderId,
     required List<String> files,
     required List<String> folders,
+    bool isAll = false,
+    String? parent,
   }) async {
     try {
       await _dio.patch(
@@ -259,6 +268,8 @@ class HomeRepository {
           'target_folder': targetFolderId,
           'files': files,
           'folders': folders,
+          if (isAll) 'is_all': true,
+          if (parent != null) 'parent': parent,
         },
       );
     } on DioException catch (e) {

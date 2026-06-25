@@ -14,7 +14,7 @@ if (keyPropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.example.cloud_app"
+    namespace = "com.bulutcha.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -28,7 +28,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.cloud_app"
+        applicationId = "com.bulutcha.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

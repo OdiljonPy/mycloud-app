@@ -38,6 +38,7 @@
   "open": "Open",
   "addToFavourites": "Add to favourites",
   "removeFromFavourites": "Remove from favourites",
+  "removedFromFavourites": "Removed from favourites",
   "deleteConfirm": "Delete?",
   "deleteConfirmMessage": "Are you sure you want to delete \"{name}\"?\nThis action is irreversible.",
   "@deleteConfirmMessage": {
@@ -277,5 +278,24 @@
   },
   "deleteAccount": "Delete account",
   "deleteAccountConfirm": "Delete account",
-  "deleteAccountConfirmMessage": "Are you sure you want to delete your account? This action is irreversible."
+  "deleteAccountConfirmMessage": "Are you sure you want to delete your account? This action is irreversible.",
+  "otpVerifyTitle": "Verify OTP Code",
+  "otpIncomplete": "Enter the complete 6-digit code",
+  "otpResent": "OTP code resent",
+  "verify": "Verify",
+  "resendCode": "Resend Code",
+  "otpSentTo": "We sent a 6-digit code to {phone}",
+  "@otpSentTo": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
+  "setNewPasswordTitle": "Set New Password",
+  "setNewPasswordSubtitle": "Create a strong password with at least 8 characters.",
+  "newPasswordHint": "Enter new password",
+  "confirmPasswordHint": "Confirm new password",
+  "passwordResetSuccess": "Password reset successfully!",
+  "resetPasswordButton": "Reset Password"
 }

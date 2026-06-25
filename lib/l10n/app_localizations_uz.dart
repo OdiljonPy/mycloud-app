@@ -123,6 +123,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get removeFromFavourites => 'Sevimlilardan olib tashlash';
 
   @override
+  String get removedFromFavourites => 'Sevimlilardan olib tashlandi';
+
+  @override
   String get deleteConfirm => 'O\'chirilsinmi?';
 
   @override
@@ -618,4 +621,43 @@ class AppLocalizationsUz extends AppLocalizations {
   @override
   String get deleteAccountConfirmMessage =>
       'Hisobingizni o\'chirishni xohlaysizmi? Bu amalni qaytarib bo\'lmaydi.';
+
+  @override
+  String get otpVerifyTitle => 'Kodni tasdiqlash';
+
+  @override
+  String get otpIncomplete => 'To\'liq 6 xonali kodni kiriting';
+
+  @override
+  String get otpResent => 'Kod qayta yuborildi';
+
+  @override
+  String get verify => 'Tasdiqlash';
+
+  @override
+  String get resendCode => 'Qayta yuborish';
+
+  @override
+  String otpSentTo(String phone) {
+    return '$phone ga 6 xonali kod yubordik';
+  }
+
+  @override
+  String get setNewPasswordTitle => 'Yangi parol o\'rnatish';
+
+  @override
+  String get setNewPasswordSubtitle =>
+      'Kamida 8 ta belgidan iborat kuchli parol yarating.';
+
+  @override
+  String get newPasswordHint => 'Yangi parolni kiriting';
+
+  @override
+  String get confirmPasswordHint => 'Yangi parolni takrorlang';
+
+  @override
+  String get passwordResetSuccess => 'Parol muvaffaqiyatli tiklandi!';
+
+  @override
+  String get resetPasswordButton => 'Parolni tiklash';
 }

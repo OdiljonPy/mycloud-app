@@ -38,6 +38,7 @@
   "open": "Открыть",
   "addToFavourites": "В избранное",
   "removeFromFavourites": "Убрать из избранного",
+  "removedFromFavourites": "Убрано из избранного",
   "deleteConfirm": "Удалить?",
   "deleteConfirmMessage": "Вы уверены, что хотите удалить «{name}»?\nЭто действие необратимо.",
   "@deleteConfirmMessage": {
@@ -285,5 +286,17 @@
   },
   "deleteAccount": "Удалить аккаунт",
   "deleteAccountConfirm": "Удалить аккаунт",
-  "deleteAccountConfirmMessage": "Вы уверены, что хотите удалить аккаунт? Это действие необратимо."
+  "deleteAccountConfirmMessage": "Вы уверены, что хотите удалить аккаунт? Это действие необратимо.",
+  "otpVerifyTitle": "Подтверждение кода",
+  "otpIncomplete": "Введите полный 6-значный код",
+  "otpResent": "Код отправлен повторно",
+  "verify": "Подтвердить",
+  "resendCode": "Отправить повторно",
+  "otpSentTo": "Мы отправили 6-значный код на {phone}",
+  "setNewPasswordTitle": "Установить новый пароль",
+  "setNewPasswordSubtitle": "Создайте надёжный пароль минимум из 8 символов.",
+  "newPasswordHint": "Введите новый пароль",
+  "confirmPasswordHint": "Повторите новый пароль",
+  "passwordResetSuccess": "Пароль успешно сброшен!",
+  "resetPasswordButton": "Сбросить пароль"
 }

@@ -63,8 +63,10 @@ class FilesPageState extends State<FilesPage> {
   bool _isLoadingMore = false;
   final ScrollController _scrollController = ScrollController();
 
+  bool _isAllSelected = false;
+  bool _isFavouriteActionBusy = false;
   bool get _isSelectionMode =>
-      _selectedFiles.isNotEmpty || _selectedFolders.isNotEmpty;
+      _selectedFiles.isNotEmpty || _selectedFolders.isNotEmpty || _isAllSelected;
   final Set<String> _selectedFiles = {};
   final Set<String> _selectedFolders = {};
 
@@ -378,6 +380,66 @@ class FilesPageState extends State<FilesPage> {
       _showFavourites = true;
       _activeFilter = _FilterType.all;
     });
+  }
+
+  Future<void> _runFavouriteAction() async {
+    if (_isFavouriteActionBusy) return;
+    setState(() => _isFavouriteActionBusy = true);
+
+    try {
+      List<FileModel> filesToProcess;
+      bool isRemoving;
+
+      if (_showFavourites) {
+        filesToProcess = FavouritesProvider.instance.favouriteFiles
+            .where((f) => _selectedFiles.contains(f.id))
+            .toList();
+        isRemoving = true;
+      } else {
+        final selected = _isAllSelected
+            ? _files.toList()
+            : _files
+                .where((f) => _selectedFiles.contains(f.id))
+                .toList();
+
+        final allAlreadyFav = selected.isNotEmpty &&
+            selected
+                .every((f) => FavouritesProvider.instance.isFavourite(f.id));
+
+        if (allAlreadyFav) {
+          filesToProcess = selected;
+          isRemoving = true;
+        } else {
+          filesToProcess = selected
+              .where((f) => !FavouritesProvider.instance.isFavourite(f.id))
+              .toList();
+          isRemoving = false;
+        }
+      }
+
+      setState(() {
+        _selectedFiles.clear();
+        _selectedFolders.clear();
+        _isAllSelected = false;
+      });
+
+      await FavouritesProvider.instance.bulkToggleFavourites(
+        filesToProcess,
+        remove: isRemoving,
+      );
+
+      if (mounted) {
+        final t = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                isRemoving ? t.removedFromFavourites : t.addedToFavourites),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isFavouriteActionBusy = false);
+    }
   }
 
   void _openUploadPage() {
@@ -1021,7 +1083,7 @@ class FilesPageState extends State<FilesPage> {
                       : t.addToFavourites,
                   onTap: () {
                     Navigator.pop(ctx);
-                    FavouritesProvider.instance.toggleFavourite(file);
+                    FavouritesProvider.instance.toggleFavourite(file).ignore();
                   },
                 ),
                 _buildBottomSheetItem(
@@ -1278,6 +1340,16 @@ class FilesPageState extends State<FilesPage> {
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             body: Stack(
               children: [
+                if (FavouritesProvider.instance.isBulkLoading)
+                  const Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: LinearProgressIndicator(
+                      minHeight: 2,
+                      color: Colors.amber,
+                    ),
+                  ),
                 RefreshIndicator(
                   onRefresh: _loadContent,
                   child: CustomScrollView(
@@ -1379,10 +1451,16 @@ class FilesPageState extends State<FilesPage> {
 
   Widget _buildBottomActionBar() {
     final t = AppLocalizations.of(context)!;
-    final allSelected = _selectedFiles.length == _files.length &&
-        _selectedFolders.length == _folders.length &&
-        (_files.isNotEmpty || _folders.isNotEmpty);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // В режиме избранных не используем _isAllSelected — вместо этого явно
+    // добавляем id в _selectedFiles, чтобы счётчик показывал верное число.
+    final allFavIds = _showFavourites
+        ? FavouritesProvider.instance.favouriteFiles.map((f) => f.id).toSet()
+        : const <String>{};
+    final bool allSelected = _showFavourites
+        ? (allFavIds.isNotEmpty && _selectedFiles.containsAll(allFavIds))
+        : _isAllSelected;
     final textColor = isDark ? Colors.white : Colors.black87;
 
     return AnimatedPositioned(
@@ -1431,6 +1509,7 @@ class FilesPageState extends State<FilesPage> {
                         constraints: const BoxConstraints(),
                         onPressed: () {
                           setState(() {
+                            _isAllSelected = false;
                             _selectedFiles.clear();
                             _selectedFolders.clear();
                           });
@@ -1438,8 +1517,9 @@ class FilesPageState extends State<FilesPage> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        t.selectedCount(_selectedFiles.length +
-                            _selectedFolders.length),
+                        t.selectedCount(_isAllSelected
+                            ? _totalFilesCount
+                            : _selectedFiles.length + _selectedFolders.length),
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
@@ -1450,16 +1530,26 @@ class FilesPageState extends State<FilesPage> {
                       TextButton(
                         onPressed: () {
                           setState(() {
-                            if (allSelected) {
-                              _selectedFiles.clear();
+                            if (_showFavourites) {
+                              // В режиме избранных: явно выбираем/снимаем все id
+                              if (allSelected) {
+                                _selectedFiles.clear();
+                              } else {
+                                _selectedFiles
+                                  ..clear()
+                                  ..addAll(allFavIds);
+                              }
                               _selectedFolders.clear();
                             } else {
-                              _selectedFiles
-                                  .addAll(_files.map((f) => f.id));
-                              _selectedFolders
-                                  .addAll(_folders
-                                      .where((f) => !f.isSync)
-                                      .map((f) => f.id));
+                              if (allSelected) {
+                                _isAllSelected = false;
+                                _selectedFiles.clear();
+                                _selectedFolders.clear();
+                              } else {
+                                _isAllSelected = true;
+                                _selectedFiles.clear();
+                                _selectedFolders.clear();
+                              }
                             }
                           });
                         },
@@ -1493,37 +1583,41 @@ class FilesPageState extends State<FilesPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildActionItem(
-                      icon: Icons.star_rounded,
-                      label: t.favourite,
-                      iconColor: textColor,
-                      textColor: textColor,
-                      onTap: () {
-                        for (var f in _files.where(
-                                (e) => _selectedFiles.contains(e.id))) {
-                          FavouritesProvider.instance.toggleFavourite(f);
-                        }
-                        setState(() {
-                          _selectedFiles.clear();
-                          _selectedFolders.clear();
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(t.addedToFavourites)),
-                        );
-                      },
-                    ),
+                    Builder(builder: (ctx) {
+                      final selected = _isAllSelected
+                          ? _files
+                          : _files
+                              .where((f) => _selectedFiles.contains(f.id))
+                              .toList();
+                      final allFav = selected.isNotEmpty &&
+                          selected.every((f) =>
+                              FavouritesProvider.instance.isFavourite(f.id));
+                      return _buildActionItem(
+                        icon: allFav
+                            ? Icons.star_rounded
+                            : Icons.star_border_rounded,
+                        label: t.favourite,
+                        iconColor: allFav ? Colors.amber : textColor,
+                        textColor: textColor,
+                        onTap: () => _runFavouriteAction(),
+                      );
+                    }),
                     _buildActionItem(
                       icon: Icons.download_rounded,
                       label: t.download,
                       iconColor: textColor,
                       textColor: textColor,
                       onTap: () {
-                        for (var id in _selectedFiles) {
-                          final f =
-                          _files.firstWhere((e) => e.id == id);
+                        final toDownload = _isAllSelected
+                            ? _files
+                            : _files
+                                .where((f) => _selectedFiles.contains(f.id))
+                                .toList();
+                        for (final f in toDownload) {
                           _startDownload(f);
                         }
                         setState(() {
+                          _isAllSelected = false;
                           _selectedFiles.clear();
                           _selectedFolders.clear();
                         });
@@ -1535,11 +1629,23 @@ class FilesPageState extends State<FilesPage> {
                       iconColor: Colors.green,
                       textColor: textColor,
                       onTap: () {
-                        final fileIds = _selectedFiles.toList();
-                        final folderIds = _selectedFolders
-                            .where((id) => !_folders.any((f) => f.id == id && f.isSync))
-                            .toList();
+                        // POST /content/shared-by-me/ takes explicit file_ids[]
+                        // and folder_ids[] — no is_all support in Swagger.
+                        // When _isAllSelected, use all loaded files/folders.
+                        final fileIds = _isAllSelected
+                            ? _files.map((f) => f.id).toList()
+                            : _selectedFiles.toList();
+                        final folderIds = _isAllSelected
+                            ? _folders
+                                .where((f) => !f.isSync)
+                                .map((f) => f.id)
+                                .toList()
+                            : _selectedFolders
+                                .where((id) => !_folders
+                                    .any((f) => f.id == id && f.isSync))
+                                .toList();
                         setState(() {
+                          _isAllSelected = false;
                           _selectedFiles.clear();
                           _selectedFolders.clear();
                         });
@@ -1557,16 +1663,19 @@ class FilesPageState extends State<FilesPage> {
                           context,
                           MaterialPageRoute(
                             builder: (context) => MoveDestinationScreen(
-                              selectedFiles: _selectedFiles.toList(),
-                              selectedFolders: _selectedFolders
+                              selectedFiles: _isAllSelected ? [] : _selectedFiles.toList(),
+                              selectedFolders: _isAllSelected ? [] : _selectedFolders
                                   .where((id) => !_folders.any((f) => f.id == id && f.isSync))
                                   .toList(),
                               currentFolderId: _currentFolderId,
+                              isAll: _isAllSelected,
+                              sourceFolderId: _isAllSelected ? _currentFolderId : null,
                             ),
                           ),
                         );
                         if (result == true) {
                           setState(() {
+                            _isAllSelected = false;
                             _selectedFiles.clear();
                             _selectedFolders.clear();
                           });
@@ -1594,12 +1703,15 @@ class FilesPageState extends State<FilesPage> {
                             setState(() => _isLoading = true);
                             try {
                               await HomeRepository().deleteItems(
-                                files: _selectedFiles.toList(),
-                                folders: _selectedFolders
+                                files: _isAllSelected ? [] : _selectedFiles.toList(),
+                                folders: _isAllSelected ? [] : _selectedFolders
                                     .where((id) => !_folders.any((f) => f.id == id && f.isSync))
                                     .toList(),
+                                isAll: _isAllSelected,
+                                parent: _isAllSelected ? _currentFolderId : null,
                               );
                               setState(() {
+                                _isAllSelected = false;
                                 _selectedFiles.clear();
                                 _selectedFolders.clear();
                               });
@@ -2045,7 +2157,7 @@ class FilesPageState extends State<FilesPage> {
                     onSelectTap: () => _toggleFileSelection(f.id),
                     onMenuTap: () => _showFileMenu(f),
                     onFavouriteTap: () =>
-                        FavouritesProvider.instance.toggleFavourite(f),
+                        FavouritesProvider.instance.toggleFavourite(f).ignore(),
                   ),
                 );
               },
@@ -2218,7 +2330,7 @@ class FilesPageState extends State<FilesPage> {
               onSelectTap: () => _toggleFileSelection(f.id),
               onMenuTap: () => _showFileMenu(f),
               onFavouriteTap: () =>
-                  FavouritesProvider.instance.toggleFavourite(f),
+                  FavouritesProvider.instance.toggleFavourite(f).ignore(),
             ),
           );
         },
@@ -2274,7 +2386,7 @@ class FilesPageState extends State<FilesPage> {
               downloadProgress: _downloadProgress[f.id],
               downloadReceivedBytes: _downloadReceivedBytes[f.id],
               onFavouriteTap: () =>
-                  FavouritesProvider.instance.toggleFavourite(f),
+                  FavouritesProvider.instance.toggleFavourite(f).ignore(),
             ),
           );
         },

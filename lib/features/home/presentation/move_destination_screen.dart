@@ -7,12 +7,16 @@ class MoveDestinationScreen extends StatefulWidget {
   final List<String> selectedFiles;
   final List<String> selectedFolders;
   final String? currentFolderId;
+  final bool isAll;
+  final String? sourceFolderId;
 
   const MoveDestinationScreen({
     super.key,
     required this.selectedFiles,
     required this.selectedFolders,
     this.currentFolderId,
+    this.isAll = false,
+    this.sourceFolderId,
   });
 
   @override
@@ -107,6 +111,8 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
         targetFolderId: _currentFolderId,
         files: widget.selectedFiles,
         folders: widget.selectedFolders,
+        isAll: widget.isAll,
+        parent: widget.sourceFolderId,
       );
 
       if (!mounted) return;
