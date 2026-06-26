@@ -50,3 +50,4 @@ android/key.properties
 # FVM Version Cache
 .fvm/
 >>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
+logs.md

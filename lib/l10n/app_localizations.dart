@@ -63,8 +63,7 @@ import 'app_localizations_uz.dart';
 /// be consistent with the languages listed in the AppLocalizations.supportedLocales
 /// property.
 abstract class AppLocalizations {
-  AppLocalizations(String locale)
-      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+  AppLocalizations(String locale) : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -72,8 +71,7 @@ abstract class AppLocalizations {
     return Localizations.of<AppLocalizations>(context, AppLocalizations);
   }
 
-  static const LocalizationsDelegate<AppLocalizations> delegate =
-      _AppLocalizationsDelegate();
+  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
 
   /// A list of this localizations delegate along with the default localizations
   /// delegates.
@@ -85,8 +83,7 @@ abstract class AppLocalizations {
   /// Additional delegates can be added by appending to this list in
   /// MaterialApp. This list does not have to be used at all if a custom list
   /// of delegates is preferred or required.
-  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
-      <LocalizationsDelegate<dynamic>>[
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates = <LocalizationsDelegate<dynamic>>[
     delegate,
     GlobalMaterialLocalizations.delegate,
     GlobalCupertinoLocalizations.delegate,
@@ -1251,10 +1248,53 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Are you sure you want to delete your account? This action is irreversible.'**
   String get deleteAccountConfirmMessage;
+
+  // ── Payment ──────────────────────────────────────────────────────────────
+
+  String get paymentAndSubscription;
+  String get cardDeleted;
+  String get cardSetAsDefault;
+  String get myCards;
+  String get addCard;
+  String get noCardsLinked;
+  String get noSubscription;
+  String get currentPlan;
+  String get changePlan;
+  String get choosePlan;
+  String storageUsed(String used);
+  String subscriptionUntil(String date);
+  String get cardStatusActive;
+  String get cardStatusPending;
+  String get cardStatusBlocked;
+  String get cardDefaultLabel;
+  String get setAsDefault;
+  String get deleteCardTitle;
+  String deleteCardMessage(String number);
+  String get cardNumberLabel;
+  String get enterCardNumber;
+  String get cardNumber16Digits;
+  String get expiryDate;
+  String get enterExpiryDate;
+  String get expiryDateFormat;
+  String get invalidMonth;
+  String get validThruLabel;
+  String get verifyCardTitle;
+  String get enterSmsCode;
+  String smsCodeSentFor(String number);
+  String get cardAddedSuccess;
+  String get confirmButton;
+  String get plansTitle;
+  String get noPlans;
+  String get confirmPurchaseTitle;
+  String confirmPurchaseMessage(String name, String price, String period);
+  String get updatePlan;
+  String get freeLabel;
+  String storageFeature(String storage);
+  String get dataPreservedNote;
+  String get unknownError;
 }
 
-class _AppLocalizationsDelegate
-    extends LocalizationsDelegate<AppLocalizations> {
+class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
   const _AppLocalizationsDelegate();
 
   @override
@@ -1263,27 +1303,26 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool isSupported(Locale locale) =>
-      <String>['en', 'ru', 'uz'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => <String>['en', 'ru', 'uz'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
+
+
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
-    case 'en':
-      return AppLocalizationsEn();
-    case 'ru':
-      return AppLocalizationsRu();
-    case 'uz':
-      return AppLocalizationsUz();
+    case 'en': return AppLocalizationsEn();
+    case 'ru': return AppLocalizationsRu();
+    case 'uz': return AppLocalizationsUz();
   }
 
   throw FlutterError(
-      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-      'an issue with the localizations generation tool. Please file an issue '
-      'on GitHub with a reproducible sample app and the gen-l10n configuration '
-      'that was used.');
+    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.'
+  );
 }

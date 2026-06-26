@@ -280,8 +280,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get reviewAccessRequest => 'Рассмотреть запрос доступа';
 
   @override
-  String get reviewAccessRequestSubtitle =>
-      'Выберите, следует ли предоставить доступ этому пользователю.';
+  String get reviewAccessRequestSubtitle => 'Выберите, следует ли предоставить доступ этому пользователю.';
 
   @override
   String get reject => 'Отклонить';
@@ -299,8 +298,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get noShareRequests => 'Нет запросов на доступ';
 
   @override
-  String get noShareRequestsSubtitle =>
-      'Поделитесь файлами по ссылке и они появятся здесь';
+  String get noShareRequestsSubtitle => 'Поделитесь файлами по ссылке и они появятся здесь';
 
   @override
   String get personalData => 'ЛИЧНЫЕ ДАННЫЕ';
@@ -369,8 +367,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get logoutConfirm => 'Выход';
 
   @override
-  String get logoutConfirmMessage =>
-      'Вы уверены, что хотите выйти из аккаунта?';
+  String get logoutConfirmMessage => 'Вы уверены, что хотите выйти из аккаунта?';
 
   @override
   String get refresh => 'Обновить';
@@ -419,15 +416,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get noSharedWithMe => 'Никто не делился файлами';
 
   @override
-  String get noSharedWithMeSubtitle =>
-      'Когда кто-то поделится файлом — они появятся здесь';
+  String get noSharedWithMeSubtitle => 'Когда кто-то поделится файлом — они появятся здесь';
 
   @override
   String get noSharedByMe => 'Вы ещё ни с кем не делились';
 
   @override
-  String get noSharedByMeSubtitle =>
-      'Нажмите кнопку шаринга чтобы поделиться файлами';
+  String get noSharedByMeSubtitle => 'Нажмите кнопку шаринга чтобы поделиться файлами';
 
   @override
   String get noSharedItems => 'Нет расшаренных элементов';
@@ -516,15 +511,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get syncResetButton => 'Сбросить очередь';
 
   @override
-  String get syncFolderReadOnly =>
-      'Это папка синхронизации. Файлы здесь управляются автоматически.';
+  String get syncFolderReadOnly => 'Это папка синхронизации. Файлы здесь управляются автоматически.';
 
   @override
   String get syncResetConfirmTitle => 'Сбросить очередь?';
 
   @override
-  String get syncResetConfirmMessage =>
-      'Все записи будут удалены. После этого приложение заново просканирует галерею.';
+  String get syncResetConfirmMessage => 'Все записи будут удалены. После этого приложение заново просканирует галерею.';
 
   @override
   String get syncResetConfirmButton => 'Сбросить';
@@ -615,6 +608,133 @@ class AppLocalizationsRu extends AppLocalizations {
   String get deleteAccountConfirm => 'Удалить аккаунт';
 
   @override
-  String get deleteAccountConfirmMessage =>
-      'Вы уверены, что хотите удалить аккаунт? Это действие необратимо.';
+  String get deleteAccountConfirmMessage => 'Вы уверены, что хотите удалить аккаунт? Это действие необратимо.';
+
+  // ── Payment ──────────────────────────────────────────────────────────────
+
+  @override
+  String get paymentAndSubscription => 'Подписка и оплата';
+
+  @override
+  String get cardDeleted => 'Карта удалена';
+
+  @override
+  String get cardSetAsDefault => 'Карта установлена по умолчанию';
+
+  @override
+  String get myCards => 'Мои карты';
+
+  @override
+  String get addCard => 'Добавить карту';
+
+  @override
+  String get noCardsLinked => 'Карты не привязаны';
+
+  @override
+  String get noSubscription => 'Без подписки';
+
+  @override
+  String get currentPlan => 'Текущий тариф';
+
+  @override
+  String get changePlan => 'Изменить тариф';
+
+  @override
+  String get choosePlan => 'Выбрать тариф';
+
+  @override
+  String storageUsed(String used) => '$used использовано';
+
+  @override
+  String subscriptionUntil(String date) => 'До: $date';
+
+  @override
+  String get cardStatusActive => 'Активна';
+
+  @override
+  String get cardStatusPending => 'Ожидает подтверждения';
+
+  @override
+  String get cardStatusBlocked => 'Заблокирована';
+
+  @override
+  String get cardDefaultLabel => 'По умолчанию';
+
+  @override
+  String get setAsDefault => 'По умолчанию';
+
+  @override
+  String get deleteCardTitle => 'Удалить карту?';
+
+  @override
+  String deleteCardMessage(String number) => 'Карта $number будет удалена.';
+
+  @override
+  String get cardNumberLabel => 'Номер карты';
+
+  @override
+  String get enterCardNumber => 'Введите номер карты';
+
+  @override
+  String get cardNumber16Digits => 'Номер карты — 16 цифр';
+
+  @override
+  String get expiryDate => 'Срок действия';
+
+  @override
+  String get enterExpiryDate => 'Введите срок действия';
+
+  @override
+  String get expiryDateFormat => 'Формат: MM/YY';
+
+  @override
+  String get invalidMonth => 'Неверный месяц';
+
+  @override
+  String get validThruLabel => 'ДЕЙСТВУЕТ ДО';
+
+  @override
+  String get verifyCardTitle => 'Подтверждение карты';
+
+  @override
+  String get enterSmsCode => 'Введите SMS-код';
+
+  @override
+  String smsCodeSentFor(String number) =>
+      'Код отправлен для подтверждения карты\n$number';
+
+  @override
+  String get cardAddedSuccess => 'Карта успешно добавлена';
+
+  @override
+  String get confirmButton => 'Подтвердить';
+
+  @override
+  String get plansTitle => 'Тарифы';
+
+  @override
+  String get noPlans => 'Нет тарифов';
+
+  @override
+  String get confirmPurchaseTitle => 'Подтверждение';
+
+  @override
+  String confirmPurchaseMessage(String name, String price, String period) =>
+      'Подключить тариф «$name» за $price UZS / $period?';
+
+  @override
+  String get updatePlan => 'Обновить';
+
+  @override
+  String get freeLabel => 'Бесплатно';
+
+  @override
+  String storageFeature(String storage) => '$storage Памяти';
+
+  @override
+  String get dataPreservedNote =>
+      'Ваши данные сохранятся при обновлении тарифа.';
+
+  @override
+  String get unknownError => 'Неизвестная ошибка';
 }

@@ -280,8 +280,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reviewAccessRequest => 'Review access request';
 
   @override
-  String get reviewAccessRequestSubtitle =>
-      'Choose whether this user should get access.';
+  String get reviewAccessRequestSubtitle => 'Choose whether this user should get access.';
 
   @override
   String get reject => 'Reject';
@@ -299,8 +298,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noShareRequests => 'No share requests';
 
   @override
-  String get noShareRequestsSubtitle =>
-      'Share files via link and they will appear here';
+  String get noShareRequestsSubtitle => 'Share files via link and they will appear here';
 
   @override
   String get personalData => 'PERSONAL DATA';
@@ -418,8 +416,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noSharedWithMe => 'No one has shared files';
 
   @override
-  String get noSharedWithMeSubtitle =>
-      'When someone shares a file — it will appear here';
+  String get noSharedWithMeSubtitle => 'When someone shares a file — it will appear here';
 
   @override
   String get noSharedByMe => 'You haven\'t shared with anyone yet';
@@ -514,15 +511,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncResetButton => 'Reset queue';
 
   @override
-  String get syncFolderReadOnly =>
-      'This is your Sync folder. Files here are managed automatically.';
+  String get syncFolderReadOnly => 'This is your Sync folder. Files here are managed automatically.';
 
   @override
   String get syncResetConfirmTitle => 'Reset queue?';
 
   @override
-  String get syncResetConfirmMessage =>
-      'All records will be deleted. The app will re-scan the gallery after that.';
+  String get syncResetConfirmMessage => 'All records will be deleted. The app will re-scan the gallery after that.';
 
   @override
   String get syncResetConfirmButton => 'Reset';
@@ -613,6 +608,133 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteAccountConfirm => 'Delete account';
 
   @override
-  String get deleteAccountConfirmMessage =>
-      'Are you sure you want to delete your account? This action is irreversible.';
+  String get deleteAccountConfirmMessage => 'Are you sure you want to delete your account? This action is irreversible.';
+
+  // ── Payment ──────────────────────────────────────────────────────────────
+
+  @override
+  String get paymentAndSubscription => 'Payment & Subscription';
+
+  @override
+  String get cardDeleted => 'Card deleted';
+
+  @override
+  String get cardSetAsDefault => 'Card set as default';
+
+  @override
+  String get myCards => 'My cards';
+
+  @override
+  String get addCard => 'Add card';
+
+  @override
+  String get noCardsLinked => 'No cards linked';
+
+  @override
+  String get noSubscription => 'No subscription';
+
+  @override
+  String get currentPlan => 'Current plan';
+
+  @override
+  String get changePlan => 'Change plan';
+
+  @override
+  String get choosePlan => 'Choose plan';
+
+  @override
+  String storageUsed(String used) => '$used used';
+
+  @override
+  String subscriptionUntil(String date) => 'Until: $date';
+
+  @override
+  String get cardStatusActive => 'Active';
+
+  @override
+  String get cardStatusPending => 'Pending confirmation';
+
+  @override
+  String get cardStatusBlocked => 'Blocked';
+
+  @override
+  String get cardDefaultLabel => 'Default';
+
+  @override
+  String get setAsDefault => 'Set as default';
+
+  @override
+  String get deleteCardTitle => 'Delete card?';
+
+  @override
+  String deleteCardMessage(String number) => 'Card $number will be deleted.';
+
+  @override
+  String get cardNumberLabel => 'Card number';
+
+  @override
+  String get enterCardNumber => 'Enter card number';
+
+  @override
+  String get cardNumber16Digits => 'Card number must be 16 digits';
+
+  @override
+  String get expiryDate => 'Expiry date';
+
+  @override
+  String get enterExpiryDate => 'Enter expiry date';
+
+  @override
+  String get expiryDateFormat => 'Format: MM/YY';
+
+  @override
+  String get invalidMonth => 'Invalid month';
+
+  @override
+  String get validThruLabel => 'VALID THRU';
+
+  @override
+  String get verifyCardTitle => 'Card verification';
+
+  @override
+  String get enterSmsCode => 'Enter SMS code';
+
+  @override
+  String smsCodeSentFor(String number) =>
+      'Code sent to confirm card\n$number';
+
+  @override
+  String get cardAddedSuccess => 'Card added successfully';
+
+  @override
+  String get confirmButton => 'Confirm';
+
+  @override
+  String get plansTitle => 'Plans';
+
+  @override
+  String get noPlans => 'No plans available';
+
+  @override
+  String get confirmPurchaseTitle => 'Confirm';
+
+  @override
+  String confirmPurchaseMessage(String name, String price, String period) =>
+      'Subscribe to «$name» for $price UZS / $period?';
+
+  @override
+  String get updatePlan => 'Subscribe';
+
+  @override
+  String get freeLabel => 'Free';
+
+  @override
+  String storageFeature(String storage) => '$storage Storage';
+
+  @override
+  String get dataPreservedNote =>
+      'Your data will be preserved when upgrading.';
+
+  @override
+  String get unknownError => 'Unknown error';
 }
