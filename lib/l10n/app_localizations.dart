@@ -1292,6 +1292,14 @@ abstract class AppLocalizations {
   String storageFeature(String storage);
   String get dataPreservedNote;
   String get unknownError;
+  String get storageSubtitle;
+  String get activeSubscriptionDetails;
+  String get planName;
+  String get storageLimitLabel;
+  String get available;
+  String get billingMonthly;
+  String get billingYearly;
+  String upgradeToPlan(String name);
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

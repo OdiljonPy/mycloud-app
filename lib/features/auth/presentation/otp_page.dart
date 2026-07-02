@@ -24,10 +24,7 @@ class _OtpPageState extends State<OtpPage> {
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
-  final _authRepo = AuthRepository(
-    onLoginSync: syncOnLoginCallback,
-    onLogoutSync: syncOnLogoutCallback,
-  );
+  final _authRepo = AuthRepository();
   late String _otpKey;
 
   bool _isLoading = false;

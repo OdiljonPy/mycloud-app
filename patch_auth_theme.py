@@ -4,7 +4,7 @@ FILES = [
     'lib/features/auth/presentation/login_page.dart',
     'lib/features/auth/presentation/register_page.dart',
     'lib/features/auth/presentation/forgot_password_page.dart',
-]
+]сдф
 
 for path in FILES:
     with open(path, 'r', encoding='utf-8') as f:

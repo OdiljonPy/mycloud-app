@@ -6,6 +6,11 @@ import 'package:cloud_app/l10n/app_localizations.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/config/app_config.dart';
 import '../../profile/data/profile_repository.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../payment/data/repository/payment_repository.dart';
+import '../../payment/data/models/payment_models.dart';
+import '../../payment/presentation/bloc/payment_bloc.dart';
+import '../../payment/presentation/pages/plans_page.dart';
 import '../../sync/presentation/auto_sync_settings_page.dart';
 import '../../sync/auto_sync_service.dart';
 import '../../sync/data/gallery_service.dart';
@@ -34,9 +39,12 @@ class HomePage extends StatefulWidget {
 class HomePageState extends State<HomePage> {
   final _profileRepo = ProfileRepository();
   final _homeRepo = HomeRepository();
+  final _paymentRepo = PaymentRepository();
   Map<String, dynamic> _storageData = {};
-  Map<String, dynamic> _statsData = {};
+  Map<String, dynamic> _usageData = {};
   List<GalleryFile> _backendGalleryFiles = [];
+  CurrentSubscription? _subscription;
+  List<Plan> _plans = [];
   String? _userName;
   bool _isLoading = true;
 
@@ -69,19 +77,50 @@ class HomePageState extends State<HomePage> {
     super.dispose();
   }
 
+  Future<CurrentSubscription?> _loadSubscriptionSilently() async {
+    try {
+      return await _paymentRepo.getCurrentSubscription();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<Plan>> _loadPlansSilently() async {
+    try {
+      return await _paymentRepo.getPlans();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Plan? _findNextPlan() {
+    final sub = _subscription;
+    if (sub == null || sub.planId == null || _plans.isEmpty) return null;
+    final pool = _plans.where((p) => p.billingPeriod == sub.billingPeriod).toList();
+    final sorted = (pool.isNotEmpty ? pool : [..._plans])
+      ..sort((a, b) => a.storage.compareTo(b.storage));
+    final idx = sorted.indexWhere((p) => p.id == sub.planId);
+    if (idx == -1 || idx >= sorted.length - 1) return null;
+    return sorted[idx + 1];
+  }
+
   Future<void> _loadData() async {
     final name = await SecureStorage.getFullName();
     try {
       final results = await Future.wait([
         _profileRepo.getStorageUsed(),
-        _profileRepo.getContentStatistics(),
+        _profileRepo.getStorageUsage(),
         _loadBackendGalleryFiles(),
+        _loadSubscriptionSilently(),
+        _loadPlansSilently(),
       ]);
       if (mounted) {
         setState(() {
           _userName = name;
           _storageData = results[0] as Map<String, dynamic>;
-          _statsData = results[1] as Map<String, dynamic>;
+          _usageData = (results[1] as Map<String, dynamic>?) ?? {};
+          _subscription = results[3] as CurrentSubscription?;
+          _plans = results[4] as List<Plan>;
           _isLoading = false;
         });
       }
@@ -258,7 +297,7 @@ class HomePageState extends State<HomePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 8),
-                      _buildStorageBar(t),
+                      _buildStorageSection(t),
                       const SizedBox(height: 16),
                       _buildQuickActions(context, t),
                       const SizedBox(height: 24),
@@ -272,129 +311,230 @@ class HomePageState extends State<HomePage> {
     );
   }
 
-  // Beautiful gradient storage card
-  Widget _buildStorageBar(AppLocalizations t) {
+  Widget _buildStorageSection(AppLocalizations t) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final innerBg = isDark ? const Color(0xFF2A2A2E) : const Color(0xFFF5F5F7);
+    final borderColor = isDark ? const Color(0xFF3A3A3C) : const Color(0xFFE5E5EA);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1C1C1E);
+    final textSecondary = isDark ? Colors.white54 : Colors.black45;
+
     final used = _storageData['used_storage'];
     final limit = _storageData['storage_limit'];
     final percent = (_storageData['percent_used'] as num?)?.toDouble() ?? 0;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final images = _usageData['images'];
+    final videos = _usageData['videos'];
 
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-              : [const Color(0xFF1A73E8), const Color(0xFF4A90E2)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    final sub = _subscription;
+    final hasActive = sub != null && sub.planId != null;
+    final nextPlan = _findNextPlan();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: borderColor),
+          boxShadow: isDark ? null : [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: (isDark ? Colors.black : const Color(0xFF1A73E8)).withValues(alpha: 0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.storage_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t.storage,
+                    style: TextStyle(
+                      color: textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    t.storageSubtitle,
+                    style: TextStyle(color: textSecondary, fontSize: 12),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
+            ),
+            const SizedBox(height: 12),
+            // Storage stats card
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: innerBg,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: borderColor),
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      t.myCloudStorage,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1A73E8).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.storage_rounded,
+                              color: Color(0xFF1A73E8), size: 20),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            '${_fmt(used)} использовано из ${_fmt(limit)}',
+                            style: TextStyle(
+                              color: textPrimary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${percent.toStringAsFixed(0)}%',
+                          style: const TextStyle(
+                            color: Color(0xFF1A73E8),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    // Progress bar green→orange
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Stack(
+                        children: [
+                          Container(
+                            height: 8,
+                            color: borderColor,
+                          ),
+                          FractionallySizedBox(
+                            widthFactor: (percent / 100).clamp(0.0, 1.0),
+                            child: Container(
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [Color(0xFF22C55E), Color(0xFFF97316)],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    Text(
-                      '${(percent).toStringAsFixed(1)}% ${t.used}',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: 12,
-                      ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildUsageTile(
+                            Icons.image_outlined,
+                            t.images,
+                            _fmt(images),
+                            const Color(0xFF10B981),
+                            isDark,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildUsageTile(
+                            Icons.videocam_outlined,
+                            t.videos,
+                            _fmt(videos),
+                            const Color(0xFFF59E0B),
+                            isDark,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Stack(
-            children: [
-              Container(
-                height: 12,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-              FractionallySizedBox(
-                widthFactor: (percent / 100).clamp(0.0, 1.0),
-                child: Container(
-                  height: 12,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.white,
-                        Colors.white.withValues(alpha: 0.9),
-                      ],
+            ),
+            // Upgrade button
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
+              child: SizedBox(
+                width: double.infinity,
+                height: 46,
+                child: FilledButton.icon(
+                  onPressed: () => showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => BlocProvider(
+                      create: (_) => PaymentBloc(PaymentRepository()),
+                      child: PlansPage(currentPlanId: sub?.planId),
                     ),
-                    borderRadius: BorderRadius.circular(6),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        blurRadius: 8,
-                        spreadRadius: 1,
-                      ),
-                    ],
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF1A73E8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.rocket_launch_rounded, size: 18),
+                  label: Text(
+                    nextPlan != null
+                        ? t.upgradeToPlan(nextPlan.name)
+                        : hasActive
+                            ? t.changePlan
+                            : t.choosePlan,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 14),
                   ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${_fmt(used)} ${t.used}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Text(
-                '${_fmt(limit)} ${t.total}',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7),
-                  fontSize: 13,
-                ),
-              ),
-            ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUsageTile(
+      IconData icon, String label, String value, Color color, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: isDark ? 0.12 : 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: isDark ? Colors.white54 : Colors.black45)),
+                Text(value,
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black87)),
+              ],
+            ),
           ),
         ],
       ),
@@ -795,6 +935,8 @@ class _BackendGalleryItemGrid extends StatelessWidget {
                     CachedNetworkImage(
                       imageUrl: normalizedUrl,
                       fit: BoxFit.cover,
+                      memCacheWidth: 300,
+                      memCacheHeight: 300,
                       placeholder: (context, url) => Container(
                         color: isDark ? Colors.grey[800] : Colors.grey[300],
                         child: const Center(
@@ -937,6 +1079,8 @@ class _BackendGalleryItemList extends StatelessWidget {
                           CachedNetworkImage(
                             imageUrl: normalizedUrl,
                             fit: BoxFit.cover,
+                            memCacheWidth: 300,
+                            memCacheHeight: 300,
                             placeholder: (context, url) => Container(
                               color: isDark ? Colors.grey[800] : Colors.grey[300],
                               child: const Center(

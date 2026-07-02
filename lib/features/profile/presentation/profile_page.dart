@@ -10,6 +10,11 @@ import '../../auth/presentation/login_page.dart';
 import '../data/profile_repository.dart';
 import '../../../main.dart';
 import '../../share/presentation/share_requests_page.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../payment/data/repository/payment_repository.dart';
+import '../../payment/data/models/payment_models.dart';
+import '../../payment/presentation/bloc/payment_bloc.dart';
+import '../../payment/presentation/pages/plans_page.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -22,10 +27,13 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final _repo = ProfileRepository();
+  final _paymentRepo = PaymentRepository();
 
   Map<String, dynamic>? _userData;
   Map<String, dynamic>? _storageData;
   Map<String, dynamic>? _usageData;
+  CurrentSubscription? _subscription;
+  List<Plan> _plans = [];
   bool _isLoading = true;
 
   static const _accent = Color(0xFF2563EB);
@@ -36,6 +44,33 @@ class _ProfilePageState extends State<ProfilePage> {
     _loadData();
   }
 
+  Future<CurrentSubscription?> _loadSubscriptionSilently() async {
+    try {
+      return await _paymentRepo.getCurrentSubscription();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<Plan>> _loadPlansSilently() async {
+    try {
+      return await _paymentRepo.getPlans();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Plan? _findNextPlan() {
+    final sub = _subscription;
+    if (sub == null || sub.planId == null || _plans.isEmpty) return null;
+    final pool = _plans.where((p) => p.billingPeriod == sub.billingPeriod).toList();
+    final sorted = (pool.isNotEmpty ? pool : [..._plans])
+      ..sort((a, b) => a.storage.compareTo(b.storage));
+    final idx = sorted.indexWhere((p) => p.id == sub.planId);
+    if (idx == -1 || idx >= sorted.length - 1) return null;
+    return sorted[idx + 1];
+  }
+
   Future<void> _loadData() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
@@ -44,12 +79,16 @@ class _ProfilePageState extends State<ProfilePage> {
         _repo.getMe(),
         _repo.getStorageUsed(),
         _repo.getStorageUsage(),
+        _loadSubscriptionSilently(),
+        _loadPlansSilently(),
       ]);
       if (!mounted) return;
       setState(() {
-        _userData = results[0];
-        _storageData = results[1];
-        _usageData = results[2];
+        _userData = results[0] as Map<String, dynamic>;
+        _storageData = results[1] as Map<String, dynamic>;
+        _usageData = results[2] as Map<String, dynamic>;
+        _subscription = results[3] as CurrentSubscription?;
+        _plans = results[4] as List<Plan>;
         _isLoading = false;
       });
     } catch (e) {
@@ -574,9 +613,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     children: [
-                      _buildEditSection(),
+                      _buildStorageSection(),
                       const SizedBox(height: 16),
-                      _buildStorage(),
+                      _buildEditSection(),
                       const SizedBox(height: 16),
                       _buildLanguage(),
                       const SizedBox(height: 16),
@@ -713,114 +752,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // Storage
-  Widget _buildStorage() {
-    final t = AppLocalizations.of(context)!;
-    final percentUsed =
-        (_storageData?['percent_used'] as num?)?.toDouble() ?? 0;
-    final storageLimit = _storageData?['storage_limit'];
-    final usedStorage = _storageData?['used_storage'];
-    final images = _usageData?['images'];
-    final videos = _usageData?['videos'];
-
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: cardColor,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.cloud, color: _accent),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(t.storage,
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${_formatBytes(usedStorage)} ${t.used} / ${_formatBytes(storageLimit)} ${t.total}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: (percentUsed / 100).clamp(0.0, 1.0),
-              minHeight: 10,
-              backgroundColor: Colors.grey.withValues(alpha: 0.15),
-              valueColor: const AlwaysStoppedAnimation<Color>(_accent),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _buildStorageTile(Icons.image, t.images,
-                  _formatBytes(images), const Color(0xFF10B981)),
-              const SizedBox(width: 12),
-              _buildStorageTile(Icons.videocam, t.videos,
-                  _formatBytes(videos), const Color(0xFFF59E0B)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStorageTile(
-      IconData icon, String label, String size, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 18),
-            const SizedBox(width: 6),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
-                    style: TextStyle(
-                        fontSize: 10, color: Colors.grey[500])),
-                Text(size,
-                    style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   // Language
   Widget _buildLanguage() {
     final t = AppLocalizations.of(context)!;
@@ -830,6 +761,228 @@ class _ProfilePageState extends State<ProfilePage> {
         t.language,
         _langLabel,
         _showLanguageSheet,
+      ),
+    );
+  }
+
+  // Storage + Subscription combined block
+  Widget _buildStorageSection() {
+    final t = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final innerBg = isDark ? const Color(0xFF2A2A2E) : const Color(0xFFF5F5F7);
+    final borderColor = isDark ? const Color(0xFF3A3A3C) : const Color(0xFFE5E5EA);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1C1C1E);
+    final textSecondary = isDark ? Colors.white54 : Colors.black45;
+
+    final used = _storageData?['used_storage'];
+    final limit = _storageData?['storage_limit'];
+    final percent = (_storageData?['percent_used'] as num?)?.toDouble() ?? 0;
+    final images = _usageData?['images'];
+    final videos = _usageData?['videos'];
+
+    final sub = _subscription;
+    final hasActive = sub != null && sub.planId != null;
+    final nextPlan = _findNextPlan();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
+        boxShadow: isDark ? null : [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t.storage,
+                  style: TextStyle(
+                    color: textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  t.storageSubtitle,
+                  style: TextStyle(color: textSecondary, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: innerBg,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: borderColor),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A73E8).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.storage_rounded,
+                            color: Color(0xFF1A73E8), size: 20),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          '${_formatBytes(used)} использовано из ${_formatBytes(limit)}',
+                          style: TextStyle(
+                            color: textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '${percent.toStringAsFixed(0)}%',
+                        style: const TextStyle(
+                          color: Color(0xFF1A73E8),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Stack(
+                      children: [
+                        Container(height: 8, color: borderColor),
+                        FractionallySizedBox(
+                          widthFactor: (percent / 100).clamp(0.0, 1.0),
+                          child: Container(
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color(0xFF22C55E), Color(0xFFF97316)],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildUsageTile(
+                          Icons.image_outlined,
+                          t.images,
+                          _formatBytes(images),
+                          const Color(0xFF10B981),
+                          isDark,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildUsageTile(
+                          Icons.videocam_outlined,
+                          t.videos,
+                          _formatBytes(videos),
+                          const Color(0xFFF59E0B),
+                          isDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
+            child: SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: FilledButton.icon(
+                onPressed: () => showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => BlocProvider(
+                    create: (_) => PaymentBloc(PaymentRepository()),
+                    child: PlansPage(currentPlanId: sub?.planId),
+                  ),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF1A73E8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.rocket_launch_rounded, size: 18),
+                label: Text(
+                  nextPlan != null
+                      ? t.upgradeToPlan(nextPlan.name)
+                      : hasActive
+                          ? t.changePlan
+                          : t.choosePlan,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUsageTile(
+      IconData icon, String label, String value, Color color, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: isDark ? 0.12 : 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: isDark ? Colors.white54 : Colors.black45)),
+                Text(value,
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black87)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -17,10 +17,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _phoneController = TextEditingController(text: '+998 ');
   final _passwordController = TextEditingController();
-  final _authRepo = AuthRepository(
-    onLoginSync: syncOnLoginCallback,
-    onLogoutSync: syncOnLogoutCallback,
-  );
+  final _authRepo = AuthRepository();
 
   final _phoneFocus = FocusNode();
   final _passwordFocus = FocusNode();
@@ -104,10 +101,6 @@ class _LoginPageState extends State<LoginPage> {
     final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
 
     return Scaffold(
-<<<<<<< HEAD
-=======
-      backgroundColor: bgColor,
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -151,11 +144,7 @@ class _LoginPageState extends State<LoginPage> {
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-<<<<<<< HEAD
                   color: Theme.of(context).colorScheme.onSurface,
-=======
-                  color: textColor,
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
                   height: 1.2,
                 ),
               ),
@@ -173,11 +162,7 @@ class _LoginPageState extends State<LoginPage> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-<<<<<<< HEAD
                   color: Theme.of(context).colorScheme.onSurface,
-=======
-                  color: textColor,
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
                 ),
               ),
               const SizedBox(height: 8),
@@ -192,13 +177,9 @@ class _LoginPageState extends State<LoginPage> {
                   hintText: '+998 XX XXX XX XX',
                   hintStyle: TextStyle(color: hintColor),
                   filled: true,
-<<<<<<< HEAD
                   fillColor: Theme.of(context).brightness == Brightness.dark
                       ? const Color(0xFF21262D)
                       : const Color(0xFFF5F7FA),
-=======
-                  fillColor: inputFillColor,
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
                   prefixIcon: Container(
                     margin: const EdgeInsets.all(10),
                     padding: const EdgeInsets.all(8),
@@ -253,11 +234,7 @@ class _LoginPageState extends State<LoginPage> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-<<<<<<< HEAD
                   color: Theme.of(context).colorScheme.onSurface,
-=======
-                  color: textColor,
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
                 ),
               ),
               const SizedBox(height: 8),
@@ -271,13 +248,9 @@ class _LoginPageState extends State<LoginPage> {
                   hintText: 'Enter your password',
                   hintStyle: TextStyle(color: hintColor),
                   filled: true,
-<<<<<<< HEAD
                   fillColor: Theme.of(context).brightness == Brightness.dark
                       ? const Color(0xFF21262D)
                       : const Color(0xFFF5F7FA),
-=======
-                  fillColor: inputFillColor,
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
                   prefixIcon: Container(
                     margin: const EdgeInsets.all(10),
                     padding: const EdgeInsets.all(8),

@@ -595,7 +595,13 @@ class _SharedPageState extends State<SharedPage> {
     final previewUrl = _previewUrls[id];
     if (mime.startsWith('image/') && previewUrl != null) {
       return ClipRRect(borderRadius: BorderRadius.circular(12),
-        child: CachedNetworkImage(imageUrl: previewUrl, width: 44, height: 44, fit: BoxFit.cover,
+        child: CachedNetworkImage(
+          imageUrl: previewUrl,
+          width: 44,
+          height: 44,
+          fit: BoxFit.cover,
+          memCacheWidth: 300,
+          memCacheHeight: 300,
           placeholder: (_, __) => Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFF1A73E8).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.image_rounded, color: Color(0xFF1A73E8), size: 22)),
           errorWidget: (_, __, ___) => Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFF1A73E8).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.image_rounded, color: Color(0xFF1A73E8), size: 22))));
     }

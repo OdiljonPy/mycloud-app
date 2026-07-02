@@ -8,6 +8,7 @@ import '../bloc/payment_state.dart';
 import 'add_card_page.dart';
 import 'plans_page.dart';
 import '../../../../l10n/app_localizations.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class PaymentPage extends StatelessWidget {
   const PaymentPage({super.key});
@@ -22,8 +23,15 @@ class PaymentPage extends StatelessWidget {
   }
 }
 
-class _PaymentView extends StatelessWidget {
+class _PaymentView extends StatefulWidget {
   const _PaymentView();
+
+  @override
+  State<_PaymentView> createState() => _PaymentViewState();
+}
+
+class _PaymentViewState extends State<_PaymentView> {
+  PaymentDataLoaded? _lastLoaded;
 
   @override
   Widget build(BuildContext context) {
@@ -55,13 +63,17 @@ class _PaymentView extends StatelessWidget {
           }
         },
         builder: (context, state) {
-          if (state is PaymentLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
           if (state is PaymentDataLoaded) {
+            _lastLoaded = state;
             return _PaymentContent(
               cards: state.cards,
               subscription: state.subscription,
+            );
+          }
+          if (_lastLoaded != null && state is! PaymentError) {
+            return _PaymentContent(
+              cards: _lastLoaded!.cards,
+              subscription: _lastLoaded!.subscription,
             );
           }
           if (state is PaymentError) {
@@ -90,7 +102,7 @@ class _PaymentView extends StatelessWidget {
 
 class _PaymentContent extends StatelessWidget {
   final List<CardToken> cards;
-  final CurrentSubscription subscription;
+  final CurrentSubscription? subscription;
 
   const _PaymentContent({
     required this.cards,
@@ -120,15 +132,22 @@ class _PaymentContent extends StatelessWidget {
           _SubscriptionCard(
             subscription: subscription,
             formatBytes: _formatBytes,
-            onChangePlan: () => Navigator.of(context).push(
-              MaterialPageRoute(
+            onChangePlan: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
                 builder: (_) => BlocProvider.value(
                   value: context.read<PaymentBloc>(),
-                  child: PlansPage(currentPlanId: subscription.planId),
+                  child: PlansPage(currentPlanId: subscription?.planId),
                 ),
-              ),
-            ),
-          ),
+              ).then((_) {
+                if (context.mounted) {
+                  context.read<PaymentBloc>().add(const LoadPaymentData());
+                }
+              });
+            },
+          ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.06, curve: Curves.easeOut),
           const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -150,7 +169,7 @@ class _PaymentContent extends StatelessWidget {
                 label: Text(l10n.addCard),
               ),
             ],
-          ),
+          ).animate(delay: 150.ms).fadeIn(duration: 350.ms).slideY(begin: 0.04, curve: Curves.easeOut),
           const SizedBox(height: 8),
           if (cards.isEmpty)
             Padding(
@@ -161,9 +180,15 @@ class _PaymentContent extends StatelessWidget {
                   style: const TextStyle(color: Colors.grey),
                 ),
               ),
-            )
+            ).animate(delay: 200.ms).fadeIn(duration: 350.ms)
           else
-            ...cards.map((card) => _CardTile(card: card)),
+            ...List.generate(
+              cards.length,
+              (i) => _CardTile(card: cards[i])
+                  .animate(delay: (200 + i * 80).ms)
+                  .fadeIn(duration: 350.ms)
+                  .slideX(begin: 0.04, curve: Curves.easeOut),
+            ),
         ],
       ),
     );
@@ -171,7 +196,7 @@ class _PaymentContent extends StatelessWidget {
 }
 
 class _SubscriptionCard extends StatelessWidget {
-  final CurrentSubscription subscription;
+  final CurrentSubscription? subscription;
   final String Function(int) formatBytes;
   final VoidCallback onChangePlan;
 
@@ -184,9 +209,10 @@ class _SubscriptionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final hasSubscription = subscription.planId != null;
-    final usedFraction = subscription.storageLimit > 0
-        ? subscription.usedStorage / subscription.storageLimit
+    final sub = subscription;
+    final hasSubscription = sub != null && sub.planId != null;
+    final usedFraction = (sub != null && sub.storageLimit > 0)
+        ? sub.usedStorage / sub.storageLimit
         : 0.0;
 
     return Container(
@@ -207,7 +233,7 @@ class _SubscriptionCard extends StatelessWidget {
             children: [
               Text(
                 hasSubscription
-                    ? (subscription.planName ?? l10n.currentPlan)
+                    ? (sub.planName ?? l10n.currentPlan)
                     : l10n.noSubscription,
                 style: const TextStyle(
                   color: Colors.white,
@@ -215,7 +241,7 @@ class _SubscriptionCard extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              if (hasSubscription && subscription.billingPeriod != null)
+              if (hasSubscription && sub.billingPeriod != null)
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -224,7 +250,7 @@ class _SubscriptionCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    subscription.billingPeriod!,
+                    sub.billingPeriod!,
                     style: const TextStyle(color: Colors.white, fontSize: 12),
                   ),
                 ),
@@ -245,21 +271,21 @@ class _SubscriptionCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                l10n.storageUsed(formatBytes(subscription.usedStorage)),
+                l10n.storageUsed(formatBytes(sub?.usedStorage ?? 0)),
                 style:
                     const TextStyle(color: Colors.white70, fontSize: 12),
               ),
               Text(
-                formatBytes(subscription.storageLimit),
+                formatBytes(sub?.storageLimit ?? 0),
                 style:
                     const TextStyle(color: Colors.white, fontSize: 12),
               ),
             ],
           ),
-          if (subscription.endsAt != null) ...[
+          if (sub?.endsAt != null) ...[
             const SizedBox(height: 8),
             Text(
-              l10n.subscriptionUntil(_formatDate(subscription.endsAt!)),
+              l10n.subscriptionUntil(_formatDate(sub!.endsAt!)),
               style: const TextStyle(color: Colors.white60, fontSize: 12),
             ),
           ],

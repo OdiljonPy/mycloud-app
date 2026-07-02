@@ -737,4 +737,28 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get unknownError => 'Noma\'lum xato';
+
+  @override
+  String get storageSubtitle => 'Xotira foydalanishini kuzating va tarifingizni boshqaring.';
+
+  @override
+  String get activeSubscriptionDetails => 'Faol obuna tafsilotlari';
+
+  @override
+  String get planName => 'Tarif nomi';
+
+  @override
+  String get storageLimitLabel => 'Xotira limiti';
+
+  @override
+  String get available => 'Mavjud';
+
+  @override
+  String get billingMonthly => 'Oylik';
+
+  @override
+  String get billingYearly => 'Yillik';
+
+  @override
+  String upgradeToPlan(String name) => '$name ga o\'tish';
 }

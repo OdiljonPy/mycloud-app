@@ -737,4 +737,28 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get unknownError => 'Неизвестная ошибка';
+
+  @override
+  String get storageSubtitle => 'Отслеживайте использование хранилища и управляйте тарифом.';
+
+  @override
+  String get activeSubscriptionDetails => 'Детали вашей активной подписки';
+
+  @override
+  String get planName => 'Название тарифа';
+
+  @override
+  String get storageLimitLabel => 'Лимит хранилища';
+
+  @override
+  String get available => 'Доступно';
+
+  @override
+  String get billingMonthly => 'Ежемесячно';
+
+  @override
+  String get billingYearly => 'Ежегодно';
+
+  @override
+  String upgradeToPlan(String name) => 'Улучшить до $name';
 }

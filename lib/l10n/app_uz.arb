@@ -289,5 +289,18 @@
   },
   "deleteAccount": "Hisobni o'chirish",
   "deleteAccountConfirm": "Hisobni o'chirish",
-  "deleteAccountConfirmMessage": "Hisobingizni o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi."
+  "deleteAccountConfirmMessage": "Hisobingizni o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi.",
+  "storageSubtitle": "Xotira foydalanishini kuzating va tarifingizni boshqaring.",
+  "activeSubscriptionDetails": "Faol obuna tafsilotlari",
+  "planName": "Tarif nomi",
+  "storageLimitLabel": "Xotira limiti",
+  "available": "Mavjud",
+  "billingMonthly": "Oylik",
+  "billingYearly": "Yillik",
+  "upgradeToPlan": "{name} ga o'tish",
+  "@upgradeToPlan": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  }
 }

@@ -134,11 +134,12 @@ class PaymentRepository {
   }
 
   // GET /storage/subscription/current/
-  Future<CurrentSubscription> getCurrentSubscription() async {
+  Future<CurrentSubscription?> getCurrentSubscription() async {
     try {
       final r = await _dio.get('/storage/subscription/current/');
       return CurrentSubscription.fromJson(r.data as Map<String, dynamic>);
     } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
       throw AppException(
         message: _extractError(e.response?.data),
         statusCode: e.response?.statusCode,

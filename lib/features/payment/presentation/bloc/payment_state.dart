@@ -14,7 +14,7 @@ class PaymentLoading extends PaymentState {
 
 class PaymentDataLoaded extends PaymentState {
   final List<CardToken> cards;
-  final CurrentSubscription subscription;
+  final CurrentSubscription? subscription;
 
   const PaymentDataLoaded({
     required this.cards,

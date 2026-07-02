@@ -194,6 +194,7 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
                   ),
                 ],
               ),
+              cacheWidth: 300,
             ),
 
             // Small loading indicator in corner while fetching full resolution
@@ -357,6 +358,7 @@ class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
                     _controller.play();
                   }
                 });
+
               },
               child: Container(
                 color: Colors.transparent,

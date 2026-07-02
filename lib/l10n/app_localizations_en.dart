@@ -737,4 +737,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unknownError => 'Unknown error';
+
+  @override
+  String get storageSubtitle => 'Track your storage usage and manage your plan.';
+
+  @override
+  String get activeSubscriptionDetails => 'Active subscription details';
+
+  @override
+  String get planName => 'Plan name';
+
+  @override
+  String get storageLimitLabel => 'Storage limit';
+
+  @override
+  String get available => 'Available';
+
+  @override
+  String get billingMonthly => 'Monthly';
+
+  @override
+  String get billingYearly => 'Yearly';
+
+  @override
+  String upgradeToPlan(String name) => 'Upgrade to $name';
 }

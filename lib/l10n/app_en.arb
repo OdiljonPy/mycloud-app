@@ -277,5 +277,18 @@
   },
   "deleteAccount": "Delete account",
   "deleteAccountConfirm": "Delete account",
-  "deleteAccountConfirmMessage": "Are you sure you want to delete your account? This action is irreversible."
+  "deleteAccountConfirmMessage": "Are you sure you want to delete your account? This action is irreversible.",
+  "storageSubtitle": "Track your storage usage and manage your plan.",
+  "activeSubscriptionDetails": "Active subscription details",
+  "planName": "Plan name",
+  "storageLimitLabel": "Storage limit",
+  "available": "Available",
+  "billingMonthly": "Monthly",
+  "billingYearly": "Yearly",
+  "upgradeToPlan": "Upgrade to {name}",
+  "@upgradeToPlan": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  }
 }

@@ -366,6 +366,8 @@ class _ShareUserFilesPageState extends State<ShareUserFilesPage> {
               CachedNetworkImage(
                 imageUrl: thumbUrl,
                 fit: BoxFit.cover,
+                memCacheWidth: 300,
+                memCacheHeight: 300,
                 placeholder: (_, __) => _iconBox(isVideo),
                 errorWidget: (_, __, ___) => _iconBox(isVideo),
               ),

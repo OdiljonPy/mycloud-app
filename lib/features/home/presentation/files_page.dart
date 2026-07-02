@@ -220,11 +220,19 @@ class FilesPageState extends State<FilesPage> {
     FavouritesProvider.instance.loadFavourites();
     _loadContent();
     _loadAuthToken();
+    _scrollController.addListener(_onScroll);
     _shareBloc = ShareBloc(
       ShareRepositoryImpl(
         ShareRemoteDataSourceImpl(DioClient.instance),
       ),
     );
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoadingMore && _hasNextPage) _loadMoreContent();
+    }
   }
 
   @override
@@ -2932,6 +2940,7 @@ class _FileTile extends StatelessWidget {
             children: [
               CachedNetworkImage(
                 imageUrl: thumb,
+                memCacheWidth: 300,
                 fit: BoxFit.cover,
                 placeholder: (_, __) => _iconBox(color),
                 errorWidget: (_, __, ___) => _iconBox(color),

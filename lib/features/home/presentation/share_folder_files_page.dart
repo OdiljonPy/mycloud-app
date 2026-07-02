@@ -805,9 +805,16 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                   ? CachedNetworkImage(
                       imageUrl: previewUrl,
                       fit: BoxFit.cover,
+                      memCacheWidth: 300,
+                      memCacheHeight: 300,
                       httpHeaders: _authToken != null
                           ? {'Authorization': 'Bearer $_authToken'}
                           : {},
+                      placeholder: (_, __) => Icon(
+                        _icon(file.mimeType),
+                        color: _color(file.mimeType),
+                        size: 20,
+                      ),
                       errorWidget: (_, __, ___) => Icon(
                         _icon(file.mimeType),
                         color: _color(file.mimeType),

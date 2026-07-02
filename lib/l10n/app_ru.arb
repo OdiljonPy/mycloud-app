@@ -285,5 +285,18 @@
   },
   "deleteAccount": "Удалить аккаунт",
   "deleteAccountConfirm": "Удалить аккаунт",
-  "deleteAccountConfirmMessage": "Вы уверены, что хотите удалить аккаунт? Это действие необратимо."
+  "deleteAccountConfirmMessage": "Вы уверены, что хотите удалить аккаунт? Это действие необратимо.",
+  "storageSubtitle": "Отслеживайте использование хранилища и управляйте тарифом.",
+  "activeSubscriptionDetails": "Детали вашей активной подписки",
+  "planName": "Название тарифа",
+  "storageLimitLabel": "Лимит хранилища",
+  "available": "Доступно",
+  "billingMonthly": "Ежемесячно",
+  "billingYearly": "Ежегодно",
+  "upgradeToPlan": "Улучшить до {name}",
+  "@upgradeToPlan": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  }
 }

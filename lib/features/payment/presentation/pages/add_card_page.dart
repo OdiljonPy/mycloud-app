@@ -6,6 +6,7 @@ import '../bloc/payment_event.dart';
 import '../bloc/payment_state.dart';
 import 'verify_card_page.dart';
 import '../../../../l10n/app_localizations.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class AddCardPage extends StatefulWidget {
   const AddCardPage({super.key});
@@ -79,7 +80,7 @@ class _AddCardPageState extends State<AddCardPage> {
                     _CardPreview(
                       number: _cardCtrl.text,
                       expire: _expireCtrl.text,
-                    ),
+                    ).animate().fadeIn(duration: 500.ms).slideY(begin: -0.06, curve: Curves.easeOut),
                     const SizedBox(height: 32),
                     TextFormField(
                       controller: _cardCtrl,
@@ -102,7 +103,7 @@ class _AddCardPageState extends State<AddCardPage> {
                         if (_rawCardNumber.length != 16) return l10n.cardNumber16Digits;
                         return null;
                       },
-                    ),
+                    ).animate(delay: 150.ms).fadeIn(duration: 400.ms).slideX(begin: 0.05, curve: Curves.easeOut),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _expireCtrl,
@@ -129,7 +130,7 @@ class _AddCardPageState extends State<AddCardPage> {
                         }
                         return null;
                       },
-                    ),
+                    ).animate(delay: 250.ms).fadeIn(duration: 400.ms).slideX(begin: 0.05, curve: Curves.easeOut),
                     const SizedBox(height: 32),
                     FilledButton(
                       onPressed: isLoading ? null : _submit,
@@ -152,7 +153,7 @@ class _AddCardPageState extends State<AddCardPage> {
                               l10n.addCard,
                               style: const TextStyle(fontSize: 16),
                             ),
-                    ),
+                    ).animate(delay: 350.ms).fadeIn(duration: 400.ms).slideY(begin: 0.06, curve: Curves.easeOut),
                   ],
                 ),
               ),
@@ -199,13 +200,17 @@ class _CardPreview extends StatelessWidget {
         children: [
           const Icon(Icons.credit_card, color: Colors.white70, size: 32),
           const Spacer(),
-          Text(
-            displayNumber,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              letterSpacing: 2,
-              fontFamily: 'monospace',
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 150),
+            child: Text(
+              displayNumber,
+              key: ValueKey(displayNumber),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                letterSpacing: 2,
+                fontFamily: 'monospace',
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -216,12 +221,16 @@ class _CardPreview extends StatelessWidget {
                 style: const TextStyle(color: Colors.white60, fontSize: 10),
               ),
               const SizedBox(width: 8),
-              Text(
-                displayExpire,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 150),
+                child: Text(
+                  displayExpire,
+                  key: ValueKey(displayExpire),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],

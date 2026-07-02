@@ -86,18 +86,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-<<<<<<< HEAD
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios,
               color: Theme.of(context).colorScheme.onSurface, size: 20),
-=======
-        backgroundColor: bgColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20),
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -157,13 +150,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   hintText: '+998 XX XXX XX XX',
                   hintStyle: TextStyle(color: hintColor),
                   filled: true,
-<<<<<<< HEAD
                   fillColor: Theme.of(context).brightness == Brightness.dark
                     ? const Color(0xFF2A2A2A)
                     : const Color(0xFFF5F7FA),
-=======
-                  fillColor: inputFillColor,
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
                   prefixIcon: Container(
                     margin: const EdgeInsets.all(10),
                     padding: const EdgeInsets.all(8),
