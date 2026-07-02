@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../../../core/config/app_config.dart';
 import 'package:video_player/video_player.dart';
@@ -194,7 +196,11 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
                   ),
                 ],
               ),
-              cacheWidth: 300,
+              // Decode at the physical screen resolution — best quality the
+              // display can show without holding full multi-MP originals in RAM
+              cacheWidth: (MediaQuery.of(context).size.width *
+                      MediaQuery.of(context).devicePixelRatio)
+                  .round(),
             ),
 
             // Small loading indicator in corner while fetching full resolution
@@ -256,11 +262,58 @@ class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
   late VideoPlayerController _controller;
   bool _isInitialized = false;
   bool _hasError = false;
+  bool _showControls = true;
+  Timer? _hideTimer;
 
   @override
   void initState() {
     super.initState();
     _initializeVideo();
+  }
+
+  void _onControllerUpdate() {
+    if (mounted) setState(() {});
+  }
+
+  void _startHideTimer() {
+    _hideTimer?.cancel();
+    _hideTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted && _controller.value.isPlaying) {
+        setState(() => _showControls = false);
+      }
+    });
+  }
+
+  void _toggleControls() {
+    setState(() => _showControls = !_showControls);
+    if (_showControls) _startHideTimer();
+  }
+
+  void _togglePlay() {
+    if (_controller.value.isPlaying) {
+      _controller.pause();
+    } else {
+      _controller.play();
+    }
+    _startHideTimer();
+  }
+
+  void _seekBy(Duration offset) {
+    final target = _controller.value.position + offset;
+    final duration = _controller.value.duration;
+    _controller.seekTo(
+      target < Duration.zero
+          ? Duration.zero
+          : (target > duration ? duration : target),
+    );
+    _startHideTimer();
+  }
+
+  String _fmtDuration(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60);
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return h > 0 ? '$h:${m.toString().padLeft(2, '0')}:$s' : '$m:$s';
   }
 
   Map<String, String> _buildHeaders() {
@@ -288,8 +341,10 @@ class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
 
       await _controller.initialize();
       if (mounted) {
+        _controller.addListener(_onControllerUpdate);
         setState(() => _isInitialized = true);
         _controller.play();
+        _startHideTimer();
       }
     } catch (e) {
       if (mounted) {
@@ -300,6 +355,8 @@ class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
 
   @override
   void dispose() {
+    _hideTimer?.cancel();
+    _controller.removeListener(_onControllerUpdate);
     _controller.dispose();
     super.dispose();
   }
@@ -328,64 +385,136 @@ class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
       );
     }
 
-    return Center(
-      child: AspectRatio(
-        aspectRatio: _controller.value.aspectRatio,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            VideoPlayer(_controller),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: VideoProgressIndicator(
-                _controller,
-                allowScrubbing: true,
-                colors: const VideoProgressColors(
-                  playedColor: Colors.blue,
-                  bufferedColor: Colors.grey,
-                  backgroundColor: Colors.black26,
-                ),
+    final value = _controller.value;
+
+    return GestureDetector(
+      onTap: _toggleControls,
+      behavior: HitTestBehavior.opaque,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Center(
+            child: AspectRatio(
+              aspectRatio: value.aspectRatio,
+              child: VideoPlayer(_controller),
+            ),
+          ),
+
+          // Center controls: -10s / play-pause / +10s (YouTube-style)
+          AnimatedOpacity(
+            opacity: _showControls ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 200),
+            child: IgnorePointer(
+              ignoring: !_showControls,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _RoundControlButton(
+                    icon: Icons.replay_10_rounded,
+                    size: 32,
+                    onTap: () => _seekBy(const Duration(seconds: -10)),
+                  ),
+                  const SizedBox(width: 36),
+                  _RoundControlButton(
+                    icon: value.isPlaying
+                        ? Icons.pause_rounded
+                        : Icons.play_arrow_rounded,
+                    size: 48,
+                    onTap: _togglePlay,
+                  ),
+                  const SizedBox(width: 36),
+                  _RoundControlButton(
+                    icon: Icons.forward_10_rounded,
+                    size: 32,
+                    onTap: () => _seekBy(const Duration(seconds: 10)),
+                  ),
+                ],
               ),
             ),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  if (_controller.value.isPlaying) {
-                    _controller.pause();
-                  } else {
-                    _controller.play();
-                  }
-                });
+          ),
 
-              },
-              child: Container(
-                color: Colors.transparent,
-                child: Center(
-                  child: AnimatedOpacity(
-                    opacity: _controller.value.isPlaying ? 0.0 : 1.0,
-                    duration: const Duration(milliseconds: 200),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(50),
-                      ),
-                      child: Icon(
-                        _controller.value.isPlaying
-                            ? Icons.pause
-                            : Icons.play_arrow,
-                        color: Colors.white,
-                        size: 48,
-                      ),
+          // Bottom bar: current/total time + scrubbable progress
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: AnimatedOpacity(
+              opacity: _showControls ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              child: IgnorePointer(
+                ignoring: !_showControls,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Colors.black87],
                     ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            _fmtDuration(value.position),
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 12),
+                          ),
+                          const Spacer(),
+                          Text(
+                            _fmtDuration(value.duration),
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      VideoProgressIndicator(
+                        _controller,
+                        allowScrubbing: true,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        colors: const VideoProgressColors(
+                          playedColor: Colors.blue,
+                          bufferedColor: Colors.grey,
+                          backgroundColor: Colors.white24,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RoundControlButton extends StatelessWidget {
+  final IconData icon;
+  final double size;
+  final VoidCallback onTap;
+
+  const _RoundControlButton({
+    required this.icon,
+    required this.size,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: const BoxDecoration(
+          color: Colors.black54,
+          shape: BoxShape.circle,
         ),
+        child: Icon(icon, color: Colors.white, size: size),
       ),
     );
   }

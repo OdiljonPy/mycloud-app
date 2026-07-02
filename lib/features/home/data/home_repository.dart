@@ -417,7 +417,7 @@ class HomeRepository {
   /// Polls up to 10 times (every 2s) while server is generating the preview.
   Future<String?> getPreviewUrl(String fileId) async {
     if (fileId.isEmpty) return null;
-    const maxAttempts = 10;
+    const maxAttempts = 3;
     const delay = Duration(seconds: 2);
 
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
@@ -454,6 +454,8 @@ class HomeRepository {
             await Future.delayed(delay);
             continue;
           }
+          // Превью так и не готово — стримим оригинал через /download/
+          return _normalizeApiUrl('/content/files/$fileId/download/');
         }
 
         // Превью не требуется — отдаём прямую ссылку на скачивание
