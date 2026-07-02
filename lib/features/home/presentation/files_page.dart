@@ -1860,6 +1860,8 @@ class FilesPageState extends State<FilesPage> {
 
   List<Widget> _buildContentSlivers() {
     final t = AppLocalizations.of(context)!;
+    // Computed once per rebuild — the getter copies the whole list on each call
+    final displayFiles = _displayFiles;
     // ── Header & folders section (non-virtualized, small content) ──
     final headerChildren = <Widget>[];
 
@@ -1913,7 +1915,7 @@ class FilesPageState extends State<FilesPage> {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
-              '${_displayFiles.length}',
+              '${displayFiles.length}',
               style: const TextStyle(
                 fontSize: 12,
                 color: Colors.amber,
@@ -2001,7 +2003,7 @@ class FilesPageState extends State<FilesPage> {
       headerChildren.add(const SizedBox(height: 8));
     }
 
-    if (_displayFiles.isNotEmpty && !_showFavourites) {
+    if (displayFiles.isNotEmpty && !_showFavourites) {
       headerChildren.add(_buildSectionHeader(
           t.files, Icons.insert_drive_file, _totalFilesCount));
       headerChildren.add(const SizedBox(height: 8));
@@ -2017,9 +2019,9 @@ class FilesPageState extends State<FilesPage> {
     }
 
     // ── 2. Files sliver (virtualized, grouped by date) ──
-    if (_displayFiles.isNotEmpty) {
+    if (displayFiles.isNotEmpty) {
       if (_isGrid && !_showFavourites) {
-        final grouped = _groupFilesByDate(_displayFiles);
+        final grouped = _groupFilesByDate(displayFiles);
         for (final entry in grouped) {
           slivers.add(SliverToBoxAdapter(
             child: Padding(
@@ -2072,8 +2074,24 @@ class FilesPageState extends State<FilesPage> {
       }
     }
 
-    // ── 3. Loading more indicator ──
-    if (_isLoadingMore) {
+    // ── 3. Load-more trigger + indicator ──
+    // Date-grouped grid has no index-based trigger (unlike list sliver),
+    // so a trailing sliver re-triggers loading while it stays in viewport.
+    if (_isGrid && !_showFavourites && displayFiles.isNotEmpty && _hasNextPage) {
+      slivers.add(SliverToBoxAdapter(
+        child: Builder(builder: (ctx) {
+          if (!_isLoadingMore) {
+            Future.microtask(() => _loadMoreContent());
+          }
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          );
+        }),
+      ));
+    } else if (_isLoadingMore) {
       slivers.add(const SliverToBoxAdapter(
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 20),
@@ -2242,14 +2260,17 @@ class FilesPageState extends State<FilesPage> {
   }
 
   Widget _buildFilesListSliver() {
+    // Snapshot once — the _displayFiles getter copies the list on every
+    // call, which is O(n²) when accessed per item in the delegate
+    final files = _displayFiles;
     // Index-based pagination: show loading indicator as last item
-    final itemCount = _displayFiles.length + (_hasNextPage ? 1 : 0);
+    final itemCount = files.length + (_hasNextPage ? 1 : 0);
 
     return SliverList(
       delegate: SliverChildBuilderDelegate(
         (context, i) {
           // Loading indicator at the end
-          if (i == _displayFiles.length) {
+          if (i == files.length) {
             // Trigger loading more when reaching the last item
             if (_hasNextPage && !_isLoadingMore) {
               Future.microtask(() => _loadMoreContent());
@@ -2262,7 +2283,7 @@ class FilesPageState extends State<FilesPage> {
             );
           }
 
-          final f = _displayFiles[i];
+          final f = files[i];
           return RepaintBoundary(
             child: _FileTile(
               key: ValueKey(f.id),
