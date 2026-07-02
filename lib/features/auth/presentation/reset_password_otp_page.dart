@@ -50,8 +50,9 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
     });
 
     try {
-      // Verify OTP is valid — don't save tokens (this is password reset flow)
-      await _authRepo.verifyOtp(
+      // Password-reset flow: password/verify/ returns a new otp_key
+      // required by password/reset/ (no tokens saved, sync untouched)
+      final newOtpKey = await _authRepo.verifyPasswordOtp(
         otpKey: _otpKey,
         otpCode: int.parse(_otpCode),
       );
@@ -60,7 +61,7 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
           context,
           MaterialPageRoute(
             builder: (_) => ResetPasswordPage(
-              otpKey: _otpKey,
+              otpKey: newOtpKey.isNotEmpty ? newOtpKey : _otpKey,
               otpCode: int.parse(_otpCode),
             ),
           ),
