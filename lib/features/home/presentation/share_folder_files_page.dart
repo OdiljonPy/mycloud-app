@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:cloud_app/l10n/app_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../data/home_repository.dart';
@@ -459,21 +460,22 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Удалить?'),
+        title: Text(AppLocalizations.of(context)!.deleteConfirm),
         content: Text(
-          'Вы уверены, что хотите удалить «$itemName»?\nЭто действие необратимо.',
+          AppLocalizations.of(context)!.deleteConfirmMessage(itemName),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Отмена'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               onConfirm();
             },
-            child: const Text('Удалить', style: TextStyle(color: Colors.red)),
+            child: Text(AppLocalizations.of(context)!.delete,
+                style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -947,8 +949,8 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text('Фильтр',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(AppLocalizations.of(ctx)!.filter,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 Wrap(spacing: 10, runSpacing: 10, children: [
                   _buildFilterChip(ctx, 'Все', Icons.apps_rounded, _SffFilterType.all),
@@ -1005,8 +1007,8 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
             });
             _loadContent();
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Доступ отозван'),
+              SnackBar(
+                content: Text(AppLocalizations.of(context)!.accessRevoked),
                 backgroundColor: Colors.green,
               ),
             );
@@ -1093,7 +1095,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                                 const SizedBox(height: 12),
                                 ElevatedButton(
                                   onPressed: _loadContent,
-                                  child: const Text('Повторить'),
+                                  child: Text(AppLocalizations.of(context)!.retry),
                                 ),
                               ],
                             ),

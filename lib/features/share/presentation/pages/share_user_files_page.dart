@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_app/l10n/app_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/config/app_config.dart';
@@ -228,7 +229,7 @@ class _ShareUserFilesPageState extends State<ShareUserFilesPage> {
               }
             },
             icon: const Icon(Icons.refresh),
-            label: const Text('Повторить'),
+            label: Text(AppLocalizations.of(ctx)!.retry),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1A73E8),
               foregroundColor: Colors.white,
@@ -254,7 +255,7 @@ class _ShareUserFilesPageState extends State<ShareUserFilesPage> {
           children: [
             Icon(Icons.folder_open, size: 48, color: Colors.grey[400]),
             const SizedBox(height: 12),
-            Text('Здесь пока пусто',
+            Text(AppLocalizations.of(ctx)!.emptyFolder,
                 style: TextStyle(color: Colors.grey[600])),
           ],
         ),

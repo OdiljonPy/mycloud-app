@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_app/l10n/app_localizations.dart';
 import 'package:cloud_app/features/home/data/home_repository.dart';
 import 'package:cloud_app/features/home/data/models/folder_model.dart';
 import 'package:cloud_app/core/errors/app_exception.dart';
@@ -95,7 +96,7 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
   Future<void> _confirmMove() async {
     if (_currentFolderId == widget.currentFolderId) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Файлы уже находятся в этой папке')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.filesAlreadyInFolder)),
       );
       return;
     }
@@ -187,6 +188,7 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
   }
 
   Widget _buildBody() {
+    final t = AppLocalizations.of(context)!;
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -202,7 +204,7 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadCurrentFolder,
-              child: const Text('Повторить'),
+              child: Text(t.retry),
             ),
           ],
         ),
@@ -216,7 +218,7 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
           children: [
             Icon(Icons.folder_open, size: 64, color: Colors.grey[300]),
             const SizedBox(height: 16),
-            Text('Папка пуста', style: TextStyle(color: Colors.grey[500])),
+            Text(t.folderEmpty, style: TextStyle(color: Colors.grey[500])),
           ],
         ),
       );

@@ -112,8 +112,8 @@ class _UploadPageState extends State<UploadPage> {
     if (userId == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Пользователь не найден'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.userNotFound),
             backgroundColor: Colors.red,
           ),
         );

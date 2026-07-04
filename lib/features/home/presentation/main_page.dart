@@ -6,7 +6,6 @@ import 'package:cloud_app/l10n/app_localizations.dart';
 import 'home_page.dart';
 import 'files_page.dart';
 import 'shared_page.dart';
-import '../../upload/presentation/upload_page.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../auth/presentation/login_page.dart';
 import '../../profile/presentation/profile_page.dart';
@@ -21,14 +20,6 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   int _currentIndex = 0;
   DateTime? _lastBackPress;
-
-  String? _currentFolderId;
-
-  void _onFolderChanged(String? folderId) {
-    setState(() {
-      _currentFolderId = folderId;
-    });
-  }
 
   final _homeKey = GlobalKey<HomePageState>();
   final _filesKey = GlobalKey<FilesPageState>();
@@ -75,7 +66,6 @@ class _MainPageState extends State<MainPage> {
             children: [
               HomePage(
                 key: _homeKey,
-                onFolderChanged: _onFolderChanged,
                 onNavigateToFiles: () => setState(() => _currentIndex = 1),
                 onNavigateToShared: () => setState(() => _currentIndex = 2),
                 onToggleFavourites: () {
@@ -85,7 +75,7 @@ class _MainPageState extends State<MainPage> {
                   });
                 },
               ),
-              FilesPage(key: _filesKey, onFolderChanged: _onFolderChanged),
+              FilesPage(key: _filesKey),
               const SharedPage(),
               ProfilePage(onLogout: _logout),
             ],

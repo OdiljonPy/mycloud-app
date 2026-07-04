@@ -158,7 +158,7 @@ class GalleryService {
         );
       }
       // Non-paginated fallback (API returns plain list)
-      final items = data is List ? data as List<dynamic> : [];
+      final items = data is List ? data : [];
       final files = items
           .whereType<Map<String, dynamic>>()
           .map((e) => GalleryFile.fromJson(e))

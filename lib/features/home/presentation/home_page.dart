@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -42,7 +43,7 @@ class HomePageState extends State<HomePage> {
   final _paymentRepo = PaymentRepository();
   Map<String, dynamic> _storageData = {};
   Map<String, dynamic> _usageData = {};
-  List<GalleryFile> _backendGalleryFiles = [];
+  final List<GalleryFile> _backendGalleryFiles = [];
   CurrentSubscription? _subscription;
   List<Plan> _plans = [];
   String? _userName;
@@ -53,7 +54,6 @@ class HomePageState extends State<HomePage> {
   final int _pageSize = 20;
   bool _hasMoreGalleryFiles = true;
   bool _isLoadingMore = false;
-  int _totalCount = 0;
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -80,7 +80,8 @@ class HomePageState extends State<HomePage> {
   Future<CurrentSubscription?> _loadSubscriptionSilently() async {
     try {
       return await _paymentRepo.getCurrentSubscription();
-    } catch (_) {
+    } catch (e) {
+      if (kDebugMode) debugPrint('[HomePage] getCurrentSubscription failed: $e');
       return null;
     }
   }
@@ -88,7 +89,8 @@ class HomePageState extends State<HomePage> {
   Future<List<Plan>> _loadPlansSilently() async {
     try {
       return await _paymentRepo.getPlans();
-    } catch (_) {
+    } catch (e) {
+      if (kDebugMode) debugPrint('[HomePage] getPlans failed: $e');
       return [];
     }
   }
@@ -129,7 +131,8 @@ class HomePageState extends State<HomePage> {
       AutoSyncService().startAutoSync().catchError((e) {
         debugPrint('[HomePage] Auto-sync refresh error: $e');
       });
-    } catch (_) {
+    } catch (e) {
+      if (kDebugMode) debugPrint('[HomePage] _loadData failed: $e');
       if (mounted) setState(() { _userName = name; _isLoading = false; });
     }
   }
@@ -176,7 +179,6 @@ class HomePageState extends State<HomePage> {
       if (mounted) {
         setState(() {
           _backendGalleryFiles.addAll(response.results);
-          _totalCount = response.count;
           _currentPage++;
           _hasMoreGalleryFiles = response.next != null;
           _isLoadingMore = false;
@@ -571,6 +573,7 @@ class HomePageState extends State<HomePage> {
         grouped.putIfAbsent(dateKey, () => []);
         grouped[dateKey]!.add(file);
       } catch (e) {
+        if (kDebugMode) debugPrint('[HomePage] group-by-date skip file: $e');
         continue;
       }
     }
@@ -711,7 +714,6 @@ class HomePageState extends State<HomePage> {
   Future<void> _openBackendGallery(int initialIndex) async {
     if (!mounted) return;
 
-    final authToken = await SecureStorage.getAccessToken();
     final files = _backendGalleryFiles;
 
     if (files.isEmpty || initialIndex >= files.length) return;
@@ -763,7 +765,9 @@ class HomePageState extends State<HomePage> {
       try {
         decodedMime = utf8.decode(base64.decode(mime));
         decodedName = utf8.decode(base64.decode(nameRaw));
-      } catch (_) {}
+      } catch (e) {
+        if (kDebugMode) debugPrint('[HomePage] base64 decode failed: $e');
+      }
 
       return (
         url: id.isNotEmpty ? '' : (_normalizeUrl(item['thumbnail_path']?.toString()) ?? ''),
@@ -1038,6 +1042,7 @@ class _BackendGalleryItemList extends StatelessWidget {
         return '${date.day}.${date.month}.${date.year}';
       }
     } catch (e) {
+      if (kDebugMode) debugPrint('[HomePage] date format failed: $e');
       return '';
     }
   }

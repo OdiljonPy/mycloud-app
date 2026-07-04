@@ -1,10 +1,10 @@
 import 'dart:ui';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
-import 'package:photo_manager/photo_manager.dart';
 import 'package:image_picker/image_picker.dart';
 import '../data/home_repository.dart';
 import '../data/download_repository.dart';
@@ -16,7 +16,6 @@ import '../../../core/storage/secure_storage.dart';
 import 'package:cloud_app/features/home/presentation/move_destination_screen.dart';
 import '../../upload/presentation/upload_page.dart';
 import 'photo_viewer_page.dart';
-import 'video_player_page.dart';
 import '../../../core/providers/favourites_provider.dart';
 import '../../../core/network/dio_client.dart';
 import '../../share/presentation/bloc/share_bloc.dart';
@@ -108,8 +107,9 @@ class FilesPageState extends State<FilesPage> {
   String? _getPinId(String folderId) {
     for (final pin in _pinnedFolders) {
       final folder = pin['folder'];
-      if (folder is FolderModel && folder.id == folderId)
+      if (folder is FolderModel && folder.id == folderId) {
         return pin['pinId'] as String?;
+      }
     }
     return null;
   }
@@ -254,7 +254,6 @@ class FilesPageState extends State<FilesPage> {
   Future<void> _openFileViewer(FileModel file) async {
     if (_isOpeningFile) return;
     _isOpeningFile = true;
-    final t = AppLocalizations.of(context)!;
     try {
     final mime = file.mimeType.toLowerCase();
 
@@ -310,7 +309,9 @@ class FilesPageState extends State<FilesPage> {
       List<Map<String, dynamic>> pinned = [];
       try {
         pinned = await _repo.getPinnedFolders();
-      } catch (_) {}
+      } catch (e) {
+        if (kDebugMode) debugPrint('[FilesPage] getPinnedFolders failed: $e');
+      }
       if (!mounted) return;
       // Mark sync folder by name if server returns is_sync=false
       final rawFolders = result['folders'] as List<FolderModel>;
@@ -359,9 +360,16 @@ class FilesPageState extends State<FilesPage> {
         _isLoadingMore = false;
       });
 
-    } on AppException catch (_) {
+    } on AppException catch (e) {
       if (!mounted) return;
       setState(() => _isLoadingMore = false);
+      final t = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.message),
+          action: SnackBarAction(label: t.retry, onPressed: _loadMoreContent),
+        ),
+      );
     }
   }
 
@@ -914,8 +922,8 @@ class FilesPageState extends State<FilesPage> {
                   ),
                 ],
                 if (isSyncF)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12, top: 4),
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 12, top: 4),
                     child: Center(
                       child: Text(
                         'Sync folder · managed automatically',
@@ -1814,8 +1822,9 @@ class FilesPageState extends State<FilesPage> {
           if (!mounted) return;
           setState(() {
             _downloadReceivedBytes[file.id] = received;
-            if (total > 0)
+            if (total > 0) {
               _downloadProgress[file.id] = received / total;
+            }
           });
         },
       );
@@ -2204,59 +2213,6 @@ class FilesPageState extends State<FilesPage> {
       });
     }
     return sorted;
-  }
-
-  Widget _buildFilesGridSliver() {
-    // Index-based pagination: show loading indicator as last item
-    final itemCount = _displayFiles.length + (_hasNextPage ? 1 : 0);
-
-    return SliverGrid(
-      delegate: SliverChildBuilderDelegate(
-        (context, i) {
-          // Loading indicator at the end
-          if (i == _displayFiles.length) {
-            // Trigger loading more when reaching the last item
-            if (_hasNextPage && !_isLoadingMore) {
-              Future.microtask(() => _loadMoreContent());
-            }
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            );
-          }
-
-          final f = _displayFiles[i];
-          return RepaintBoundary(
-            child: _FileGridCard(
-              key: ValueKey(f.id),
-              file: f,
-              isSelected: _selectedFiles.contains(f.id),
-              isSelectionMode: _isSelectionMode,
-              onTap: () {
-                if (_isSelectionMode) {
-                  _toggleFileSelection(f.id);
-                } else {
-                  _openFileViewer(f);
-                }
-              },
-              onSelectTap: () => _toggleFileSelection(f.id),
-              onMenuTap: () => _showFileMenu(f),
-              onFavouriteTap: () =>
-                  FavouritesProvider.instance.toggleFavourite(f),
-            ),
-          );
-        },
-        childCount: itemCount,
-      ),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 2,
-        mainAxisSpacing: 2,
-        childAspectRatio: 1.0,
-      ),
-    );
   }
 
   Widget _buildFilesListSliver() {
@@ -3410,17 +3366,19 @@ class _InfoBottomSheetState extends State<_InfoBottomSheet> {
   Future<void> _load() async {
     try {
       final data = await widget.fetchInfo();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _info = data;
           _isLoading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.toString();
           _isLoading = false;
         });
+      }
     }
   }
 
@@ -3435,7 +3393,8 @@ class _InfoBottomSheetState extends State<_InfoBottomSheet> {
       return '${dt.day} ${months[dt.month - 1]}. ${dt.year} г., '
           '${dt.hour.toString().padLeft(2, '0')}:'
           '${dt.minute.toString().padLeft(2, '0')}';
-    } catch (_) {
+    } catch (e) {
+      if (kDebugMode) debugPrint('[FilesPage] _formatDate failed: $e');
       return raw;
     }
   }

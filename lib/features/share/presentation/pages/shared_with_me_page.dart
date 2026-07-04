@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:cloud_app/l10n/app_localizations.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../data/models/share_models.dart';
 import '../../data/remote/share_remote_data_source_impl.dart';
@@ -143,7 +144,7 @@ class _SharedWithMeView extends StatelessWidget {
                 .read<ShareBloc>()
                 .add(const LoadSharedWithMe()),
             icon: const Icon(Icons.refresh),
-            label: const Text('Повторить'),
+            label: Text(AppLocalizations.of(context)!.retry),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1A73E8),
               foregroundColor: Colors.white,

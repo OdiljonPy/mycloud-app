@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SecureStorage {
@@ -18,7 +19,8 @@ class SecureStorage {
       return await _storage
           .read(key: key)
           .timeout(const Duration(seconds: 3), onTimeout: () => null);
-    } catch (_) {
+    } catch (e) {
+      if (kDebugMode) debugPrint('[SecureStorage] read($key) failed: $e');
       return null;
     }
   }
@@ -26,7 +28,9 @@ class SecureStorage {
   static Future<void> saveFullName(String name) async {
     try {
       await _storage.write(key: _fullNameKey, value: name);
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('[SecureStorage] saveFullName failed: $e');
+    }
   }
 
   static Future<String?> getFullName() async {

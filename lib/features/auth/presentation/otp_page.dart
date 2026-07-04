@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import '../data/auth_repository.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../home/presentation/main_page.dart';
-import 'package:cloud_app/features/sync/sync_providers.dart';
 
 class OtpPage extends StatefulWidget {
   final String phoneNumber;

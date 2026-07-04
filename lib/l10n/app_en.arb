@@ -290,5 +290,73 @@
     "placeholders": {
       "name": { "type": "String" }
     }
-  }
+  },
+  "filesAlreadyInFolder": "Files are already in this folder",
+  "folderEmpty": "Folder is empty",
+  "accessRevoked": "Access revoked",
+  "userNotFound": "User not found",
+
+  "paymentAndSubscription": "Payment & Subscription",
+  "cardDeleted": "Card deleted",
+  "cardSetAsDefault": "Card set as default",
+  "myCards": "My cards",
+  "addCard": "Add card",
+  "noCardsLinked": "No cards linked",
+  "noSubscription": "No subscription",
+  "currentPlan": "Current plan",
+  "changePlan": "Change plan",
+  "choosePlan": "Choose plan",
+  "storageUsed": "{used} used",
+  "@storageUsed": {
+    "placeholders": { "used": { "type": "String" } }
+  },
+  "subscriptionUntil": "Until: {date}",
+  "@subscriptionUntil": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "cardStatusActive": "Active",
+  "cardStatusPending": "Pending confirmation",
+  "cardStatusBlocked": "Blocked",
+  "cardDefaultLabel": "Default",
+  "setAsDefault": "Set as default",
+  "deleteCardTitle": "Delete card?",
+  "deleteCardMessage": "Card {number} will be deleted.",
+  "@deleteCardMessage": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "cardNumberLabel": "Card number",
+  "enterCardNumber": "Enter card number",
+  "cardNumber16Digits": "Card number must be 16 digits",
+  "expiryDate": "Expiry date",
+  "enterExpiryDate": "Enter expiry date",
+  "expiryDateFormat": "Format: MM/YY",
+  "invalidMonth": "Invalid month",
+  "validThruLabel": "VALID THRU",
+  "verifyCardTitle": "Card verification",
+  "enterSmsCode": "Enter SMS code",
+  "smsCodeSentFor": "Code sent to confirm card\n{number}",
+  "@smsCodeSentFor": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "cardAddedSuccess": "Card added successfully",
+  "confirmButton": "Confirm",
+  "plansTitle": "Plans",
+  "noPlans": "No plans available",
+  "confirmPurchaseTitle": "Confirm",
+  "confirmPurchaseMessage": "Subscribe to «{name}» for {price} UZS / {period}?",
+  "@confirmPurchaseMessage": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "price": { "type": "String" },
+      "period": { "type": "String" }
+    }
+  },
+  "updatePlan": "Subscribe",
+  "freeLabel": "Free",
+  "storageFeature": "{storage} Storage",
+  "@storageFeature": {
+    "placeholders": { "storage": { "type": "String" } }
+  },
+  "dataPreservedNote": "Your data will be preserved when upgrading.",
+  "unknownError": "Unknown error"
 }

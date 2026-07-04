@@ -610,7 +610,43 @@ class AppLocalizationsUz extends AppLocalizations {
   @override
   String get deleteAccountConfirmMessage => 'Hisobingizni o\'chirishni xohlaysizmi? Bu amalni qaytarib bo\'lmaydi.';
 
-  // ── Payment ──────────────────────────────────────────────────────────────
+  @override
+  String get storageSubtitle => 'Xotira foydalanishini kuzating va tarifingizni boshqaring.';
+
+  @override
+  String get activeSubscriptionDetails => 'Faol obuna tafsilotlari';
+
+  @override
+  String get planName => 'Tarif nomi';
+
+  @override
+  String get storageLimitLabel => 'Xotira limiti';
+
+  @override
+  String get available => 'Mavjud';
+
+  @override
+  String get billingMonthly => 'Oylik';
+
+  @override
+  String get billingYearly => 'Yillik';
+
+  @override
+  String upgradeToPlan(String name) {
+    return '$name ga o\'tish';
+  }
+
+  @override
+  String get filesAlreadyInFolder => 'Fayllar allaqachon shu papkada';
+
+  @override
+  String get folderEmpty => 'Papka bo\'sh';
+
+  @override
+  String get accessRevoked => 'Ruxsat bekor qilindi';
+
+  @override
+  String get userNotFound => 'Foydalanuvchi topilmadi';
 
   @override
   String get paymentAndSubscription => 'To\'lov va obuna';
@@ -643,10 +679,14 @@ class AppLocalizationsUz extends AppLocalizations {
   String get choosePlan => 'Tarif tanlash';
 
   @override
-  String storageUsed(String used) => '$used ishlatilgan';
+  String storageUsed(String used) {
+    return '$used ishlatilgan';
+  }
 
   @override
-  String subscriptionUntil(String date) => 'Gacha: $date';
+  String subscriptionUntil(String date) {
+    return 'Gacha: $date';
+  }
 
   @override
   String get cardStatusActive => 'Faol';
@@ -667,7 +707,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get deleteCardTitle => 'Kartani o\'chirish?';
 
   @override
-  String deleteCardMessage(String number) => '$number kartasi o\'chiriladi.';
+  String deleteCardMessage(String number) {
+    return '$number kartasi o\'chiriladi.';
+  }
 
   @override
   String get cardNumberLabel => 'Karta raqami';
@@ -700,8 +742,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get enterSmsCode => 'SMS kodni kiriting';
 
   @override
-  String smsCodeSentFor(String number) =>
-      '$number kartasini tasdiqlash uchun kod yuborildi';
+  String smsCodeSentFor(String number) {
+    return '$number kartasini tasdiqlash uchun kod yuborildi';
+  }
 
   @override
   String get cardAddedSuccess => 'Karta muvaffaqiyatli qo\'shildi';
@@ -719,8 +762,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get confirmPurchaseTitle => 'Tasdiqlash';
 
   @override
-  String confirmPurchaseMessage(String name, String price, String period) =>
-      '«$name» tarifini $price UZS / $period ga ulashni istaysizmi?';
+  String confirmPurchaseMessage(String name, String price, String period) {
+    return '«$name» tarifini $price UZS / $period ga ulashni istaysizmi?';
+  }
 
   @override
   String get updatePlan => 'Ulash';
@@ -729,36 +773,13 @@ class AppLocalizationsUz extends AppLocalizations {
   String get freeLabel => 'Bepul';
 
   @override
-  String storageFeature(String storage) => '$storage Xotira';
+  String storageFeature(String storage) {
+    return '$storage Xotira';
+  }
 
   @override
-  String get dataPreservedNote =>
-      'Tarif yangilanishida ma\'lumotlaringiz saqlanib qoladi.';
+  String get dataPreservedNote => 'Tarif yangilanishida ma\'lumotlaringiz saqlanib qoladi.';
 
   @override
   String get unknownError => 'Noma\'lum xato';
-
-  @override
-  String get storageSubtitle => 'Xotira foydalanishini kuzating va tarifingizni boshqaring.';
-
-  @override
-  String get activeSubscriptionDetails => 'Faol obuna tafsilotlari';
-
-  @override
-  String get planName => 'Tarif nomi';
-
-  @override
-  String get storageLimitLabel => 'Xotira limiti';
-
-  @override
-  String get available => 'Mavjud';
-
-  @override
-  String get billingMonthly => 'Oylik';
-
-  @override
-  String get billingYearly => 'Yillik';
-
-  @override
-  String upgradeToPlan(String name) => '$name ga o\'tish';
 }

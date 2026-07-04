@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cloud_app/l10n/app_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../data/models/share_models.dart';
 import '../data/remote/share_remote_data_source_impl.dart';
@@ -50,10 +51,10 @@ class _ShareRequestsViewState extends State<_ShareRequestsView> {
   void _copyLink(String link) {
     Clipboard.setData(ClipboardData(text: link));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Ссылка скопирована'),
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.linkCopied),
         backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
+        duration: const Duration(seconds: 2),
       ),
     );
   }

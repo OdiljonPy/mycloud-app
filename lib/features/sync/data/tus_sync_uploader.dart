@@ -36,7 +36,8 @@ class _SyncTusDiskStore extends TusStore {
       if (!await f.exists()) return null;
       final url = await f.readAsString();
       return Uri.tryParse(url);
-    } catch (_) {
+    } catch (e) {
+      if (kDebugMode) debugPrint('[TusUploader] disk store get failed: $e');
       return null;
     }
   }
@@ -45,7 +46,9 @@ class _SyncTusDiskStore extends TusStore {
   Future<void> set(String fingerprint, Uri url) async {
     try {
       await File(_keyFile(fingerprint)).writeAsString(url.toString());
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('[TusUploader] disk store set failed: $e');
+    }
   }
 
   @override
@@ -53,7 +56,9 @@ class _SyncTusDiskStore extends TusStore {
     try {
       final f = File(_keyFile(fingerprint));
       if (await f.exists()) await f.delete();
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('[TusUploader] disk store remove failed: $e');
+    }
   }
 }
 

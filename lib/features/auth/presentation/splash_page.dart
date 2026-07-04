@@ -4,7 +4,6 @@ import '../../../core/storage/secure_storage.dart';
 import '../../../core/services/app_initializer.dart';
 import '../../../core/services/language_notifier.dart';
 import 'login_page.dart';
-import 'register_page.dart';
 import '../../home/presentation/main_page.dart';
 
 // ─── Splash ──────────────────────────────────────────────────────────────────
@@ -318,7 +317,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   int _page = 0;
 
   static final _slides = [
-    _Slide(
+    const _Slide(
       icon: Icons.cloud_upload_rounded,
       titles: {
         'uz': 'Barcha fayllar bir joyda',
@@ -332,7 +331,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       },
       gradient: [Color(0xFF1A73E8), Color(0xFF0D47A1)],
     ),
-    _Slide(
+    const _Slide(
       icon: Icons.sync_rounded,
       titles: {
         'uz': 'Avtomatik sinxronizatsiya',
@@ -346,7 +345,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       },
       gradient: [Color(0xFF0D47A1), Color(0xFF1565C0)],
     ),
-    _Slide(
+    const _Slide(
       icon: Icons.lock_rounded,
       titles: {
         'uz': 'Xavfsiz va tez',
@@ -388,8 +387,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   Widget build(BuildContext context) {
     final lang = LanguageNotifier.instance.locale.languageCode;
-    final skipLabel = lang == 'uz' ? "O'tkazib yuborish" : lang == 'ru' ? 'Пропустить' : 'Skip';
-    final startLabel = lang == 'uz' ? 'Boshlash' : lang == 'ru' ? 'Начать' : 'Get Started';
     final slide = _slides[_page];
     return Scaffold(
       body: AnimatedContainer(

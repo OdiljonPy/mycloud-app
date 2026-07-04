@@ -59,8 +59,9 @@ class AuthRepository {
           ? me.data['result']
           : me.data;
       if (meData is Map) {
-        if (meData.containsKey('id'))
+        if (meData.containsKey('id')) {
           await SecureStorage.saveUserId(meData['id'].toString());
+        }
         final fullName = meData['full_name']?.toString();
         if (fullName != null) await SecureStorage.saveFullName(fullName);
       }
@@ -138,8 +139,9 @@ class AuthRepository {
             ? me.data['result']
             : me.data;
         if (meData is Map) {
-          if (meData.containsKey('id'))
+          if (meData.containsKey('id')) {
             await SecureStorage.saveUserId(meData['id'].toString());
+          }
           final fullName = meData['full_name']?.toString();
           if (fullName != null) await SecureStorage.saveFullName(fullName);
         }

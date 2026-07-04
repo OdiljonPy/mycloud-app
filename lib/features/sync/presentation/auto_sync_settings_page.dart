@@ -32,10 +32,12 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
 
   Future<void> _resetQueue() async {
     if (_isResetting) return;
-    if (mounted) setState(() {
+    if (mounted) {
+      setState(() {
       _paused = false;
       _isResetting = true;
     });
+    }
     try {
       final repo = ref.read(syncRepositoryProvider);
       await repo.stopSync();
@@ -86,8 +88,8 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
     final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
     final labelColor = isDark
-        ? const Color(0xFFEBEBF5).withOpacity(0.6)
-        : const Color(0xFF3C3C43).withOpacity(0.6);
+        ? const Color(0xFFEBEBF5).withValues(alpha: 0.6)
+        : const Color(0xFF3C3C43).withValues(alpha: 0.6);
     final separatorColor = isDark
         ? const Color(0xFF38383A)
         : const Color(0xFFE5E5EA);
@@ -404,7 +406,7 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
                 child: Switch.adaptive(
                   value: value,
                   onChanged: onChanged,
-                  activeColor: iosBlue,
+                  activeThumbColor: iosBlue,
                 ),
               ),
             ],

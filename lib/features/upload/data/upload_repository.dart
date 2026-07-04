@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'dart:io';
 import 'package:cross_file/cross_file.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mime/mime.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -27,7 +28,8 @@ class _TusDiskStore extends TusStore {
       if (!await f.exists()) return null;
       final url = await f.readAsString();
       return Uri.tryParse(url);
-    } catch (_) {
+    } catch (e) {
+      if (kDebugMode) debugPrint('[UploadRepo] disk store get failed: $e');
       return null;
     }
   }
@@ -36,7 +38,9 @@ class _TusDiskStore extends TusStore {
   Future<void> set(String fingerprint, Uri url) async {
     try {
       await File(_keyFile(fingerprint)).writeAsString(url.toString());
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('[UploadRepo] disk store set failed: $e');
+    }
   }
 
   @override
@@ -44,7 +48,9 @@ class _TusDiskStore extends TusStore {
     try {
       final f = File(_keyFile(fingerprint));
       if (await f.exists()) await f.delete();
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('[UploadRepo] disk store remove failed: $e');
+    }
   }
 }
 
@@ -97,13 +103,13 @@ class UploadRepository {
     void Function(String status)? onStatusChange,
   }) async {
     final token = await SecureStorage.getAccessToken();
-    if (token == null) throw AppException(message: 'No auth token');
+    if (token == null) throw const AppException(message: 'No auth token');
 
     final fileName = file.name;
     final mimeType = lookupMimeType(fileName) ?? 'application/octet-stream';
 
     if (!isAllowed(fileName)) {
-      throw AppException(message: 'Разрешены только фото и видео файлы');
+      throw const AppException(message: 'Разрешены только фото и видео файлы');
     }
 
     final metadata = {
@@ -176,7 +182,7 @@ class UploadRepository {
       }
     }
 
-    connectivitySub?.cancel();
+    connectivitySub.cancel();
   }
 
   // Ожидает восстановления сети

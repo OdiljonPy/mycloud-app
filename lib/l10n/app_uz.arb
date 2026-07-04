@@ -302,5 +302,73 @@
     "placeholders": {
       "name": { "type": "String" }
     }
-  }
+  },
+  "filesAlreadyInFolder": "Fayllar allaqachon shu papkada",
+  "folderEmpty": "Papka bo'sh",
+  "accessRevoked": "Ruxsat bekor qilindi",
+  "userNotFound": "Foydalanuvchi topilmadi",
+
+  "paymentAndSubscription": "To'lov va obuna",
+  "cardDeleted": "Karta o'chirildi",
+  "cardSetAsDefault": "Karta standart qilib belgilandi",
+  "myCards": "Mening kartalarim",
+  "addCard": "Karta qo'shish",
+  "noCardsLinked": "Kartalar biriktirilmagan",
+  "noSubscription": "Obuna yo'q",
+  "currentPlan": "Joriy tarif",
+  "changePlan": "Tarifni o'zgartirish",
+  "choosePlan": "Tarif tanlash",
+  "storageUsed": "{used} ishlatilgan",
+  "@storageUsed": {
+    "placeholders": { "used": { "type": "String" } }
+  },
+  "subscriptionUntil": "Gacha: {date}",
+  "@subscriptionUntil": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "cardStatusActive": "Faol",
+  "cardStatusPending": "Tasdiqlanishi kutilmoqda",
+  "cardStatusBlocked": "Bloklangan",
+  "cardDefaultLabel": "Standart",
+  "setAsDefault": "Standart qilish",
+  "deleteCardTitle": "Kartani o'chirish?",
+  "deleteCardMessage": "{number} kartasi o'chiriladi.",
+  "@deleteCardMessage": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "cardNumberLabel": "Karta raqami",
+  "enterCardNumber": "Karta raqamini kiriting",
+  "cardNumber16Digits": "Karta raqami — 16 ta raqam",
+  "expiryDate": "Amal qilish muddati",
+  "enterExpiryDate": "Amal qilish muddatini kiriting",
+  "expiryDateFormat": "Format: MM/YY",
+  "invalidMonth": "Noto'g'ri oy",
+  "validThruLabel": "AMAL QILISH MUDDATI",
+  "verifyCardTitle": "Kartani tasdiqlash",
+  "enterSmsCode": "SMS kodni kiriting",
+  "smsCodeSentFor": "{number} kartasini tasdiqlash uchun kod yuborildi",
+  "@smsCodeSentFor": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "cardAddedSuccess": "Karta muvaffaqiyatli qo'shildi",
+  "confirmButton": "Tasdiqlash",
+  "plansTitle": "Tariflar",
+  "noPlans": "Tariflar mavjud emas",
+  "confirmPurchaseTitle": "Tasdiqlash",
+  "confirmPurchaseMessage": "«{name}» tarifini {price} UZS / {period} ga ulashni istaysizmi?",
+  "@confirmPurchaseMessage": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "price": { "type": "String" },
+      "period": { "type": "String" }
+    }
+  },
+  "updatePlan": "Ulash",
+  "freeLabel": "Bepul",
+  "storageFeature": "{storage} Xotira",
+  "@storageFeature": {
+    "placeholders": { "storage": { "type": "String" } }
+  },
+  "dataPreservedNote": "Tarif yangilanishida ma'lumotlaringiz saqlanib qoladi.",
+  "unknownError": "Noma'lum xato"
 }

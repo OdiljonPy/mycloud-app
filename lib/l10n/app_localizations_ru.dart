@@ -610,7 +610,43 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get deleteAccountConfirmMessage => 'Вы уверены, что хотите удалить аккаунт? Это действие необратимо.';
 
-  // ── Payment ──────────────────────────────────────────────────────────────
+  @override
+  String get storageSubtitle => 'Отслеживайте использование хранилища и управляйте тарифом.';
+
+  @override
+  String get activeSubscriptionDetails => 'Детали вашей активной подписки';
+
+  @override
+  String get planName => 'Название тарифа';
+
+  @override
+  String get storageLimitLabel => 'Лимит хранилища';
+
+  @override
+  String get available => 'Доступно';
+
+  @override
+  String get billingMonthly => 'Ежемесячно';
+
+  @override
+  String get billingYearly => 'Ежегодно';
+
+  @override
+  String upgradeToPlan(String name) {
+    return 'Улучшить до $name';
+  }
+
+  @override
+  String get filesAlreadyInFolder => 'Файлы уже находятся в этой папке';
+
+  @override
+  String get folderEmpty => 'Папка пуста';
+
+  @override
+  String get accessRevoked => 'Доступ отозван';
+
+  @override
+  String get userNotFound => 'Пользователь не найден';
 
   @override
   String get paymentAndSubscription => 'Подписка и оплата';
@@ -643,10 +679,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get choosePlan => 'Выбрать тариф';
 
   @override
-  String storageUsed(String used) => '$used использовано';
+  String storageUsed(String used) {
+    return '$used использовано';
+  }
 
   @override
-  String subscriptionUntil(String date) => 'До: $date';
+  String subscriptionUntil(String date) {
+    return 'До: $date';
+  }
 
   @override
   String get cardStatusActive => 'Активна';
@@ -667,7 +707,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get deleteCardTitle => 'Удалить карту?';
 
   @override
-  String deleteCardMessage(String number) => 'Карта $number будет удалена.';
+  String deleteCardMessage(String number) {
+    return 'Карта $number будет удалена.';
+  }
 
   @override
   String get cardNumberLabel => 'Номер карты';
@@ -700,8 +742,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get enterSmsCode => 'Введите SMS-код';
 
   @override
-  String smsCodeSentFor(String number) =>
-      'Код отправлен для подтверждения карты\n$number';
+  String smsCodeSentFor(String number) {
+    return 'Код отправлен для подтверждения карты\n$number';
+  }
 
   @override
   String get cardAddedSuccess => 'Карта успешно добавлена';
@@ -719,8 +762,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get confirmPurchaseTitle => 'Подтверждение';
 
   @override
-  String confirmPurchaseMessage(String name, String price, String period) =>
-      'Подключить тариф «$name» за $price UZS / $period?';
+  String confirmPurchaseMessage(String name, String price, String period) {
+    return 'Подключить тариф «$name» за $price UZS / $period?';
+  }
 
   @override
   String get updatePlan => 'Обновить';
@@ -729,36 +773,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get freeLabel => 'Бесплатно';
 
   @override
-  String storageFeature(String storage) => '$storage Памяти';
+  String storageFeature(String storage) {
+    return '$storage Памяти';
+  }
 
   @override
-  String get dataPreservedNote =>
-      'Ваши данные сохранятся при обновлении тарифа.';
+  String get dataPreservedNote => 'Ваши данные сохранятся при обновлении тарифа.';
 
   @override
   String get unknownError => 'Неизвестная ошибка';
-
-  @override
-  String get storageSubtitle => 'Отслеживайте использование хранилища и управляйте тарифом.';
-
-  @override
-  String get activeSubscriptionDetails => 'Детали вашей активной подписки';
-
-  @override
-  String get planName => 'Название тарифа';
-
-  @override
-  String get storageLimitLabel => 'Лимит хранилища';
-
-  @override
-  String get available => 'Доступно';
-
-  @override
-  String get billingMonthly => 'Ежемесячно';
-
-  @override
-  String get billingYearly => 'Ежегодно';
-
-  @override
-  String upgradeToPlan(String name) => 'Улучшить до $name';
 }

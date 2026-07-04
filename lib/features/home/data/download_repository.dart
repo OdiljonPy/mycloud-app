@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../core/config/app_config.dart';
@@ -60,7 +61,9 @@ class DownloadRepository {
         try {
           const channel = MethodChannel('flutter/media_scanner');
           await channel.invokeMethod('scanFile', savePath);
-        } catch (_) {}
+        } catch (e) {
+          if (kDebugMode) debugPrint('[Download] MediaStore scan failed: $e');
+        }
       }
     } on DioException catch (e) {
       throw AppException(

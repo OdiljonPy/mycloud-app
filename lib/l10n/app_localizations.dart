@@ -1249,57 +1249,323 @@ abstract class AppLocalizations {
   /// **'Are you sure you want to delete your account? This action is irreversible.'**
   String get deleteAccountConfirmMessage;
 
-  // ── Payment ──────────────────────────────────────────────────────────────
-
-  String get paymentAndSubscription;
-  String get cardDeleted;
-  String get cardSetAsDefault;
-  String get myCards;
-  String get addCard;
-  String get noCardsLinked;
-  String get noSubscription;
-  String get currentPlan;
-  String get changePlan;
-  String get choosePlan;
-  String storageUsed(String used);
-  String subscriptionUntil(String date);
-  String get cardStatusActive;
-  String get cardStatusPending;
-  String get cardStatusBlocked;
-  String get cardDefaultLabel;
-  String get setAsDefault;
-  String get deleteCardTitle;
-  String deleteCardMessage(String number);
-  String get cardNumberLabel;
-  String get enterCardNumber;
-  String get cardNumber16Digits;
-  String get expiryDate;
-  String get enterExpiryDate;
-  String get expiryDateFormat;
-  String get invalidMonth;
-  String get validThruLabel;
-  String get verifyCardTitle;
-  String get enterSmsCode;
-  String smsCodeSentFor(String number);
-  String get cardAddedSuccess;
-  String get confirmButton;
-  String get plansTitle;
-  String get noPlans;
-  String get confirmPurchaseTitle;
-  String confirmPurchaseMessage(String name, String price, String period);
-  String get updatePlan;
-  String get freeLabel;
-  String storageFeature(String storage);
-  String get dataPreservedNote;
-  String get unknownError;
+  /// No description provided for @storageSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Track your storage usage and manage your plan.'**
   String get storageSubtitle;
+
+  /// No description provided for @activeSubscriptionDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Active subscription details'**
   String get activeSubscriptionDetails;
+
+  /// No description provided for @planName.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan name'**
   String get planName;
+
+  /// No description provided for @storageLimitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage limit'**
   String get storageLimitLabel;
+
+  /// No description provided for @available.
+  ///
+  /// In en, this message translates to:
+  /// **'Available'**
   String get available;
+
+  /// No description provided for @billingMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly'**
   String get billingMonthly;
+
+  /// No description provided for @billingYearly.
+  ///
+  /// In en, this message translates to:
+  /// **'Yearly'**
   String get billingYearly;
+
+  /// No description provided for @upgradeToPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade to {name}'**
   String upgradeToPlan(String name);
+
+  /// No description provided for @filesAlreadyInFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Files are already in this folder'**
+  String get filesAlreadyInFolder;
+
+  /// No description provided for @folderEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder is empty'**
+  String get folderEmpty;
+
+  /// No description provided for @accessRevoked.
+  ///
+  /// In en, this message translates to:
+  /// **'Access revoked'**
+  String get accessRevoked;
+
+  /// No description provided for @userNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'User not found'**
+  String get userNotFound;
+
+  /// No description provided for @paymentAndSubscription.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment & Subscription'**
+  String get paymentAndSubscription;
+
+  /// No description provided for @cardDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Card deleted'**
+  String get cardDeleted;
+
+  /// No description provided for @cardSetAsDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Card set as default'**
+  String get cardSetAsDefault;
+
+  /// No description provided for @myCards.
+  ///
+  /// In en, this message translates to:
+  /// **'My cards'**
+  String get myCards;
+
+  /// No description provided for @addCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Add card'**
+  String get addCard;
+
+  /// No description provided for @noCardsLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'No cards linked'**
+  String get noCardsLinked;
+
+  /// No description provided for @noSubscription.
+  ///
+  /// In en, this message translates to:
+  /// **'No subscription'**
+  String get noSubscription;
+
+  /// No description provided for @currentPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Current plan'**
+  String get currentPlan;
+
+  /// No description provided for @changePlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Change plan'**
+  String get changePlan;
+
+  /// No description provided for @choosePlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose plan'**
+  String get choosePlan;
+
+  /// No description provided for @storageUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} used'**
+  String storageUsed(String used);
+
+  /// No description provided for @subscriptionUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Until: {date}'**
+  String subscriptionUntil(String date);
+
+  /// No description provided for @cardStatusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get cardStatusActive;
+
+  /// No description provided for @cardStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending confirmation'**
+  String get cardStatusPending;
+
+  /// No description provided for @cardStatusBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked'**
+  String get cardStatusBlocked;
+
+  /// No description provided for @cardDefaultLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get cardDefaultLabel;
+
+  /// No description provided for @setAsDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Set as default'**
+  String get setAsDefault;
+
+  /// No description provided for @deleteCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete card?'**
+  String get deleteCardTitle;
+
+  /// No description provided for @deleteCardMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Card {number} will be deleted.'**
+  String deleteCardMessage(String number);
+
+  /// No description provided for @cardNumberLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Card number'**
+  String get cardNumberLabel;
+
+  /// No description provided for @enterCardNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter card number'**
+  String get enterCardNumber;
+
+  /// No description provided for @cardNumber16Digits.
+  ///
+  /// In en, this message translates to:
+  /// **'Card number must be 16 digits'**
+  String get cardNumber16Digits;
+
+  /// No description provided for @expiryDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Expiry date'**
+  String get expiryDate;
+
+  /// No description provided for @enterExpiryDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter expiry date'**
+  String get enterExpiryDate;
+
+  /// No description provided for @expiryDateFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Format: MM/YY'**
+  String get expiryDateFormat;
+
+  /// No description provided for @invalidMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid month'**
+  String get invalidMonth;
+
+  /// No description provided for @validThruLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'VALID THRU'**
+  String get validThruLabel;
+
+  /// No description provided for @verifyCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Card verification'**
+  String get verifyCardTitle;
+
+  /// No description provided for @enterSmsCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter SMS code'**
+  String get enterSmsCode;
+
+  /// No description provided for @smsCodeSentFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Code sent to confirm card\n{number}'**
+  String smsCodeSentFor(String number);
+
+  /// No description provided for @cardAddedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Card added successfully'**
+  String get cardAddedSuccess;
+
+  /// No description provided for @confirmButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get confirmButton;
+
+  /// No description provided for @plansTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Plans'**
+  String get plansTitle;
+
+  /// No description provided for @noPlans.
+  ///
+  /// In en, this message translates to:
+  /// **'No plans available'**
+  String get noPlans;
+
+  /// No description provided for @confirmPurchaseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get confirmPurchaseTitle;
+
+  /// No description provided for @confirmPurchaseMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscribe to «{name}» for {price} UZS / {period}?'**
+  String confirmPurchaseMessage(String name, String price, String period);
+
+  /// No description provided for @updatePlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscribe'**
+  String get updatePlan;
+
+  /// No description provided for @freeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Free'**
+  String get freeLabel;
+
+  /// No description provided for @storageFeature.
+  ///
+  /// In en, this message translates to:
+  /// **'{storage} Storage'**
+  String storageFeature(String storage);
+
+  /// No description provided for @dataPreservedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data will be preserved when upgrading.'**
+  String get dataPreservedNote;
+
+  /// No description provided for @unknownError.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown error'**
+  String get unknownError;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

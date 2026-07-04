@@ -5,7 +5,6 @@ import '../../../core/utils/uzbek_phone_formatter.dart';
 import '../../home/presentation/main_page.dart';
 import 'forgot_password_page.dart';
 import 'register_page.dart';
-import 'package:cloud_app/features/sync/sync_providers.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -92,10 +91,8 @@ class _LoginPageState extends State<LoginPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // iOS HIG ranglar
-    final bgColor = isDark ? const Color(0xFF000000) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
     final subtitleColor = isDark ? const Color(0xFF98989D) : const Color(0xFF8E8E93);
-    final inputFillColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF5F7FA);
     final hintColor = isDark ? const Color(0xFF636366) : const Color(0xFFC7C7CC);
     final accentColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF1A73E8);
     final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);

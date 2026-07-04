@@ -298,5 +298,73 @@
     "placeholders": {
       "name": { "type": "String" }
     }
-  }
+  },
+  "filesAlreadyInFolder": "Файлы уже находятся в этой папке",
+  "folderEmpty": "Папка пуста",
+  "accessRevoked": "Доступ отозван",
+  "userNotFound": "Пользователь не найден",
+
+  "paymentAndSubscription": "Подписка и оплата",
+  "cardDeleted": "Карта удалена",
+  "cardSetAsDefault": "Карта установлена по умолчанию",
+  "myCards": "Мои карты",
+  "addCard": "Добавить карту",
+  "noCardsLinked": "Карты не привязаны",
+  "noSubscription": "Без подписки",
+  "currentPlan": "Текущий тариф",
+  "changePlan": "Изменить тариф",
+  "choosePlan": "Выбрать тариф",
+  "storageUsed": "{used} использовано",
+  "@storageUsed": {
+    "placeholders": { "used": { "type": "String" } }
+  },
+  "subscriptionUntil": "До: {date}",
+  "@subscriptionUntil": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "cardStatusActive": "Активна",
+  "cardStatusPending": "Ожидает подтверждения",
+  "cardStatusBlocked": "Заблокирована",
+  "cardDefaultLabel": "По умолчанию",
+  "setAsDefault": "По умолчанию",
+  "deleteCardTitle": "Удалить карту?",
+  "deleteCardMessage": "Карта {number} будет удалена.",
+  "@deleteCardMessage": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "cardNumberLabel": "Номер карты",
+  "enterCardNumber": "Введите номер карты",
+  "cardNumber16Digits": "Номер карты — 16 цифр",
+  "expiryDate": "Срок действия",
+  "enterExpiryDate": "Введите срок действия",
+  "expiryDateFormat": "Формат: MM/YY",
+  "invalidMonth": "Неверный месяц",
+  "validThruLabel": "ДЕЙСТВУЕТ ДО",
+  "verifyCardTitle": "Подтверждение карты",
+  "enterSmsCode": "Введите SMS-код",
+  "smsCodeSentFor": "Код отправлен для подтверждения карты\n{number}",
+  "@smsCodeSentFor": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "cardAddedSuccess": "Карта успешно добавлена",
+  "confirmButton": "Подтвердить",
+  "plansTitle": "Тарифы",
+  "noPlans": "Нет тарифов",
+  "confirmPurchaseTitle": "Подтверждение",
+  "confirmPurchaseMessage": "Подключить тариф «{name}» за {price} UZS / {period}?",
+  "@confirmPurchaseMessage": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "price": { "type": "String" },
+      "period": { "type": "String" }
+    }
+  },
+  "updatePlan": "Обновить",
+  "freeLabel": "Бесплатно",
+  "storageFeature": "{storage} Памяти",
+  "@storageFeature": {
+    "placeholders": { "storage": { "type": "String" } }
+  },
+  "dataPreservedNote": "Ваши данные сохранятся при обновлении тарифа.",
+  "unknownError": "Неизвестная ошибка"
 }

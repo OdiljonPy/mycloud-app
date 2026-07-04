@@ -610,7 +610,43 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get deleteAccountConfirmMessage => 'Are you sure you want to delete your account? This action is irreversible.';
 
-  // ── Payment ──────────────────────────────────────────────────────────────
+  @override
+  String get storageSubtitle => 'Track your storage usage and manage your plan.';
+
+  @override
+  String get activeSubscriptionDetails => 'Active subscription details';
+
+  @override
+  String get planName => 'Plan name';
+
+  @override
+  String get storageLimitLabel => 'Storage limit';
+
+  @override
+  String get available => 'Available';
+
+  @override
+  String get billingMonthly => 'Monthly';
+
+  @override
+  String get billingYearly => 'Yearly';
+
+  @override
+  String upgradeToPlan(String name) {
+    return 'Upgrade to $name';
+  }
+
+  @override
+  String get filesAlreadyInFolder => 'Files are already in this folder';
+
+  @override
+  String get folderEmpty => 'Folder is empty';
+
+  @override
+  String get accessRevoked => 'Access revoked';
+
+  @override
+  String get userNotFound => 'User not found';
 
   @override
   String get paymentAndSubscription => 'Payment & Subscription';
@@ -643,10 +679,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get choosePlan => 'Choose plan';
 
   @override
-  String storageUsed(String used) => '$used used';
+  String storageUsed(String used) {
+    return '$used used';
+  }
 
   @override
-  String subscriptionUntil(String date) => 'Until: $date';
+  String subscriptionUntil(String date) {
+    return 'Until: $date';
+  }
 
   @override
   String get cardStatusActive => 'Active';
@@ -667,7 +707,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteCardTitle => 'Delete card?';
 
   @override
-  String deleteCardMessage(String number) => 'Card $number will be deleted.';
+  String deleteCardMessage(String number) {
+    return 'Card $number will be deleted.';
+  }
 
   @override
   String get cardNumberLabel => 'Card number';
@@ -700,8 +742,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enterSmsCode => 'Enter SMS code';
 
   @override
-  String smsCodeSentFor(String number) =>
-      'Code sent to confirm card\n$number';
+  String smsCodeSentFor(String number) {
+    return 'Code sent to confirm card\n$number';
+  }
 
   @override
   String get cardAddedSuccess => 'Card added successfully';
@@ -719,8 +762,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirmPurchaseTitle => 'Confirm';
 
   @override
-  String confirmPurchaseMessage(String name, String price, String period) =>
-      'Subscribe to «$name» for $price UZS / $period?';
+  String confirmPurchaseMessage(String name, String price, String period) {
+    return 'Subscribe to «$name» for $price UZS / $period?';
+  }
 
   @override
   String get updatePlan => 'Subscribe';
@@ -729,36 +773,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get freeLabel => 'Free';
 
   @override
-  String storageFeature(String storage) => '$storage Storage';
+  String storageFeature(String storage) {
+    return '$storage Storage';
+  }
 
   @override
-  String get dataPreservedNote =>
-      'Your data will be preserved when upgrading.';
+  String get dataPreservedNote => 'Your data will be preserved when upgrading.';
 
   @override
   String get unknownError => 'Unknown error';
-
-  @override
-  String get storageSubtitle => 'Track your storage usage and manage your plan.';
-
-  @override
-  String get activeSubscriptionDetails => 'Active subscription details';
-
-  @override
-  String get planName => 'Plan name';
-
-  @override
-  String get storageLimitLabel => 'Storage limit';
-
-  @override
-  String get available => 'Available';
-
-  @override
-  String get billingMonthly => 'Monthly';
-
-  @override
-  String get billingYearly => 'Yearly';
-
-  @override
-  String upgradeToPlan(String name) => 'Upgrade to $name';
 }

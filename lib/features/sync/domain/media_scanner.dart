@@ -121,7 +121,11 @@ class MediaScanner {
                     realSize = await file.length();
                     resolvedPath = file.path;
                   }
-                } catch (_) {}
+                } catch (e) {
+                  if (kDebugMode) {
+                    debugPrint('[MediaScanner] originFile resolve failed for ${asset.id}: $e');
+                  }
+                }
               }
 
               // Skip if already in local DB

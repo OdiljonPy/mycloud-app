@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/network/dio_client.dart';
@@ -669,7 +670,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       radius: 48,
                       backgroundColor: Colors.grey[300],
                       backgroundImage: _avatarUrl != null
-                          ? NetworkImage(_avatarUrl!)
+                          ? CachedNetworkImageProvider(_avatarUrl!)
                           : null,
                       child: _avatarUrl == null
                           ? const Icon(Icons.person,

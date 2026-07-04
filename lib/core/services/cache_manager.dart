@@ -326,7 +326,9 @@ class CacheManager {
         try {
           final file = File(diskPath);
           if (file.existsSync()) await file.delete();
-        } catch (_) {}
+        } catch (e) {
+          if (kDebugMode) debugPrint('[CacheManager] purge file delete failed: $e');
+        }
 
         bytesToFree -= size;
       }
