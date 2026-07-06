@@ -58,41 +58,16 @@ class UploadRepository {
   // Задержка перед возобновлением после восстановления сети
   static int resumeDelaySeconds = 3;
 
+  static const _knownMediaExtensions = {'cr2', 'nef', 'arw', 'ts', 'mts'};
+
   static bool isAllowed(String fileName) {
     final mime = lookupMimeType(fileName) ?? '';
+    if (mime.isEmpty) {
+      final ext = fileName.split('.').last.toLowerCase();
+      return _knownMediaExtensions.contains(ext);
+    }
     return mime.startsWith('image/') || mime.startsWith('video/');
   }
-
-  static const List<String> allowedExtensions = [
-    'jpg',
-    'jpeg',
-    'png',
-    'gif',
-    'webp',
-    'heic',
-    'heif',
-    'bmp',
-    'tiff',
-    'tif',
-    'svg',
-    'ico',
-    'cr2',
-    'nef',
-    'arw',
-    'mp4',
-    'mov',
-    'avi',
-    'mkv',
-    'wmv',
-    'flv',
-    'webm',
-    'm4v',
-    '3gp',
-    'mpeg',
-    'mpg',
-    'ts',
-    'mts',
-  ];
 
   Future<void> uploadFile({
     required XFile file,

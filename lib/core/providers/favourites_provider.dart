@@ -58,6 +58,13 @@ class FavouritesProvider extends ChangeNotifier {
     }
   }
 
+  void renameFile(String fileId, String newName) {
+    final idx = _favouriteFiles.indexWhere((f) => f.id == fileId);
+    if (idx == -1) return;
+    _favouriteFiles[idx] = _favouriteFiles[idx].copyWith(name: newName);
+    notifyListeners();
+  }
+
   Future<void> toggleFavourite(FileModel file) async {
     final bool wasFav = _favouriteIds.contains(file.id);
 

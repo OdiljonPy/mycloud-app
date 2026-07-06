@@ -665,7 +665,8 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
                   children: [
                     CircleAvatar(
                       radius: 48,
-                      backgroundColor: Colors.grey[300],
+                      backgroundColor:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                       backgroundImage: _avatarUrl != null
                           ? CachedNetworkImageProvider(_avatarUrl!)
                           : null,

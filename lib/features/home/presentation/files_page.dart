@@ -54,6 +54,14 @@ class FilesPageState extends State<FilesPage> {
   final Map<String, int> _downloadReceivedBytes = {};
 
   final List<({String id, String name, bool isSync})> _breadcrumb = [];
+  final List<({String id, String name, bool isSync})> _savedBreadcrumb = [];
+  // Snapshot of the folder view we were in before entering favourites —
+  // lets "back" pop to it from memory instead of re-fetching the root.
+  List<FileModel>? _savedFiles;
+  List<FolderModel>? _savedFolders;
+  int? _savedPage;
+  bool? _savedHasNextPage;
+  int? _savedTotalFilesCount;
 
   bool _showFavourites = false;
   _FilterType _activeFilter = _FilterType.all;
@@ -281,7 +289,7 @@ class FilesPageState extends State<FilesPage> {
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
-      if (!_isLoadingMore && _hasNextPage) _loadMoreContent();
+      if (!_isLoadingMore && _hasNextPage && !_showFavourites) _loadMoreContent();
     }
   }
 
@@ -400,7 +408,8 @@ class FilesPageState extends State<FilesPage> {
   }
 
   Future<void> _loadMoreContent() async {
-    if (!mounted || _isLoadingMore || !_hasNextPage) return;
+    // Favourites has no server-side pagination — never request a "next page".
+    if (!mounted || _isLoadingMore || !_hasNextPage || _showFavourites) return;
     setState(() => _isLoadingMore = true);
     try {
       final result = await _repo.getContent(
@@ -418,11 +427,19 @@ class FilesPageState extends State<FilesPage> {
 
     } on AppException catch (e) {
       if (!mounted) return;
+      // 404 here means "no more pages" — not a real error, don't alarm the user.
+      if (e.statusCode == 404) {
+        setState(() {
+          _isLoadingMore = false;
+          _hasNextPage = false;
+        });
+        return;
+      }
       setState(() => _isLoadingMore = false);
       final t = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.message),
+          content: Text(t.genericErrorFallback),
           action: SnackBarAction(label: t.retry, onPressed: _loadMoreContent),
         ),
       );
@@ -442,6 +459,14 @@ class FilesPageState extends State<FilesPage> {
   void reloadContent() => _loadContent();
 
   bool handleBackNavigation() {
+    if (_showFavourites) {
+      bool needsReload = false;
+      setState(() {
+        needsReload = _exitFavourites(restore: true);
+      });
+      if (needsReload) _loadContent();
+      return true;
+    }
     if (_breadcrumb.isNotEmpty) {
       setState(() {
         _breadcrumb.removeLast();
@@ -546,6 +571,52 @@ class FilesPageState extends State<FilesPage> {
       widget.onFolderChanged?.call(_breadcrumb[index].id);
     }
     _loadContent();
+  }
+
+  /// Snapshots the current folder view before switching to favourites, so
+  /// leaving favourites can restore it from memory (browser-back semantics).
+  void _enterFavourites() {
+    _savedBreadcrumb
+      ..clear()
+      ..addAll(_breadcrumb);
+    _savedFiles = List.of(_files);
+    _savedFolders = List.of(_folders);
+    _savedPage = _currentPage;
+    _savedHasNextPage = _hasNextPage;
+    _savedTotalFilesCount = _totalFilesCount;
+    _breadcrumb.clear();
+    _showFavourites = true;
+    _activeFilter = _FilterType.all;
+  }
+
+  /// Leaves favourites. If [restore] is true and a snapshot exists, pops
+  /// back to the pre-favourites folder view without refetching. Otherwise
+  /// (explicit "home" navigation, or no snapshot to restore) resets to root
+  /// and returns true so the caller knows it must call [_loadContent].
+  bool _exitFavourites({required bool restore}) {
+    final canRestore = restore && _savedFiles != null;
+    if (canRestore) {
+      _breadcrumb
+        ..clear()
+        ..addAll(_savedBreadcrumb);
+      _files = _savedFiles!;
+      _folders = _savedFolders!;
+      _currentPage = _savedPage!;
+      _hasNextPage = _savedHasNextPage!;
+      _totalFilesCount = _savedTotalFilesCount ?? _files.length;
+    } else {
+      _breadcrumb.clear();
+      _folderPage = 0;
+    }
+    _savedBreadcrumb.clear();
+    _savedFiles = null;
+    _savedFolders = null;
+    _savedPage = null;
+    _savedHasNextPage = null;
+    _savedTotalFilesCount = null;
+    _showFavourites = false;
+    _activeFilter = _FilterType.all;
+    return !canRestore;
   }
 
   void _showFilterSheet() {
@@ -900,7 +971,14 @@ class FilesPageState extends State<FilesPage> {
                             await _repo.renameItem(
                                 type: 'folder', id: folder.id, name: newName);
                             if (!mounted) return;
-                            _loadContent();
+                            setState(() {
+                              final idx = _folders
+                                  .indexWhere((f) => f.id == folder.id);
+                              if (idx != -1) {
+                                _folders[idx] =
+                                    _folders[idx].copyWith(name: newName);
+                              }
+                            });
                           } on AppException catch (e) {
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -1155,7 +1233,15 @@ class FilesPageState extends State<FilesPage> {
                           await _repo.renameItem(
                               type: 'file', id: file.id, name: newName);
                           if (!mounted) return;
-                          _loadContent();
+                          setState(() {
+                            final idx =
+                                _files.indexWhere((f) => f.id == file.id);
+                            if (idx != -1) {
+                              _files[idx] = _files[idx].copyWith(name: newName);
+                            }
+                          });
+                          FavouritesProvider.instance
+                              .renameFile(file.id, newName);
                         } on AppException catch (e) {
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -1355,9 +1441,18 @@ class FilesPageState extends State<FilesPage> {
       listenable: FavouritesProvider.instance,
       builder: (context, _) {
         return PopScope(
-          canPop: _breadcrumb.isEmpty,
+          canPop: _breadcrumb.isEmpty && !_showFavourites,
           onPopInvokedWithResult: (didPop, _) {
-            if (!didPop && _breadcrumb.isNotEmpty) {
+            if (didPop) return;
+            if (_showFavourites) {
+              bool needsReload = false;
+              setState(() {
+                needsReload = _exitFavourites(restore: true);
+              });
+              if (needsReload) _loadContent();
+              return;
+            }
+            if (_breadcrumb.isNotEmpty) {
               setState(() {
                 _breadcrumb.removeLast();
                 _folderPage = 0;
@@ -1755,10 +1850,17 @@ class FilesPageState extends State<FilesPage> {
                 : Icons.star_border_rounded,
             color: _showFavourites ? Colors.amber : cs.onSurface,
           ),
-          onPressed: () => setState(() {
-            _showFavourites = !_showFavourites;
-            _activeFilter = _FilterType.all;
-          }),
+          onPressed: () {
+            bool needsReload = false;
+            setState(() {
+              if (_showFavourites) {
+                needsReload = _exitFavourites(restore: true);
+              } else {
+                _enterFavourites();
+              }
+            });
+            if (needsReload) _loadContent();
+          },
           tooltip: t.favourites,
         ),
         IconButton(
@@ -1787,11 +1889,20 @@ class FilesPageState extends State<FilesPage> {
           children: [
             GestureDetector(
               onTap: () {
-                _navigateTo(-1);
+                final needsReload = _showFavourites || _breadcrumb.isNotEmpty;
                 setState(() {
-                  _showFavourites = false;
-                  _activeFilter = _FilterType.all;
+                  if (_showFavourites) {
+                    _exitFavourites(restore: false);
+                  } else {
+                    _breadcrumb.clear();
+                    _folderPage = 0;
+                    _activeFilter = _FilterType.all;
+                  }
                 });
+                if (needsReload) {
+                  widget.onFolderChanged?.call(null);
+                  _loadContent();
+                }
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -1955,8 +2066,8 @@ class FilesPageState extends State<FilesPage> {
     // ── Header & folders section (non-virtualized, small content) ──
     final headerChildren = <Widget>[];
 
-    // ── Sync folder info banner ──
-    if (_isSyncFolder) {
+    // ── Sync folder info banner ── (not relevant while showing favourites)
+    if (_isSyncFolder && !_showFavourites) {
       headerChildren.add(Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -2180,7 +2291,9 @@ class FilesPageState extends State<FilesPage> {
           );
         }),
       ));
-    } else if (_isLoadingMore) {
+    } else if (_isGrid && !_showFavourites && _isLoadingMore) {
+      // List sliver already renders its own single trailing spinner —
+      // this fallback only covers the grid layout, which has none.
       slivers.add(const SliverToBoxAdapter(
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 20),
@@ -2299,8 +2412,10 @@ class FilesPageState extends State<FilesPage> {
     // Snapshot once — the _displayFiles getter copies the list on every
     // call, which is O(n²) when accessed per item in the delegate
     final files = _displayFiles;
+    // Favourites has no pagination of its own — never show/trigger it here.
+    final hasNextPage = _hasNextPage && !_showFavourites;
     // Index-based pagination: show loading indicator as last item
-    final itemCount = files.length + (_hasNextPage ? 1 : 0);
+    final itemCount = files.length + (hasNextPage ? 1 : 0);
 
     return SliverList(
       delegate: SliverChildBuilderDelegate(
@@ -2308,9 +2423,11 @@ class FilesPageState extends State<FilesPage> {
           // Loading indicator at the end
           if (i == files.length) {
             // Trigger loading more when reaching the last item
-            if (_hasNextPage && !_isLoadingMore) {
+            if (hasNextPage && !_isLoadingMore) {
               Future.microtask(() => _loadMoreContent());
             }
+            // Single pagination spinner — only while an actual fetch is in flight.
+            if (!_isLoadingMore) return const SizedBox.shrink();
             return const Center(
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 20),

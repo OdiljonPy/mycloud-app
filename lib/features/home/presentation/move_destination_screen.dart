@@ -135,12 +135,15 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
         appBar: AppBar(
           title: Text(
             AppLocalizations.of(context)!.chooseFolderTitle,
-            style: const TextStyle(color: Colors.black87, fontSize: 18),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontSize: 18,
+            ),
           ),
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           elevation: 1,
           leading: IconButton(
-            icon: const Icon(Icons.close, color: Colors.black87),
+            icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onSurface),
             onPressed: () => Navigator.pop(context, false),
           ),
           actions: [
@@ -155,7 +158,7 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
         body: Column(
           children: [
             _buildBreadcrumbs(),
-            const Divider(height: 1, thickness: 1),
+            Divider(height: 1, thickness: 1, color: Theme.of(context).dividerColor),
             Expanded(child: _buildBody()),
           ],
         ),
@@ -255,7 +258,9 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
             folder.name,
             style: TextStyle(
               fontWeight: FontWeight.w500,
-              color: isDisabled ? Colors.grey : Colors.black87,
+              color: isDisabled
+                  ? Theme.of(context).disabledColor
+                  : Theme.of(context).colorScheme.onSurface,
             ),
           ),
           trailing: const Icon(Icons.chevron_right, color: Colors.grey),
@@ -290,7 +295,9 @@ class _BreadcrumbItem extends StatelessWidget {
             style: TextStyle(
               fontSize: 15,
               fontWeight: isLast ? FontWeight.w600 : FontWeight.w500,
-              color: isLast ? Colors.black87 : Colors.blue,
+              color: isLast
+                  ? Theme.of(context).colorScheme.onSurface
+                  : Colors.blue,
             ),
           ),
         ),

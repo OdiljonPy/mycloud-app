@@ -321,11 +321,14 @@ class _SharedPageState extends State<SharedPage> {
   }
 
   Widget _buildByMeSubTabs(AppLocalizations t) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: Container(
         padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(color: const Color(0xFFF0F0F0), borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF21262D) : const Color(0xFFF0F0F0),
+            borderRadius: BorderRadius.circular(12)),
         child: Row(children: [
           _subTabButton(t.usersTab, 0),
           const SizedBox(width: 3),

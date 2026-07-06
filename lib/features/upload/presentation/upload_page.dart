@@ -60,21 +60,33 @@ class _UploadPageState extends State<UploadPage> {
 
   Future<void> _loadInitialFiles() async {
     if (widget.initialFiles == null) return;
+    bool anyRejected = false;
     setState(() {
       _allDone = false;
       for (final f in widget.initialFiles!) {
         if (f.path == null) continue;
         if (_queue.length >= _maxFiles) break;
-        if (!UploadRepository.isAllowed(f.name)) continue;
+        if (!UploadRepository.isAllowed(f.name)) {
+          anyRejected = true;
+          continue;
+        }
         final alreadyAdded = _queue.any((q) => q.name == f.name);
         if (!alreadyAdded) {
           _queue.add(_FileItem(file: XFile(f.path!), name: f.name));
         }
       }
     });
+    if (anyRejected) _showUnsupportedFileSnackBar();
     if (_queue.isNotEmpty) {
       await _startUploadAll();
     }
+  }
+
+  void _showUnsupportedFileSnackBar() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context)!.photosAndVideosOnly)),
+    );
   }
 
   Future<void> _pickFiles() async {
@@ -85,17 +97,22 @@ class _UploadPageState extends State<UploadPage> {
 
     if (selected.isEmpty) return;
 
+    bool anyRejected = false;
     setState(() {
       _allDone = false;
       for (final xFile in selected) {
         if (_queue.length >= _maxFiles) break;
-        if (!UploadRepository.isAllowed(xFile.name)) continue;
+        if (!UploadRepository.isAllowed(xFile.name)) {
+          anyRejected = true;
+          continue;
+        }
         final alreadyAdded = _queue.any((q) => q.name == xFile.name);
         if (!alreadyAdded) {
           _queue.add(_FileItem(file: xFile, name: xFile.name));
         }
       }
     });
+    if (anyRejected) _showUnsupportedFileSnackBar();
 
     if (_queue.isNotEmpty &&
         _queue.any((f) => f.status == _FileStatus.waiting) &&
@@ -374,10 +391,10 @@ class _UploadPageState extends State<UploadPage> {
                       children: [
                         Text(
                           '${_queue.length} / $_maxFiles',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 13,
-                            color: Colors.black87,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -551,7 +568,7 @@ class _FileItemTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -628,7 +645,8 @@ class _FileItemTile extends StatelessWidget {
                     child: LinearProgressIndicator(
                       value: item.progress,
                       minHeight: 4,
-                      backgroundColor: Colors.grey[200],
+                      backgroundColor:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                       valueColor: AlwaysStoppedAnimation<Color>(
                         item.status == _FileStatus.paused
                             ? Colors.orange

@@ -410,9 +410,9 @@ class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _RoundControlButton(
-                    icon: Icons.replay_10_rounded,
+                    icon: Icons.replay_5_rounded,
                     size: 32,
-                    onTap: () => _seekBy(const Duration(seconds: -10)),
+                    onTap: () => _seekBy(const Duration(seconds: -5)),
                   ),
                   const SizedBox(width: 36),
                   _RoundControlButton(
@@ -424,9 +424,9 @@ class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
                   ),
                   const SizedBox(width: 36),
                   _RoundControlButton(
-                    icon: Icons.forward_10_rounded,
+                    icon: Icons.forward_5_rounded,
                     size: 32,
-                    onTap: () => _seekBy(const Duration(seconds: 10)),
+                    onTap: () => _seekBy(const Duration(seconds: 5)),
                   ),
                 ],
               ),
