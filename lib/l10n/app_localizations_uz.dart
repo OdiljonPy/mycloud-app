@@ -954,4 +954,13 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get repeatPasswordHint => 'Parolni takrorlang';
+
+  @override
+  String get removedFromFavourites => 'Sevimlilardan olib tashlandi';
+
+  @override
+  String get alreadyInFavourites => 'Tanlangan fayllar allaqachon sevimlilarda';
+
+  @override
+  String get cannotMoveIntoItself => 'Papkani o\'zining ichiga ko\'chirib bo\'lmaydi';
 }

@@ -71,7 +71,10 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
 
   void _navigateToFolder(FolderModel folder) {
     if (widget.selectedFolders.contains(folder.id)) {
-      return; // disabled
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.cannotMoveIntoItself)),
+      );
+      return;
     }
 
     setState(() {
@@ -233,7 +236,6 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
         final isDisabled = widget.selectedFolders.contains(folder.id);
 
         return ListTile(
-          enabled: !isDisabled,
           leading: Container(
             width: 40,
             height: 40,

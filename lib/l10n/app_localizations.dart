@@ -1878,6 +1878,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Repeat your password'**
   String get repeatPasswordHint;
+
+  /// No description provided for @removedFromFavourites.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from favourites'**
+  String get removedFromFavourites;
+
+  /// No description provided for @alreadyInFavourites.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected files are already in favourites'**
+  String get alreadyInFavourites;
+
+  /// No description provided for @cannotMoveIntoItself.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t move a folder into itself'**
+  String get cannotMoveIntoItself;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

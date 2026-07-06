@@ -455,5 +455,8 @@
   "chooseFolderTitle": "Выберите папку",
   "homeFolderLabel": "Главная",
   "invalidPhoneNumber": "Неверный номер телефона",
-  "repeatPasswordHint": "Повторите пароль"
+  "repeatPasswordHint": "Повторите пароль",
+  "removedFromFavourites": "Убрано из избранного",
+  "alreadyInFavourites": "Выбранные файлы уже в избранном",
+  "cannotMoveIntoItself": "Нельзя переместить папку внутрь самой себя"
 }

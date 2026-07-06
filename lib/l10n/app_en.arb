@@ -447,5 +447,8 @@
   "chooseFolderTitle": "Choose folder",
   "homeFolderLabel": "Home",
   "invalidPhoneNumber": "Invalid phone number",
-  "repeatPasswordHint": "Repeat your password"
+  "repeatPasswordHint": "Repeat your password",
+  "removedFromFavourites": "Removed from favourites",
+  "alreadyInFavourites": "Selected files are already in favourites",
+  "cannotMoveIntoItself": "Can't move a folder into itself"
 }

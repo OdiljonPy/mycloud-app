@@ -954,4 +954,13 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get repeatPasswordHint => 'Повторите пароль';
+
+  @override
+  String get removedFromFavourites => 'Убрано из избранного';
+
+  @override
+  String get alreadyInFavourites => 'Выбранные файлы уже в избранном';
+
+  @override
+  String get cannotMoveIntoItself => 'Нельзя переместить папку внутрь самой себя';
 }

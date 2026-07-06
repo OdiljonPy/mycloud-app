@@ -95,6 +95,43 @@ class FilesPageState extends State<FilesPage> {
     }
   }
 
+  bool _selectedFavouritesAllMarked() {
+    if (_selectedFiles.isEmpty) return false;
+    final selected = _files.where((f) => _selectedFiles.contains(f.id));
+    return selected.isNotEmpty && selected.every((f) => f.isFavourite);
+  }
+
+  void _bulkToggleFavourites() {
+    if (_selectedFiles.isEmpty) return;
+    final l10n = AppLocalizations.of(context)!;
+    final selected =
+        _files.where((f) => _selectedFiles.contains(f.id)).toList();
+    final removing = _selectedFavouritesAllMarked();
+    final targets = selected.where((f) => f.isFavourite == removing).toList();
+
+    setState(() {
+      _selectedFiles.clear();
+      _selectedFolders.clear();
+    });
+
+    if (targets.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.alreadyInFavourites)),
+      );
+      return;
+    }
+
+    for (final f in targets) {
+      _toggleFavourite(f);
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+            removing ? l10n.removedFromFavourites : l10n.addedToFavourites),
+      ),
+    );
+  }
+
   Widget _buildPaginationRow({
     required int page,
     required bool isLastPage,
@@ -1551,22 +1588,12 @@ class FilesPageState extends State<FilesPage> {
                   children: [
                     _buildActionItem(
                       icon: Icons.star_rounded,
-                      label: t.favourite,
+                      label: _selectedFavouritesAllMarked()
+                          ? t.removeFromFavourites
+                          : t.addToFavourites,
                       iconColor: textColor,
                       textColor: textColor,
-                      onTap: () {
-                        for (var f in _files.where(
-                                (e) => _selectedFiles.contains(e.id))) {
-                          _toggleFavourite(f);
-                        }
-                        setState(() {
-                          _selectedFiles.clear();
-                          _selectedFolders.clear();
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(t.addedToFavourites)),
-                        );
-                      },
+                      onTap: _bulkToggleFavourites,
                     ),
                     _buildActionItem(
                       icon: Icons.download_rounded,

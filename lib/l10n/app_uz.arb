@@ -421,5 +421,8 @@
   "chooseFolderTitle": "Papkani tanlang",
   "homeFolderLabel": "Bosh sahifa",
   "invalidPhoneNumber": "Telefon raqami noto'g'ri",
-  "repeatPasswordHint": "Parolni takrorlang"
+  "repeatPasswordHint": "Parolni takrorlang",
+  "removedFromFavourites": "Sevimlilardan olib tashlandi",
+  "alreadyInFavourites": "Tanlangan fayllar allaqachon sevimlilarda",
+  "cannotMoveIntoItself": "Papkani o'zining ichiga ko'chirib bo'lmaydi"
 }

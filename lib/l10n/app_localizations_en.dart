@@ -954,4 +954,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get repeatPasswordHint => 'Repeat your password';
+
+  @override
+  String get removedFromFavourites => 'Removed from favourites';
+
+  @override
+  String get alreadyInFavourites => 'Selected files are already in favourites';
+
+  @override
+  String get cannotMoveIntoItself => 'Can\'t move a folder into itself';
 }
