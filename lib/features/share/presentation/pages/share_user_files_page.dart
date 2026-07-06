@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../../../shared/widgets/shimmer_placeholders.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/network/dio_client.dart';
@@ -266,7 +267,9 @@ class _ShareUserFilesPageState extends State<ShareUserFilesPage> {
 
     return ListView.separated(
       padding: const EdgeInsets.all(16),
+      cacheExtent: 700,
       itemCount: rawItems.length,
+      addAutomaticKeepAlives: false,
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (_, i) {
         final item = rawItems[i];
@@ -367,9 +370,10 @@ class _ShareUserFilesPageState extends State<ShareUserFilesPage> {
               CachedNetworkImage(
                 imageUrl: thumbUrl,
                 fit: BoxFit.cover,
-                memCacheWidth: 300,
-                memCacheHeight: 300,
-                placeholder: (_, __) => _iconBox(isVideo),
+                memCacheWidth: 130,
+                memCacheHeight: 130,
+                fadeInDuration: const Duration(milliseconds: 200),
+                placeholder: (_, __) => const ShimmerThumbnail(),
                 errorWidget: (_, __, ___) => _iconBox(isVideo),
               ),
               if (isVideo)

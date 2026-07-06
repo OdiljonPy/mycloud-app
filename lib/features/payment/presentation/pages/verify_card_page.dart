@@ -97,7 +97,7 @@ class _VerifyCardPageState extends State<VerifyCardPage> {
                         ),
                       ],
                     ),
-                  ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.96, 0.96), curve: Curves.easeOut),
+                  ).animate().fadeIn(duration: 300.ms).scale(begin: const Offset(0.96, 0.96), curve: Curves.easeOut),
                   const SizedBox(height: 32),
                   TextField(
                     controller: _smsCtrl,
@@ -117,7 +117,7 @@ class _VerifyCardPageState extends State<VerifyCardPage> {
                       border: OutlineInputBorder(),
                     ),
                     autofocus: true,
-                  ).animate(delay: 200.ms).fadeIn(duration: 350.ms).slideY(begin: 0.08, curve: Curves.easeOut),
+                  ).animate(delay: 200.ms).fadeIn(duration: 300.ms).slideY(begin: 0.08, curve: Curves.easeOut),
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: isLoading ? null : _verify,
@@ -140,7 +140,7 @@ class _VerifyCardPageState extends State<VerifyCardPage> {
                             l10n.confirmButton,
                             style: const TextStyle(fontSize: 16),
                           ),
-                  ).animate(delay: 350.ms).fadeIn(duration: 350.ms).slideY(begin: 0.06, curve: Curves.easeOut),
+                  ).animate(delay: 350.ms).fadeIn(duration: 300.ms).slideY(begin: 0.06, curve: Curves.easeOut),
                 ],
               ),
             );

@@ -130,7 +130,21 @@ class _ShareRequestsViewState extends State<_ShareRequestsView> {
           }
 
           if (_requests.isEmpty && state is! ShareLoading) {
-            return _buildEmpty(context, cs);
+            return RefreshIndicator(
+              onRefresh: () async {
+                HapticFeedback.lightImpact();
+                context.read<ShareBloc>().add(const LoadShareRequests());
+              },
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.7,
+                    child: _buildEmpty(context, cs),
+                  ),
+                ],
+              ),
+            );
           }
 
           return RefreshIndicator(
@@ -138,6 +152,8 @@ class _ShareRequestsViewState extends State<_ShareRequestsView> {
               context.read<ShareBloc>().add(const LoadShareRequests());
             },
             child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              cacheExtent: 700,
               slivers: [
                 // Header
                 SliverToBoxAdapter(
@@ -224,6 +240,7 @@ class _ShareRequestsViewState extends State<_ShareRequestsView> {
                         );
                       },
                       childCount: _requests.length,
+                      addAutomaticKeepAlives: false,
                     ),
                   ),
                 ),
@@ -324,6 +341,7 @@ class _RequestCard extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
@@ -742,6 +760,7 @@ class _PermFilterTab extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isActive ? color.withValues(alpha: 0.15) : Colors.transparent,

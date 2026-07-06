@@ -112,6 +112,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           child: AnimatedOpacity(
             opacity: _showControls ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
             child: AppBar(
               backgroundColor: Colors.black45,
               foregroundColor: Colors.white,
@@ -165,6 +166,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                   AnimatedOpacity(
                     opacity: _showControls ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOut,
                     child: IgnorePointer(
                       ignoring: !_showControls,
                       child: GestureDetector(
@@ -201,6 +203,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       child: AnimatedOpacity(
                         opacity: _showControls ? 1.0 : 0.0,
                         duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOut,
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [

@@ -352,6 +352,7 @@ class _DeviceVideoPlayerWidgetState extends State<_DeviceVideoPlayerWidget> {
                   child: AnimatedOpacity(
                     opacity: _controller.value.isPlaying ? 0.0 : 1.0,
                     duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOut,
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(

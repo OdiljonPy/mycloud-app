@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
@@ -24,6 +25,9 @@ import '../../share/data/repository/share_repository_impl.dart';
 import '../../share/data/remote/share_remote_data_source_impl.dart';
 import '../../share/presentation/widgets/share_dialog.dart';
 import '../../profile/data/profile_repository.dart';
+import '../../../shared/widgets/shimmer_placeholders.dart';
+import '../../../shared/widgets/staggered_list_item.dart';
+import '../../../core/utils/page_transitions.dart';
 
 
 enum _FilterType { all, images, videos }
@@ -50,8 +54,10 @@ class FilesPageState extends State<FilesPage> {
   String? _authToken;
 
 
-  final Map<String, double> _downloadProgress = {};
-  final Map<String, int> _downloadReceivedBytes = {};
+  // Progress ticks many times/sec — kept outside setState so per-chunk
+  // updates rebuild only the affected _FileTile, not the whole page.
+  final Map<String, ValueNotifier<({double progress, int received})>>
+      _downloadNotifiers = {};
 
   final List<({String id, String name, bool isSync})> _breadcrumb = [];
   final List<({String id, String name, bool isSync})> _savedBreadcrumb = [];
@@ -70,6 +76,9 @@ class FilesPageState extends State<FilesPage> {
   bool _hasNextPage = false;
   bool _isLoadingMore = false;
   final ScrollController _scrollController = ScrollController();
+  // True only for the brief window right after a full-screen load — gates
+  // the staggered fade-in so it never replays for scroll/pagination reveals.
+  bool _staggerActive = false;
 
   bool get _isSelectionMode =>
       _selectedFiles.isNotEmpty || _selectedFolders.isNotEmpty;
@@ -92,6 +101,7 @@ class FilesPageState extends State<FilesPage> {
   }
 
   Future<void> _toggleFavourite(FileModel file) async {
+    HapticFeedback.lightImpact();
     try {
       await FavouritesProvider.instance.toggleFavourite(file);
     } catch (_) {
@@ -297,6 +307,9 @@ class FilesPageState extends State<FilesPage> {
   void dispose() {
     _scrollController.dispose();
     _shareBloc.close();
+    for (final n in _downloadNotifiers.values) {
+      n.dispose();
+    }
     super.dispose();
   }
 
@@ -390,7 +403,12 @@ class FilesPageState extends State<FilesPage> {
         _pinnedFolders = pinned;
         _totalFilesCount = result['totalCount'] as int? ?? _files.length;
         _isLoading = false;
+        _staggerActive = true;
       });
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted) setState(() => _staggerActive = false);
+      });
+      _precacheThumbnails();
 
     } on AppException catch (e) {
       if (!mounted) return;
@@ -456,6 +474,16 @@ class FilesPageState extends State<FilesPage> {
     }
   }
 
+  // Warms the image cache for the first screenful so thumbnails are
+  // already decoded by the time the user scrolls to them.
+  void _precacheThumbnails() {
+    for (final f in _files.take(8)) {
+      final thumb = f.thumbnailPath;
+      if (thumb == null || thumb.isEmpty) continue;
+      precacheImage(CachedNetworkImageProvider(thumb), context);
+    }
+  }
+
   void reloadContent() => _loadContent();
 
   bool handleBackNavigation() {
@@ -491,15 +519,13 @@ class FilesPageState extends State<FilesPage> {
     final currentFolder = _currentFolderId;
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => UploadPage(
-          parentId: currentFolder,
-          onUploadComplete: () async {
-            await Future.delayed(const Duration(seconds: 2));
-            _loadContent();
-          },
-        ),
-      ),
+      slideUpRoute(UploadPage(
+        parentId: currentFolder,
+        onUploadComplete: () async {
+          await Future.delayed(const Duration(seconds: 2));
+          _loadContent();
+        },
+      )),
     ).then((_) => _loadContent());
   }
 
@@ -529,16 +555,14 @@ class FilesPageState extends State<FilesPage> {
     final currentFolder = _currentFolderId;
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => UploadPage(
-          parentId: currentFolder,
-          initialFiles: files,
-          onUploadComplete: () async {
-            await Future.delayed(const Duration(seconds: 2));
-            _loadContent();
-          },
-        ),
-      ),
+      slideUpRoute(UploadPage(
+        parentId: currentFolder,
+        initialFiles: files,
+        onUploadComplete: () async {
+          await Future.delayed(const Duration(seconds: 2));
+          _loadContent();
+        },
+      )),
     ).then((_) => _loadContent());
   }
 
@@ -1420,6 +1444,7 @@ class FilesPageState extends State<FilesPage> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
+              HapticFeedback.mediumImpact();
               onConfirm();
             },
             style: ElevatedButton.styleFrom(
@@ -1467,16 +1492,20 @@ class FilesPageState extends State<FilesPage> {
             body: Stack(
               children: [
                 RefreshIndicator(
-                  onRefresh: _loadContent,
+                  onRefresh: () async {
+                    HapticFeedback.lightImpact();
+                    await _loadContent();
+                  },
                   child: CustomScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     controller: _scrollController,
+                    cacheExtent: 700,
                     slivers: [
                       _buildAppBar(),
                       SliverToBoxAdapter(child: _buildBreadcrumb()),
                       if (_isLoading)
                         const SliverFillRemaining(
-                          child: Center(child: CircularProgressIndicator()),
+                          child: FilesListShimmer(),
                         )
                       else if (_error != null)
                         SliverFillRemaining(child: _buildError())
@@ -1574,8 +1603,8 @@ class FilesPageState extends State<FilesPage> {
     final textColor = isDark ? Colors.white : Colors.black87;
 
     return AnimatedPositioned(
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeOutExpo,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
       bottom: _isSelectionMode ? 16 : -160,
       left: 20,
       right: 20,
@@ -1998,13 +2027,16 @@ class FilesPageState extends State<FilesPage> {
     );
   }
 
+  void _removeDownloadNotifier(String fileId) {
+    _downloadNotifiers.remove(fileId)?.dispose();
+  }
+
   Future<void> _startDownload(FileModel file) async {
     final t = AppLocalizations.of(context)!;
-    if (_downloadProgress.containsKey(file.id)) return;
-    setState(() {
-      _downloadProgress[file.id] = 0.0;
-      _downloadReceivedBytes[file.id] = 0;
-    });
+    if (_downloadNotifiers.containsKey(file.id)) return;
+    final notifier =
+        ValueNotifier<({double progress, int received})>((progress: 0.0, received: 0));
+    setState(() => _downloadNotifiers[file.id] = notifier);
     try {
       await _downloadRepo.downloadFile(
         fileId: file.id,
@@ -2012,19 +2044,15 @@ class FilesPageState extends State<FilesPage> {
         mimeType: file.mimeType,
         onProgress: (received, total) {
           if (!mounted) return;
-          setState(() {
-            _downloadReceivedBytes[file.id] = received;
-            if (total > 0) {
-              _downloadProgress[file.id] = received / total;
-            }
-          });
+          // Direct notifier mutation — only the listening _FileTile rebuilds.
+          notifier.value = (
+            progress: total > 0 ? received / total : notifier.value.progress,
+            received: received,
+          );
         },
       );
       if (!mounted) return;
-      setState(() {
-        _downloadProgress.remove(file.id);
-        _downloadReceivedBytes.remove(file.id);
-      });
+      setState(() => _removeDownloadNotifier(file.id));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(t.fileSaved(file.name)),
@@ -2033,10 +2061,7 @@ class FilesPageState extends State<FilesPage> {
       );
     } on AppException catch (e) {
       if (!mounted) return;
-      setState(() {
-        _downloadProgress.remove(file.id);
-        _downloadReceivedBytes.remove(file.id);
-      });
+      setState(() => _removeDownloadNotifier(file.id));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message), backgroundColor: Colors.red),
       );
@@ -2240,26 +2265,31 @@ class FilesPageState extends State<FilesPage> {
             delegate: SliverChildBuilderDelegate(
               (ctx, i) {
                 final f = entry.value[i];
-                return RepaintBoundary(
-                  child: _FileGridCard(
-                    key: ValueKey(f.id),
-                    file: f,
-                    isSelected: _selectedFiles.contains(f.id),
-                    isSelectionMode: _isSelectionMode,
-                    onTap: () {
-                      if (_isSelectionMode) {
-                        _toggleFileSelection(f.id);
-                      } else {
-                        _openFileViewer(f);
-                      }
-                    },
-                    onSelectTap: () => _toggleFileSelection(f.id),
-                    onMenuTap: () => _showFileMenu(f),
-                    onFavouriteTap: () => _toggleFavourite(f),
+                return StaggeredListItem(
+                  index: i,
+                  animate: _staggerActive,
+                  child: RepaintBoundary(
+                    child: _FileGridCard(
+                      key: ValueKey(f.id),
+                      file: f,
+                      isSelected: _selectedFiles.contains(f.id),
+                      isSelectionMode: _isSelectionMode,
+                      onTap: () {
+                        if (_isSelectionMode) {
+                          _toggleFileSelection(f.id);
+                        } else {
+                          _openFileViewer(f);
+                        }
+                      },
+                      onSelectTap: () => _toggleFileSelection(f.id),
+                      onMenuTap: () => _showFileMenu(f),
+                      onFavouriteTap: () => _toggleFavourite(f),
+                    ),
                   ),
                 );
               },
               childCount: entry.value.length,
+              addAutomaticKeepAlives: false,
             ),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
@@ -2437,29 +2467,33 @@ class FilesPageState extends State<FilesPage> {
           }
 
           final f = files[i];
-          return RepaintBoundary(
-            child: _FileTile(
-              key: ValueKey(f.id),
-              file: f,
-              isSelected: _selectedFiles.contains(f.id),
-              isSelectionMode: _isSelectionMode,
-              authToken: _authToken,
-              onTap: () {
-                if (_isSelectionMode) {
-                  _toggleFileSelection(f.id);
-                } else {
-                  _openFileViewer(f);
-                }
-              },
-              onSelectTap: () => _toggleFileSelection(f.id),
-              onMenuTap: () => _showFileMenu(f),
-              downloadProgress: _downloadProgress[f.id],
-              downloadReceivedBytes: _downloadReceivedBytes[f.id],
-              onFavouriteTap: () => _toggleFavourite(f),
+          return StaggeredListItem(
+            index: i,
+            animate: _staggerActive,
+            child: RepaintBoundary(
+              child: _FileTile(
+                key: ValueKey(f.id),
+                file: f,
+                isSelected: _selectedFiles.contains(f.id),
+                isSelectionMode: _isSelectionMode,
+                authToken: _authToken,
+                onTap: () {
+                  if (_isSelectionMode) {
+                    _toggleFileSelection(f.id);
+                  } else {
+                    _openFileViewer(f);
+                  }
+                },
+                onSelectTap: () => _toggleFileSelection(f.id),
+                onMenuTap: () => _showFileMenu(f),
+                downloadNotifier: _downloadNotifiers[f.id],
+                onFavouriteTap: () => _toggleFavourite(f),
+              ),
             ),
           );
         },
         childCount: itemCount,
+        addAutomaticKeepAlives: false,
       ),
     );
   }
@@ -2520,6 +2554,7 @@ class FilesPageState extends State<FilesPage> {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
+          addAutomaticKeepAlives: false,
           gridDelegate:
           const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
@@ -2530,20 +2565,24 @@ class FilesPageState extends State<FilesPage> {
           itemCount: pageFolders.length,
           itemBuilder: (_, i) {
             final folder = pageFolders[i];
-            return _FolderCard(
-              folder: folder,
-              isSelected: _selectedFolders.contains(folder.id),
-              isSelectionMode: _isSelectionMode,
-              isSyncFolder: folder.isSync,
-              onTap: () {
-                if (_isSelectionMode) {
-                  _toggleFolderSelection(folder.id);
-                } else {
-                  _openFolder(folder);
-                }
-              },
-              onSelectTap: () => _toggleFolderSelection(folder.id),
-              onMenuTap: () => _showFolderMenu(folder),
+            return StaggeredListItem(
+              index: i,
+              animate: _staggerActive,
+              child: _FolderCard(
+                folder: folder,
+                isSelected: _selectedFolders.contains(folder.id),
+                isSelectionMode: _isSelectionMode,
+                isSyncFolder: folder.isSync,
+                onTap: () {
+                  if (_isSelectionMode) {
+                    _toggleFolderSelection(folder.id);
+                  } else {
+                    _openFolder(folder);
+                  }
+                },
+                onSelectTap: () => _toggleFolderSelection(folder.id),
+                onMenuTap: () => _showFolderMenu(folder),
+              ),
             );
           },
         ),
@@ -2573,21 +2612,25 @@ class FilesPageState extends State<FilesPage> {
     final pageFolders = _displayFolders.sublist(start, end);
     return Column(
       children: [
-        ...pageFolders.map(
-              (f) => _FolderListTile(
-            folder: f,
-            isSelected: _selectedFolders.contains(f.id),
-            isSelectionMode: _isSelectionMode,
-            isSyncFolder: f.isSync,
-            onTap: () {
-              if (_isSelectionMode) {
-                _toggleFolderSelection(f.id);
-              } else {
-                _openFolder(f);
-              }
-            },
-            onSelectTap: () => _toggleFolderSelection(f.id),
-            onMenuTap: () => _showFolderMenu(f),
+        ...pageFolders.asMap().entries.map(
+              (entry) => StaggeredListItem(
+            index: entry.key,
+            animate: _staggerActive,
+            child: _FolderListTile(
+              folder: entry.value,
+              isSelected: _selectedFolders.contains(entry.value.id),
+              isSelectionMode: _isSelectionMode,
+              isSyncFolder: entry.value.isSync,
+              onTap: () {
+                if (_isSelectionMode) {
+                  _toggleFolderSelection(entry.value.id);
+                } else {
+                  _openFolder(entry.value);
+                }
+              },
+              onSelectTap: () => _toggleFolderSelection(entry.value.id),
+              onMenuTap: () => _showFolderMenu(entry.value),
+            ),
           ),
         ),
         if (totalFolders > 4)
@@ -2795,6 +2838,7 @@ class _FilterChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
         padding:
         const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
@@ -3063,8 +3107,10 @@ class _FileTile extends StatelessWidget {
   final bool isSelected;
   final bool isSelectionMode;
   final VoidCallback onMenuTap;
-  final double? downloadProgress;
-  final int? downloadReceivedBytes;
+  // Ticks many times per second while downloading — kept as a standalone
+  // notifier so progress updates rebuild only this tile, not the whole
+  // FilesPageState (see _startDownload).
+  final ValueNotifier<({double progress, int received})>? downloadNotifier;
   final VoidCallback? onFavouriteTap;
   final String? authToken;
 
@@ -3077,15 +3123,12 @@ class _FileTile extends StatelessWidget {
     required this.isSelected,
     required this.isSelectionMode,
     required this.onMenuTap,
-    this.downloadProgress,
-    this.downloadReceivedBytes,
+    this.downloadNotifier,
     this.onFavouriteTap,
     this.authToken,
     this.onTap,
     this.onSelectTap,
   });
-
-  bool get _isDownloading => downloadProgress != null;
 
   IconData _icon(String mime) {
     if (mime.startsWith('image/')) return Icons.image_rounded;
@@ -3103,7 +3146,8 @@ class _FileTile extends StatelessWidget {
     final mime = file.mimeType.toLowerCase();
     final thumb = file.thumbnailPath;
     if (thumb != null && thumb.isNotEmpty) {
-      return ClipRRect(
+      final isMedia = mime.startsWith('image/') || mime.startsWith('video/');
+      final content = ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: SizedBox(
           width: 42,
@@ -3113,9 +3157,11 @@ class _FileTile extends StatelessWidget {
             children: [
               CachedNetworkImage(
                 imageUrl: thumb,
-                memCacheWidth: 300,
+                memCacheWidth: 130,
+                memCacheHeight: 130,
                 fit: BoxFit.cover,
-                placeholder: (_, __) => _iconBox(color),
+                fadeInDuration: const Duration(milliseconds: 200),
+                placeholder: (_, __) => const ShimmerThumbnail(),
                 errorWidget: (_, __, ___) => _iconBox(color),
               ),
               if (mime.startsWith('video/'))
@@ -3135,6 +3181,9 @@ class _FileTile extends StatelessWidget {
           ),
         ),
       );
+      return isMedia
+          ? Hero(tag: 'file_hero_${file.id}', child: content)
+          : content;
     }
     if (mime.startsWith('video/')) {
       return Container(
@@ -3182,6 +3231,18 @@ class _FileTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _color(file.mimeType);
+    final notifier = downloadNotifier;
+    if (notifier == null) return _buildTile(context, color, null, null);
+    return ValueListenableBuilder<({double progress, int received})>(
+      valueListenable: notifier,
+      builder: (context, dl, _) =>
+          _buildTile(context, color, dl.progress, dl.received),
+    );
+  }
+
+  Widget _buildTile(BuildContext context, Color color, double? progress,
+      int? received) {
+    final isDownloading = progress != null;
     return RepaintBoundary(child: Container(
       margin: const EdgeInsets.only(bottom: 8),
       clipBehavior: Clip.antiAlias,
@@ -3223,7 +3284,7 @@ class _FileTile extends StatelessWidget {
                   activeColor: Colors.blue,
                 ),
               )
-                  : _isDownloading
+                  : isDownloading
                   ? SizedBox(
                 width: 42,
                 height: 42,
@@ -3231,7 +3292,7 @@ class _FileTile extends StatelessWidget {
                   alignment: Alignment.center,
                   children: [
                     CircularProgressIndicator(
-                      value: downloadProgress,
+                      value: progress,
                       strokeWidth: 3,
                       backgroundColor: Theme.of(context)
                           .colorScheme
@@ -3242,7 +3303,7 @@ class _FileTile extends StatelessWidget {
                           Color(0xFF1A73E8)),
                     ),
                     Text(
-                      '${((downloadProgress ?? 0) * 100).toInt()}%',
+                      '${(progress * 100).toInt()}%',
                       style: const TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
@@ -3260,9 +3321,9 @@ class _FileTile extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              subtitle: _isDownloading
+              subtitle: isDownloading
                   ? Text(
-                '${DownloadRepository.formatBytes(downloadReceivedBytes ?? 0)} / ${file.formattedSize}',
+                '${DownloadRepository.formatBytes(received ?? 0)} / ${file.formattedSize}',
                 style: const TextStyle(
                     color: Color(0xFF1A73E8), fontSize: 12),
               )
@@ -3303,9 +3364,9 @@ class _FileTile extends StatelessWidget {
                 ],
               ),
             ),
-            if (_isDownloading)
+            if (isDownloading)
               LinearProgressIndicator(
-                value: downloadProgress,
+                value: progress,
                 minHeight: 3,
                 backgroundColor: Theme.of(context)
                     .colorScheme
@@ -3360,6 +3421,7 @@ class _FileGridCard extends StatelessWidget {
     final color = _color(mime);
     final thumb = file.thumbnailPath;
     final hasPreview = thumb != null && thumb.isNotEmpty;
+    final isMedia = mime.startsWith('image/') || mime.startsWith('video/');
 
     return RepaintBoundary(child: GestureDetector(
       onTap: isSelectionMode ? onSelectTap : onTap,
@@ -3388,35 +3450,36 @@ class _FileGridCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(16)),
-                    child: hasPreview
-                        ? CachedNetworkImage(
-                      imageUrl: thumb,
-                      fit: BoxFit.cover,
-                      memCacheWidth: 300,
-                      memCacheHeight: 300,
-                      fadeInDuration: const Duration(milliseconds: 150),
-                      placeholder: (_, __) => Container(
+                  Builder(builder: (_) {
+                    final clip = ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(16)),
+                      child: hasPreview
+                          ? CachedNetworkImage(
+                        imageUrl: thumb,
+                        fit: BoxFit.cover,
+                        memCacheWidth: 300,
+                        memCacheHeight: 300,
+                        fadeInDuration: const Duration(milliseconds: 200),
+                        placeholder: (_, __) => const ShimmerThumbnail(),
+                        errorWidget: (_, __, ___) => Container(
+                          color: color.withValues(alpha: 0.08),
+                          child: Icon(_icon(mime),
+                              color: color, size: 40),
+                        ),
+                      )
+                          : Container(
                         color: color.withValues(alpha: 0.08),
-                        child: Icon(_icon(mime),
-                            color: color, size: 40),
+                        child: Center(
+                          child: Icon(_icon(mime),
+                              color: color, size: 40),
+                        ),
                       ),
-                      errorWidget: (_, __, ___) => Container(
-                        color: color.withValues(alpha: 0.08),
-                        child: Icon(_icon(mime),
-                            color: color, size: 40),
-                      ),
-                    )
-                        : Container(
-                      color: color.withValues(alpha: 0.08),
-                      child: Center(
-                        child: Icon(_icon(mime),
-                            color: color, size: 40),
-                      ),
-                    ),
-                  ),
+                    );
+                    return isMedia && hasPreview
+                        ? Hero(tag: 'file_hero_${file.id}', child: clip)
+                        : clip;
+                  }),
                   if (mime.startsWith('video/') && hasPreview)
                     Center(
                       child: Container(
@@ -3644,6 +3707,9 @@ class _InfoBottomSheetState extends State<_InfoBottomSheet> {
                       width: 52,
                       height: 52,
                       fit: BoxFit.cover,
+                      memCacheWidth: 160,
+                      memCacheHeight: 160,
+                      fadeInDuration: const Duration(milliseconds: 200),
                       placeholder: (_, __) => _iconBox(cs),
                       errorWidget: (_, __, ___) => _iconBox(cs),
                     )

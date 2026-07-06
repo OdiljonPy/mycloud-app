@@ -91,6 +91,8 @@ class CardPreviewWidget extends StatelessWidget {
           const Spacer(),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 150),
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeOut,
             child: Text(
               numberText,
               key: ValueKey(numberText),
@@ -113,6 +115,8 @@ class CardPreviewWidget extends StatelessWidget {
                 const SizedBox(width: 8),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 150),
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeOut,
                   child: Text(
                     expiryText!,
                     key: ValueKey(expiryText),

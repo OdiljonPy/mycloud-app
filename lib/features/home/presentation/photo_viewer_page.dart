@@ -152,15 +152,18 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
 
     // If it's a video, show video player
     if (isVideo && fullUrl != null && fullUrl.isNotEmpty) {
-      return _VideoPlayerWidget(
+      final player = _VideoPlayerWidget(
         videoUrl: displayUrl,
         authToken: widget.authToken,
       );
+      return item.fileId.isNotEmpty
+          ? Hero(tag: 'file_hero_${item.fileId}', child: player)
+          : player;
     }
 
     final headers = _buildHeaders(displayUrl);
 
-    return InteractiveViewer(
+    final viewer = InteractiveViewer(
       minScale: 0.5,
       maxScale: 4.0,
       child: Center(
@@ -229,6 +232,10 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
         ),
       ),
     );
+
+    return item.fileId.isNotEmpty
+        ? Hero(tag: 'file_hero_${item.fileId}', child: viewer)
+        : viewer;
   }
 
   Map<String, String> _buildHeaders(String url) {

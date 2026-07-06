@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../../shared/widgets/shimmer_placeholders.dart';
 import '../data/home_repository.dart';
 import '../data/models/folder_model.dart';
 import '../data/models/file_model.dart';
@@ -638,8 +639,8 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
     final textColor = isDark ? Colors.white : Colors.black87;
 
     return AnimatedPositioned(
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeOutExpo,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
       bottom: _isSelectionMode ? 16 : -160,
       left: 20,
       right: 20,
@@ -808,15 +809,16 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                   ? CachedNetworkImage(
                       imageUrl: previewUrl,
                       fit: BoxFit.cover,
-                      memCacheWidth: 300,
-                      memCacheHeight: 300,
+                      memCacheWidth: 130,
+                      memCacheHeight: 130,
+                      fadeInDuration: const Duration(milliseconds: 200),
                       httpHeaders: _authToken != null
                           ? {'Authorization': 'Bearer $_authToken'}
                           : {},
-                      placeholder: (_, __) => Icon(
-                        _icon(file.mimeType),
-                        color: _color(file.mimeType),
-                        size: 20,
+                      placeholder: (_, __) => const ShimmerThumbnail(
+                        width: 44,
+                        height: 44,
+                        borderRadius: BorderRadius.all(Radius.circular(10)),
                       ),
                       errorWidget: (_, __, ___) => Icon(
                         _icon(file.mimeType),
@@ -976,6 +978,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: isActive ? const Color(0xFF1A73E8) : Colors.grey.withValues(alpha: 0.1),
@@ -1073,6 +1076,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                   child: CustomScrollView(
                     controller: _scrollController,
                     physics: const AlwaysScrollableScrollPhysics(),
+                    cacheExtent: 700,
                     slivers: [
                       SliverToBoxAdapter(child: _buildBreadcrumb()),
                       if (_isLoading)
@@ -1127,28 +1131,58 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                             top: 8,
                             bottom: 160,
                           ),
-                          sliver: SliverList(
-                            delegate: SliverChildListDelegate([
+                          sliver: SliverMainAxisGroup(
+                            slivers: [
                               if (_folders.isNotEmpty) ...[
-                                _buildSectionHeader(
-                                    AppLocalizations.of(context)!.folders,
-                                    Icons.folder_rounded,
-                                    _folders.length),
-                                const SizedBox(height: 8),
-                                for (final folder in _folders)
-                                  _buildFolderItem(folder),
-                                const SizedBox(height: 16),
+                                SliverToBoxAdapter(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildSectionHeader(
+                                          AppLocalizations.of(context)!
+                                              .folders,
+                                          Icons.folder_rounded,
+                                          _folders.length),
+                                      const SizedBox(height: 8),
+                                    ],
+                                  ),
+                                ),
+                                SliverList(
+                                  delegate: SliverChildBuilderDelegate(
+                                    (ctx, i) => _buildFolderItem(_folders[i]),
+                                    childCount: _folders.length,
+                                    addAutomaticKeepAlives: false,
+                                  ),
+                                ),
+                                const SliverToBoxAdapter(
+                                  child: SizedBox(height: 16),
+                                ),
                               ],
                               if (_displayFiles.isNotEmpty) ...[
-                                _buildSectionHeader(
-                                    AppLocalizations.of(context)!.files,
-                                    Icons.insert_drive_file,
-                                    _displayFiles.length),
-                                const SizedBox(height: 8),
-                                for (final file in _displayFiles)
-                                  _buildFileItem(file),
+                                SliverToBoxAdapter(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildSectionHeader(
+                                          AppLocalizations.of(context)!.files,
+                                          Icons.insert_drive_file,
+                                          _displayFiles.length),
+                                      const SizedBox(height: 8),
+                                    ],
+                                  ),
+                                ),
+                                SliverList(
+                                  delegate: SliverChildBuilderDelegate(
+                                    (ctx, i) =>
+                                        _buildFileItem(_displayFiles[i]),
+                                    childCount: _displayFiles.length,
+                                    addAutomaticKeepAlives: false,
+                                  ),
+                                ),
                               ],
-                            ]),
+                            ],
                           ),
                         ),
                     ],

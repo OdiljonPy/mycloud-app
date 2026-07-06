@@ -86,7 +86,7 @@ class _AddCardPageState extends State<AddCardPage> {
                           ? 'MM/YY'
                           : _expireCtrl.text,
                       detectionDigits: _rawCardNumber,
-                    ).animate().fadeIn(duration: 500.ms).slideY(begin: -0.06, curve: Curves.easeOut),
+                    ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.06, curve: Curves.easeOut),
                     const SizedBox(height: 32),
                     TextFormField(
                       controller: _cardCtrl,
@@ -109,7 +109,7 @@ class _AddCardPageState extends State<AddCardPage> {
                         if (_rawCardNumber.length != 16) return l10n.cardNumber16Digits;
                         return null;
                       },
-                    ).animate(delay: 150.ms).fadeIn(duration: 400.ms).slideX(begin: 0.05, curve: Curves.easeOut),
+                    ).animate(delay: 150.ms).fadeIn(duration: 300.ms).slideX(begin: 0.05, curve: Curves.easeOut),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _expireCtrl,
@@ -136,7 +136,7 @@ class _AddCardPageState extends State<AddCardPage> {
                         }
                         return null;
                       },
-                    ).animate(delay: 250.ms).fadeIn(duration: 400.ms).slideX(begin: 0.05, curve: Curves.easeOut),
+                    ).animate(delay: 250.ms).fadeIn(duration: 300.ms).slideX(begin: 0.05, curve: Curves.easeOut),
                     const SizedBox(height: 32),
                     FilledButton(
                       onPressed: isLoading ? null : _submit,
@@ -159,7 +159,7 @@ class _AddCardPageState extends State<AddCardPage> {
                               l10n.addCard,
                               style: const TextStyle(fontSize: 16),
                             ),
-                    ).animate(delay: 350.ms).fadeIn(duration: 400.ms).slideY(begin: 0.06, curve: Curves.easeOut),
+                    ).animate(delay: 350.ms).fadeIn(duration: 300.ms).slideY(begin: 0.06, curve: Curves.easeOut),
                   ],
                 ),
               ),

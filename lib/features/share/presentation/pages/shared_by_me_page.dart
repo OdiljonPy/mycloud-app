@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 import '../../../../core/network/dio_client.dart';
@@ -10,6 +11,7 @@ import '../bloc/share_event.dart';
 import '../bloc/share_state.dart';
 import 'share_user_files_page.dart';
 import '../widgets/share_dialog.dart';
+import '../../../../shared/widgets/shimmer_placeholders.dart';
 
 /// Page showing users with whom I shared files (Shared by me → users list).
 class SharedByMePage extends StatelessWidget {
@@ -73,7 +75,7 @@ class _SharedByMeView extends StatelessWidget {
       body: BlocBuilder<ShareBloc, ShareState>(
         builder: (context, state) {
           if (state is ShareLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const UserListShimmer();
           }
           if (state is ShareError) {
             return _buildError(context, state.message);
@@ -83,12 +85,16 @@ class _SharedByMeView extends StatelessWidget {
               return _buildEmpty(context, cs);
             }
             return RefreshIndicator(
-              onRefresh: () async => context
-                  .read<ShareBloc>()
-                  .add(const LoadSharedByMeUsers()),
+              onRefresh: () async {
+                HapticFeedback.lightImpact();
+                context.read<ShareBloc>().add(const LoadSharedByMeUsers());
+              },
               child: ListView.separated(
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
+                cacheExtent: 700,
                 itemCount: state.users.length,
+                addAutomaticKeepAlives: false,
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (_, i) =>
                     _buildUserCard(context, cs, state.users[i]),

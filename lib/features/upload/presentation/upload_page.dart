@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/errors/app_exception.dart';
@@ -221,6 +222,7 @@ class _UploadPageState extends State<UploadPage> {
       });
 
       if (hasSuccess) {
+        HapticFeedback.lightImpact();
         widget.onUploadComplete?.call();
       }
     }
@@ -642,15 +644,21 @@ class _FileItemTile extends StatelessWidget {
                 Expanded(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: item.progress,
-                      minHeight: 4,
-                      backgroundColor:
-                          Theme.of(context).colorScheme.surfaceContainerHighest,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        item.status == _FileStatus.paused
-                            ? Colors.orange
-                            : Colors.blue,
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0, end: item.progress),
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      builder: (context, value, _) => LinearProgressIndicator(
+                        value: value,
+                        minHeight: 4,
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          item.status == _FileStatus.paused
+                              ? Colors.orange
+                              : Colors.blue,
+                        ),
                       ),
                     ),
                   ),

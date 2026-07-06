@@ -18,6 +18,7 @@ import '../../payment/data/repository/payment_repository.dart';
 import '../../payment/data/models/payment_models.dart';
 import '../../payment/presentation/pages/subscription_page.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
+import '../../../core/utils/page_transitions.dart';
 
 class ProfilePage extends StatefulWidget {
   final VoidCallback? onLogout;
@@ -935,11 +936,7 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
               height: 46,
               child: FilledButton.icon(
                 onPressed: () => Navigator.of(context)
-                    .push(
-                      MaterialPageRoute(
-                        builder: (_) => const SubscriptionPage(),
-                      ),
-                    )
+                    .push(slideUpRoute(const SubscriptionPage()))
                     .then((_) {
                   if (mounted) _loadData();
                 }),

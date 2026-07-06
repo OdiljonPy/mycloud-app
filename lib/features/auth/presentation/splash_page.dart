@@ -236,6 +236,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
                     onTap: () => setState(() => _selected = lang['code']!),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOut,
                       margin: const EdgeInsets.only(bottom: 14),
                       padding: const EdgeInsets.symmetric(
                           vertical: 18, horizontal: 20),
@@ -390,7 +391,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
     final slide = _slides[_page];
     return Scaffold(
       body: AnimatedContainer(
-        duration: const Duration(milliseconds: 400),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: slide.gradient,
@@ -436,6 +438,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       children: List.generate(_slides.length, (i) {
                         return AnimatedContainer(
                           duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeOut,
                           margin: const EdgeInsets.only(right: 8),
                           width: i == _page ? 24 : 8,
                           height: 8,
@@ -454,6 +457,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       onTap: _next,
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeOut,
                         width: _page == _slides.length - 1 ? 160 : 56,
                         height: 56,
                         decoration: BoxDecoration(

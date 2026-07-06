@@ -18,6 +18,8 @@ import '../../sync/data/gallery_service.dart';
 import '../data/home_repository.dart';
 import 'photo_viewer_page.dart';
 import '../../../main.dart';
+import '../../../shared/widgets/shimmer_placeholders.dart';
+import '../../../core/utils/page_transitions.dart';
 
 class HomePage extends StatefulWidget {
   final void Function(String? folderId)? onFolderChanged;
@@ -283,9 +285,20 @@ class HomePageState extends State<HomePage> {
           ],
         ),
         body: RefreshIndicator(
-          onRefresh: _loadData,
+          onRefresh: () async {
+            HapticFeedback.lightImpact();
+            await _loadData();
+          },
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: const [
+                    SizedBox(height: 8),
+                    StorageCardShimmer(),
+                    SizedBox(height: 24),
+                    GalleryGridShimmer(),
+                  ],
+                )
               : SingleChildScrollView(
                   controller: _scrollController,
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -470,11 +483,7 @@ class HomePageState extends State<HomePage> {
                 height: 46,
                 child: FilledButton.icon(
                   onPressed: () => Navigator.of(context)
-                      .push(
-                        MaterialPageRoute(
-                          builder: (_) => const SubscriptionPage(),
-                        ),
-                      )
+                      .push(slideUpRoute(const SubscriptionPage()))
                       .then((_) {
                     if (mounted) _loadData();
                   }),
@@ -652,6 +661,7 @@ class HomePageState extends State<HomePage> {
                     ? GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
+                        addAutomaticKeepAlives: false,
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 3,
                           crossAxisSpacing: 8,
@@ -672,6 +682,7 @@ class HomePageState extends State<HomePage> {
                     : ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
+                        addAutomaticKeepAlives: false,
                         itemCount: files.length,
                         itemBuilder: (context, index) {
                           final file = files[index];
@@ -807,9 +818,7 @@ class HomePageState extends State<HomePage> {
             color: const Color(0xFF9C27B0),
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (_) => const AutoSyncSettingsPage(),
-              ),
+              slideUpRoute(const AutoSyncSettingsPage()),
             ),
           ),
           const SizedBox(width: 8),
@@ -935,12 +944,8 @@ class _BackendGalleryItemGrid extends StatelessWidget {
                       fit: BoxFit.cover,
                       memCacheWidth: 300,
                       memCacheHeight: 300,
-                      placeholder: (context, url) => Container(
-                        color: isDark ? Colors.grey[800] : Colors.grey[300],
-                        child: const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      ),
+                      fadeInDuration: const Duration(milliseconds: 200),
+                      placeholder: (context, url) => const ShimmerThumbnail(),
                       errorWidget: (context, url, error) => Container(
                         color: isDark ? Colors.grey[800] : Colors.grey[300],
                         child: Icon(
@@ -1078,14 +1083,10 @@ class _BackendGalleryItemList extends StatelessWidget {
                           CachedNetworkImage(
                             imageUrl: normalizedUrl,
                             fit: BoxFit.cover,
-                            memCacheWidth: 300,
-                            memCacheHeight: 300,
-                            placeholder: (context, url) => Container(
-                              color: isDark ? Colors.grey[800] : Colors.grey[300],
-                              child: const Center(
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            ),
+                            memCacheWidth: 180,
+                            memCacheHeight: 180,
+                            fadeInDuration: const Duration(milliseconds: 200),
+                            placeholder: (context, url) => const ShimmerThumbnail(),
                             errorWidget: (context, url, error) => Container(
                               color: isDark ? Colors.grey[800] : Colors.grey[300],
                               child: Icon(

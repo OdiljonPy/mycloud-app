@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../../shared/widgets/shimmer_placeholders.dart';
 import '../data/home_repository.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/storage/secure_storage.dart';
@@ -285,6 +286,7 @@ class _SharedPageState extends State<SharedPage> {
         onTap: () => _switchSegment(index),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: active ? const Color(0xFF1A73E8) : Colors.transparent,
@@ -345,6 +347,7 @@ class _SharedPageState extends State<SharedPage> {
         onTap: () => _switchByMeTab(index),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
             color: active ? const Color(0xFF1A73E8) : Colors.transparent,
@@ -388,6 +391,8 @@ class _SharedPageState extends State<SharedPage> {
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: users.length,
+        cacheExtent: 700,
+        addAutomaticKeepAlives: false,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (_, i) => _buildByMeUserCard(users[i], t),
       ),
@@ -434,6 +439,8 @@ class _SharedPageState extends State<SharedPage> {
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: shares.length,
+        cacheExtent: 700,
+        addAutomaticKeepAlives: false,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (_, i) => _buildByMeItemCard(shares[i], t),
       ),
@@ -511,6 +518,8 @@ class _SharedPageState extends State<SharedPage> {
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: _users.length,
+        cacheExtent: 700,
+        addAutomaticKeepAlives: false,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (_, i) => _buildUserCard(_users[i], t),
       ),
@@ -555,6 +564,8 @@ class _SharedPageState extends State<SharedPage> {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: _items.length,
+      cacheExtent: 700,
+      addAutomaticKeepAlives: false,
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (_, i) {
         final item = _items[i] as Map<String, dynamic>;
@@ -603,9 +614,10 @@ class _SharedPageState extends State<SharedPage> {
           width: 44,
           height: 44,
           fit: BoxFit.cover,
-          memCacheWidth: 300,
-          memCacheHeight: 300,
-          placeholder: (_, __) => Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFF1A73E8).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.image_rounded, color: Color(0xFF1A73E8), size: 22)),
+          memCacheWidth: 130,
+          memCacheHeight: 130,
+          fadeInDuration: const Duration(milliseconds: 200),
+          placeholder: (_, __) => const ShimmerThumbnail(width: 44, height: 44, borderRadius: BorderRadius.all(Radius.circular(12))),
           errorWidget: (_, __, ___) => Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFF1A73E8).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.image_rounded, color: Color(0xFF1A73E8), size: 22))));
     }
     if (mime.startsWith('video/')) {
