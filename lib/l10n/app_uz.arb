@@ -219,6 +219,7 @@
   },
   "couldNotOpenImage": "Rasmni ochib bo'lmadi",
   "couldNotOpenVideo": "Videoni ochib bo'lmadi",
+  "videoFormatNotSupported": "Bu video format ko'rish uchun qo'llab-quvvatlanmaydi",
   "noSharedWithMe": "Hech kim fayl ulashmagan",
   "noSharedWithMeSubtitle": "Kimdir fayl ulashsa — bu yerda ko'rinadi",
   "noSharedByMe": "Siz hali hech kim bilan ulashmadingiz",

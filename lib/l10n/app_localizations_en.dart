@@ -436,6 +436,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get couldNotOpenVideo => 'Could not open video';
 
   @override
+  String get videoFormatNotSupported => 'This video format is not supported for playback';
+
+  @override
   String get noSharedWithMe => 'No one has shared files';
 
   @override

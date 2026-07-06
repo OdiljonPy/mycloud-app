@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/config/app_config.dart';
@@ -19,6 +18,7 @@ import '../data/home_repository.dart';
 import 'photo_viewer_page.dart';
 import '../../../main.dart';
 import '../../../shared/widgets/shimmer_placeholders.dart';
+import '../../../shared/widgets/media_thumbnail.dart';
 import '../../../core/utils/page_transitions.dart';
 
 class HomePage extends StatefulWidget {
@@ -928,60 +928,17 @@ class _BackendGalleryItemGrid extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      child: ClipRRect(
+      child: MediaThumbnail(
+        mimeType: file.mimeType,
+        thumbnailPath: normalizedUrl,
         borderRadius: BorderRadius.circular(12),
-        child: Container(
-          decoration: BoxDecoration(
-            color: isDark ? Colors.grey[900] : Colors.grey[200],
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: normalizedUrl.isNotEmpty
-              ? Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    CachedNetworkImage(
-                      imageUrl: normalizedUrl,
-                      fit: BoxFit.cover,
-                      memCacheWidth: 300,
-                      memCacheHeight: 300,
-                      fadeInDuration: const Duration(milliseconds: 200),
-                      placeholder: (context, url) => const ShimmerThumbnail(),
-                      errorWidget: (context, url, error) => Container(
-                        color: isDark ? Colors.grey[800] : Colors.grey[300],
-                        child: Icon(
-                          Icons.image_not_supported_rounded,
-                          color: isDark ? Colors.grey[600] : Colors.grey[400],
-                          size: 32,
-                        ),
-                      ),
-                    ),
-                    if (file.isVideo)
-                      Positioned(
-                        right: 4,
-                        bottom: 4,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFEA4335),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.play_arrow_rounded,
-                            color: Colors.white,
-                            size: 12,
-                          ),
-                        ),
-                      ),
-                  ],
-                )
-              : Center(
-                  child: Icon(
-                    Icons.image_not_supported_rounded,
-                    color: isDark ? Colors.grey[600] : Colors.grey[400],
-                    size: 32,
-                  ),
-                ),
-        ),
+        fallbackIcon: Icons.image_not_supported_rounded,
+        fallbackIconColor: isDark ? Colors.grey[600]! : Colors.grey[400]!,
+        fallbackBackgroundColor: isDark ? Colors.grey[900] : Colors.grey[200],
+        fallbackIconSize: 32,
+        memCacheWidth: 300,
+        memCacheHeight: 300,
+        playBadgeColor: const Color(0xFFEA4335),
       ),
     );
   }
@@ -1071,59 +1028,19 @@ class _BackendGalleryItemList extends StatelessWidget {
         ),
         child: Row(
           children: [
-            ClipRRect(
+            MediaThumbnail(
+              mimeType: file.mimeType,
+              thumbnailPath: normalizedUrl,
+              width: 60,
+              height: 60,
+              memCacheWidth: 180,
+              memCacheHeight: 180,
               borderRadius: BorderRadius.circular(8),
-              child: SizedBox(
-                width: 60,
-                height: 60,
-                child: normalizedUrl.isNotEmpty
-                    ? Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          CachedNetworkImage(
-                            imageUrl: normalizedUrl,
-                            fit: BoxFit.cover,
-                            memCacheWidth: 180,
-                            memCacheHeight: 180,
-                            fadeInDuration: const Duration(milliseconds: 200),
-                            placeholder: (context, url) => const ShimmerThumbnail(),
-                            errorWidget: (context, url, error) => Container(
-                              color: isDark ? Colors.grey[800] : Colors.grey[300],
-                              child: Icon(
-                                Icons.image_not_supported_rounded,
-                                color: isDark ? Colors.grey[600] : Colors.grey[400],
-                                size: 24,
-                              ),
-                            ),
-                          ),
-                          if (file.isVideo)
-                            Positioned(
-                              right: 4,
-                              bottom: 4,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFEA4335),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.play_arrow_rounded,
-                                  color: Colors.white,
-                                  size: 14,
-                                ),
-                              ),
-                            ),
-                        ],
-                      )
-                    : Container(
-                        color: isDark ? Colors.grey[800] : Colors.grey[300],
-                        child: Icon(
-                          Icons.image_not_supported_rounded,
-                          color: isDark ? Colors.grey[600] : Colors.grey[400],
-                          size: 24,
-                        ),
-                      ),
-              ),
+              fallbackIcon: Icons.image_not_supported_rounded,
+              fallbackIconColor: isDark ? Colors.grey[600]! : Colors.grey[400]!,
+              fallbackBackgroundColor: isDark ? Colors.grey[800] : Colors.grey[300],
+              fallbackIconSize: 24,
+              playBadgeColor: const Color(0xFFEA4335),
             ),
             const SizedBox(width: 12),
             Expanded(

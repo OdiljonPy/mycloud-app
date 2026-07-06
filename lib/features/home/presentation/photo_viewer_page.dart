@@ -1,7 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:cloud_app/l10n/app_localizations.dart';
 import '../../../core/config/app_config.dart';
+import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/media_type_helper.dart';
+import '../data/download_repository.dart';
 import 'package:video_player/video_player.dart';
 
 class PhotoViewerPage extends StatefulWidget {
@@ -130,13 +134,18 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
 
   Widget _buildPage(int index) {
     final item = widget.files[index];
-    final isVideo = item.mimeType.toLowerCase().startsWith('video/');
-
-    // Determine which URL to show:
-    // 1. Full presigned URL if already loaded
-    // 2. Thumbnail URL while loading (no blank screen / no flicker)
+    final isVideo = MediaTypeHelper.isVideo(item.mimeType);
+    final hasFullUrl = _fullUrls[item.fileId]?.isNotEmpty ?? false;
     final fullUrl = _fullUrls[item.fileId];
-    final isFetchingFull = _loading.contains(item.fileId);
+
+    // Video never gets fed to Image.network — its thumbnail may be the raw
+    // video URL itself (list endpoint doesn't guarantee a JPEG frame), so
+    // show a spinner until the real, playable URL is ready.
+    if (isVideo && !hasFullUrl) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      );
+    }
 
     // If we have neither full URL nor thumbnail — show spinner
     if (fullUrl == null && item.url.isEmpty) {
@@ -146,15 +155,16 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
     }
 
     // Use full URL if ready, otherwise fall back to thumbnail
-    final displayUrl = (fullUrl != null && fullUrl.isNotEmpty)
-        ? fullUrl
-        : item.url;
+    final displayUrl = hasFullUrl ? fullUrl! : item.url;
+    final isFetchingFull = _loading.contains(item.fileId);
 
     // If it's a video, show video player
-    if (isVideo && fullUrl != null && fullUrl.isNotEmpty) {
+    if (isVideo && hasFullUrl) {
       final player = _VideoPlayerWidget(
         videoUrl: displayUrl,
         authToken: widget.authToken,
+        fileId: item.fileId,
+        fileName: item.name,
       );
       return item.fileId.isNotEmpty
           ? Hero(tag: 'file_hero_${item.fileId}', child: player)
@@ -255,10 +265,14 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
 class _VideoPlayerWidget extends StatefulWidget {
   final String videoUrl;
   final String? authToken;
+  final String? fileId;
+  final String? fileName;
 
   const _VideoPlayerWidget({
     required this.videoUrl,
     this.authToken,
+    this.fileId,
+    this.fileName,
   });
 
   @override
@@ -270,7 +284,33 @@ class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
   bool _isInitialized = false;
   bool _hasError = false;
   bool _showControls = true;
+  bool _isDownloading = false;
   Timer? _hideTimer;
+  final _downloadRepo = DownloadRepository();
+
+  Future<void> _download() async {
+    final fileId = widget.fileId;
+    if (fileId == null || fileId.isEmpty || _isDownloading) return;
+    setState(() => _isDownloading = true);
+    try {
+      await _downloadRepo.downloadFile(
+        fileId: fileId,
+        fileName: widget.fileName ?? fileId,
+      );
+      if (!mounted) return;
+      final t = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.fileSaved(widget.fileName ?? fileId))),
+      );
+    } on AppException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _isDownloading = false);
+    }
+  }
 
   @override
   void initState() {
@@ -371,16 +411,37 @@ class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
   @override
   Widget build(BuildContext context) {
     if (_hasError) {
-      return const Center(
+      final t = AppLocalizations.of(context)!;
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, color: Colors.grey, size: 64),
-            SizedBox(height: 12),
-            Text(
-              'Не удалось загрузить видео',
-              style: TextStyle(color: Colors.grey),
+            const Icon(Icons.error_outline, color: Colors.grey, size: 64),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                t.videoFormatNotSupported,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.grey),
+              ),
             ),
+            if (widget.fileId != null && widget.fileId!.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              TextButton.icon(
+                onPressed: _isDownloading ? null : _download,
+                icon: _isDownloading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.download_rounded, color: Colors.white),
+                label: Text(t.download,
+                    style: const TextStyle(color: Colors.white)),
+              ),
+            ],
           ],
         ),
       );

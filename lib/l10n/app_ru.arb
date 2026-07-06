@@ -173,6 +173,7 @@
   },
   "couldNotOpenImage": "Не удалось открыть изображение",
   "couldNotOpenVideo": "Не удалось открыть видео",
+  "videoFormatNotSupported": "Формат видео не поддерживается для просмотра",
   "noSharedWithMe": "Никто не делился файлами",
   "noSharedWithMeSubtitle": "Когда кто-то поделится файлом — они появятся здесь",
   "noSharedByMe": "Вы ещё ни с кем не делились",

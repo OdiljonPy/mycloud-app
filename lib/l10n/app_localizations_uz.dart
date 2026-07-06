@@ -436,6 +436,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get couldNotOpenVideo => 'Videoni ochib bo\'lmadi';
 
   @override
+  String get videoFormatNotSupported => 'Bu video format ko\'rish uchun qo\'llab-quvvatlanmaydi';
+
+  @override
   String get noSharedWithMe => 'Hech kim fayl ulashmagan';
 
   @override

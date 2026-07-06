@@ -436,6 +436,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get couldNotOpenVideo => 'Не удалось открыть видео';
 
   @override
+  String get videoFormatNotSupported => 'Формат видео не поддерживается для просмотра';
+
+  @override
   String get noSharedWithMe => 'Никто не делился файлами';
 
   @override

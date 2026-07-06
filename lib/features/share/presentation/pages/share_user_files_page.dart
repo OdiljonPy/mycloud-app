@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../../../shared/widgets/shimmer_placeholders.dart';
+import '../../../../shared/widgets/media_thumbnail.dart';
+import '../../../../core/utils/media_type_helper.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/network/dio_client.dart';
@@ -56,7 +56,7 @@ class _ShareUserFilesPageState extends State<ShareUserFilesPage> {
     final mediaItems = allItems
         .where((item) {
           final mime = _mimeOf(item);
-          return mime.startsWith('image/') || mime.startsWith('video/');
+          return MediaTypeHelper.isImage(mime) || MediaTypeHelper.isVideo(mime);
         })
         .toList();
 
@@ -290,8 +290,8 @@ class _ShareUserFilesPageState extends State<ShareUserFilesPage> {
     final id = item['id']?.toString() ?? '';
     final mimeType = _mimeOf(item);
     final thumbUrl = _normalizeUrl(item['thumbnail_path']?.toString());
-    final isImage = mimeType.startsWith('image/');
-    final isVideo = mimeType.startsWith('video/');
+    final isImage = MediaTypeHelper.isImage(mimeType);
+    final isVideo = MediaTypeHelper.isVideo(mimeType);
 
     return GestureDetector(
       onTap: () {
@@ -358,49 +358,6 @@ class _ShareUserFilesPageState extends State<ShareUserFilesPage> {
       );
     }
 
-    if (thumbUrl != null && thumbUrl.isNotEmpty && (isImage || isVideo)) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: SizedBox(
-          width: 44,
-          height: 44,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              CachedNetworkImage(
-                imageUrl: thumbUrl,
-                fit: BoxFit.cover,
-                memCacheWidth: 130,
-                memCacheHeight: 130,
-                fadeInDuration: const Duration(milliseconds: 200),
-                placeholder: (_, __) => const ShimmerThumbnail(),
-                errorWidget: (_, __, ___) => _iconBox(isVideo),
-              ),
-              if (isVideo)
-                Positioned(
-                  right: 2,
-                  bottom: 2,
-                  child: Container(
-                    width: 14,
-                    height: 14,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFEA4335),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.play_arrow_rounded,
-                        color: Colors.white, size: 10),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return _iconBox(isVideo, isImage: isImage);
-  }
-
-  Widget _iconBox(bool isVideo, {bool isImage = false}) {
     final color = isVideo
         ? const Color(0xFFEA4335)
         : isImage
@@ -411,14 +368,20 @@ class _ShareUserFilesPageState extends State<ShareUserFilesPage> {
         : isImage
         ? Icons.image_rounded
         : Icons.insert_drive_file_rounded;
-    return Container(
+
+    return MediaThumbnail(
+      mimeType: isVideo ? 'video/*' : (isImage ? 'image/*' : ''),
+      thumbnailPath: thumbUrl,
       width: 44,
       height: 44,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(icon, color: color, size: 22),
+      memCacheWidth: 130,
+      memCacheHeight: 130,
+      borderRadius: BorderRadius.circular(10),
+      fallbackIcon: icon,
+      fallbackIconColor: color,
+      fallbackIconSize: 22,
+      fallbackBackgroundColor: color.withValues(alpha: 0.1),
+      playBadgeColor: const Color(0xFFEA4335),
     );
   }
 }

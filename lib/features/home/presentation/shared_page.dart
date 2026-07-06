@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../../../shared/widgets/shimmer_placeholders.dart';
+import '../../../shared/widgets/media_thumbnail.dart';
+import '../../../core/utils/media_type_helper.dart';
 import '../data/home_repository.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/storage/secure_storage.dart';
@@ -82,7 +82,8 @@ class _SharedPageState extends State<SharedPage> {
       }
       final mime = mimeType.toLowerCase();
       final thumbPath = _normalizeUrl(item['thumbnail_path']?.toString());
-      if (mime.startsWith('image/') && thumbPath != null && !_previewUrls.containsKey(id)) {
+      final isMedia = MediaTypeHelper.isImage(mime) || MediaTypeHelper.isVideo(mime);
+      if (isMedia && thumbPath != null && !_previewUrls.containsKey(id)) {
         _previewUrls[id] = thumbPath;
       }
     }
@@ -101,9 +102,9 @@ class _SharedPageState extends State<SharedPage> {
     }
     final mime = mimeType.toLowerCase();
     final id = item['id']?.toString() ?? '';
-    if (mime.startsWith('image/')) {
+    if (MediaTypeHelper.isImage(mime)) {
       _openImageViewer(id, name);
-    } else if (mime.startsWith('video/')) {
+    } else if (MediaTypeHelper.isVideo(mime)) {
       _openVideoViewer(id, name);
     }
   }
@@ -128,7 +129,7 @@ class _SharedPageState extends State<SharedPage> {
       return;
     }
     if (mounted) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(videoUrl: url, fileName: name)));
+      Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(videoUrl: url, fileName: name, fileId: fileId)));
     }
   }
 
@@ -607,32 +608,27 @@ class _SharedPageState extends State<SharedPage> {
     }
     final mime = mimeType.toLowerCase();
     final previewUrl = _previewUrls[id];
-    if (mime.startsWith('image/') && previewUrl != null) {
-      return ClipRRect(borderRadius: BorderRadius.circular(12),
-        child: CachedNetworkImage(
-          imageUrl: previewUrl,
-          width: 44,
-          height: 44,
-          fit: BoxFit.cover,
-          memCacheWidth: 130,
-          memCacheHeight: 130,
-          fadeInDuration: const Duration(milliseconds: 200),
-          placeholder: (_, __) => const ShimmerThumbnail(width: 44, height: 44, borderRadius: BorderRadius.all(Radius.circular(12))),
-          errorWidget: (_, __, ___) => Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFF1A73E8).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.image_rounded, color: Color(0xFF1A73E8), size: 22))));
-    }
-    if (mime.startsWith('video/')) {
-      return Container(width: 44, height: 44,
-        decoration: BoxDecoration(color: const Color(0xFFEA4335).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-        child: Stack(alignment: Alignment.center, children: [
-          const Icon(Icons.videocam_rounded, color: Color(0xFFEA4335), size: 22),
-          Positioned(right: 2, bottom: 2, child: Container(width: 14, height: 14,
-            decoration: const BoxDecoration(color: Color(0xFFEA4335), shape: BoxShape.circle),
-            child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 10))),
-        ]));
-    }
-    return Container(width: 44, height: 44,
-      decoration: BoxDecoration(color: const Color(0xFF1A73E8).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-      child: const Icon(Icons.insert_drive_file_rounded, color: Color(0xFF1A73E8), size: 22));
+    final fallbackIcon = MediaTypeHelper.isVideo(mime)
+        ? Icons.videocam_rounded
+        : MediaTypeHelper.isImage(mime)
+            ? Icons.image_rounded
+            : Icons.insert_drive_file_rounded;
+    final fallbackColor = MediaTypeHelper.isVideo(mime)
+        ? const Color(0xFFEA4335)
+        : const Color(0xFF1A73E8);
+    return MediaThumbnail(
+      mimeType: mime,
+      thumbnailPath: previewUrl,
+      width: 44,
+      height: 44,
+      memCacheWidth: 130,
+      memCacheHeight: 130,
+      borderRadius: BorderRadius.circular(12),
+      fallbackIcon: fallbackIcon,
+      fallbackIconColor: fallbackColor,
+      fallbackIconSize: 22,
+      playBadgeColor: fallbackColor,
+    );
   }
 
   String? _normalizeUrl(String? raw) {

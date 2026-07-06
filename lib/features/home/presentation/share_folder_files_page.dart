@@ -2,8 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../../../shared/widgets/shimmer_placeholders.dart';
+import '../../../shared/widgets/media_thumbnail.dart';
+import '../../../core/utils/media_type_helper.dart';
 import '../data/home_repository.dart';
 import '../data/models/folder_model.dart';
 import '../data/models/file_model.dart';
@@ -61,10 +61,9 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
   List<FileModel> get _displayFiles {
     if (_activeFilter == _SffFilterType.all) return _files;
     return _files.where((f) {
-      final m = f.mimeType.toLowerCase();
       return _activeFilter == _SffFilterType.images
-          ? m.startsWith('image/')
-          : m.startsWith('video/');
+          ? MediaTypeHelper.isImage(f.mimeType)
+          : MediaTypeHelper.isVideo(f.mimeType);
     }).toList();
   }
 
@@ -207,13 +206,12 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
 
   Future<void> _openFileViewer(FileModel file) async {
     final mime = file.mimeType.toLowerCase();
-    if (mime.startsWith('image/')) {
+    if (MediaTypeHelper.isImage(mime) || MediaTypeHelper.isVideo(mime)) {
       // Get all media files (images AND videos) together
       final allMediaFiles = _displayFiles
-          .where((f) {
-            final m = f.mimeType.toLowerCase();
-            return m.startsWith('image/') || m.startsWith('video/');
-          })
+          .where((f) =>
+              MediaTypeHelper.isImage(f.mimeType) ||
+              MediaTypeHelper.isVideo(f.mimeType))
           .toList();
 
       final idx = allMediaFiles.indexWhere((f) => f.id == file.id);
@@ -226,7 +224,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
           builder: (_) => PhotoViewerPage(
             files: allMediaFiles
                 .map((f) => (
-                      url: f.id.isNotEmpty ? '' : (f.thumbnailPath ?? ''),
+                      url: f.thumbnailPath ?? '',
                       name: f.name,
                       fileId: f.id,
                       mimeType: f.mimeType,
@@ -797,40 +795,20 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
         child: Row(
           children: [
             // Thumbnail or icon
-            Container(
+            MediaThumbnail(
+              mimeType: file.mimeType,
+              thumbnailPath: previewUrl,
               width: 44,
               height: 44,
-              decoration: BoxDecoration(
-                color: _color(file.mimeType).withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: previewUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: previewUrl,
-                      fit: BoxFit.cover,
-                      memCacheWidth: 130,
-                      memCacheHeight: 130,
-                      fadeInDuration: const Duration(milliseconds: 200),
-                      httpHeaders: _authToken != null
-                          ? {'Authorization': 'Bearer $_authToken'}
-                          : {},
-                      placeholder: (_, __) => const ShimmerThumbnail(
-                        width: 44,
-                        height: 44,
-                        borderRadius: BorderRadius.all(Radius.circular(10)),
-                      ),
-                      errorWidget: (_, __, ___) => Icon(
-                        _icon(file.mimeType),
-                        color: _color(file.mimeType),
-                        size: 20,
-                      ),
-                    )
-                  : Icon(
-                      _icon(file.mimeType),
-                      color: _color(file.mimeType),
-                      size: 20,
-                    ),
+              memCacheWidth: 130,
+              memCacheHeight: 130,
+              borderRadius: BorderRadius.circular(10),
+              httpHeaders:
+                  _authToken != null ? {'Authorization': 'Bearer $_authToken'} : {},
+              fallbackIcon: _icon(file.mimeType),
+              fallbackIconColor: _color(file.mimeType),
+              fallbackIconSize: 20,
+              playBadgeColor: _color(file.mimeType),
             ),
             const SizedBox(width: 12),
             Expanded(

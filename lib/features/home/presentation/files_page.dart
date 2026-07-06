@@ -27,6 +27,8 @@ import '../../share/presentation/widgets/share_dialog.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../../shared/widgets/shimmer_placeholders.dart';
 import '../../../shared/widgets/staggered_list_item.dart';
+import '../../../shared/widgets/media_thumbnail.dart';
+import '../../../core/utils/media_type_helper.dart';
 import '../../../core/utils/page_transitions.dart';
 
 
@@ -271,12 +273,11 @@ class FilesPageState extends State<FilesPage> {
   List<FolderModel> get _displayFolders => _showFavourites ? [] : _folders;
 
   bool _matchesFilter(FileModel f, _FilterType filter) {
-    final m = f.mimeType.toLowerCase();
     switch (filter) {
       case _FilterType.images:
-        return m.startsWith('image/');
+        return MediaTypeHelper.isImage(f.mimeType);
       case _FilterType.videos:
-        return m.startsWith('video/');
+        return MediaTypeHelper.isVideo(f.mimeType);
       case _FilterType.all:
         return true;
     }
@@ -328,12 +329,11 @@ class FilesPageState extends State<FilesPage> {
     try {
     final mime = file.mimeType.toLowerCase();
 
-    if (mime.startsWith('image/') || mime.startsWith('video/')) {
+    if (MediaTypeHelper.isImage(mime) || MediaTypeHelper.isVideo(mime)) {
       final allMediaFiles = _displayFiles
-          .where((f) {
-            final m = f.mimeType.toLowerCase();
-            return m.startsWith('image/') || m.startsWith('video/');
-          })
+          .where((f) =>
+              MediaTypeHelper.isImage(f.mimeType) ||
+              MediaTypeHelper.isVideo(f.mimeType))
           .toList();
 
       final idx = allMediaFiles.indexWhere((f) => f.id == file.id);
@@ -875,6 +875,7 @@ class FilesPageState extends State<FilesPage> {
     required String previewUrl,
     required Color iconColor,
     required IconData icon,
+    String mimeType = '',
   }) {
     showModalBottomSheet(
       context: context,
@@ -887,6 +888,7 @@ class FilesPageState extends State<FilesPage> {
         previewUrl: previewUrl,
         iconColor: iconColor,
         icon: icon,
+        mimeType: mimeType,
         fetchInfo: () => _profileRepo.getContentInfo(id: id, type: type),
         fmt: _fmt,
       ),
@@ -1241,6 +1243,7 @@ class FilesPageState extends State<FilesPage> {
                       previewUrl: file.thumbnailPath ?? '',
                       iconColor: _color(file.mimeType),
                       icon: _icon(file.mimeType),
+                      mimeType: file.mimeType,
                     );
                   },
                 ),
@@ -3143,88 +3146,20 @@ class _FileTile extends StatelessWidget {
   }
 
   Widget _buildLeading(Color color) {
-    final mime = file.mimeType.toLowerCase();
-    final thumb = file.thumbnailPath;
-    if (thumb != null && thumb.isNotEmpty) {
-      final isMedia = mime.startsWith('image/') || mime.startsWith('video/');
-      final content = ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: SizedBox(
-          width: 42,
-          height: 42,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              CachedNetworkImage(
-                imageUrl: thumb,
-                memCacheWidth: 130,
-                memCacheHeight: 130,
-                fit: BoxFit.cover,
-                fadeInDuration: const Duration(milliseconds: 200),
-                placeholder: (_, __) => const ShimmerThumbnail(),
-                errorWidget: (_, __, ___) => _iconBox(color),
-              ),
-              if (mime.startsWith('video/'))
-                Positioned(
-                  right: 2,
-                  bottom: 2,
-                  child: Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                        color: color, shape: BoxShape.circle),
-                    child: const Icon(Icons.play_arrow_rounded,
-                        color: Colors.white, size: 10),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      );
-      return isMedia
-          ? Hero(tag: 'file_hero_${file.id}', child: content)
-          : content;
-    }
-    if (mime.startsWith('video/')) {
-      return Container(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Icon(Icons.videocam_rounded, color: color, size: 20),
-            Positioned(
-              right: 2,
-              bottom: 2,
-              child: Container(
-                width: 14,
-                height: 14,
-                decoration: BoxDecoration(
-                    color: color, shape: BoxShape.circle),
-                child: const Icon(Icons.play_arrow_rounded,
-                    color: Colors.white, size: 10),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    return _iconBox(color);
-  }
-
-  Widget _iconBox(Color color) {
-    return Container(
+    final isMedia = MediaTypeHelper.isImage(file.mimeType) ||
+        MediaTypeHelper.isVideo(file.mimeType);
+    return MediaThumbnail(
+      mimeType: file.mimeType,
+      thumbnailPath: file.thumbnailPath,
       width: 42,
       height: 42,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Icon(_icon(file.mimeType), color: color, size: 20),
+      memCacheWidth: 130,
+      memCacheHeight: 130,
+      borderRadius: BorderRadius.circular(10),
+      heroTag: isMedia ? 'file_hero_${file.id}' : null,
+      fallbackIcon: _icon(file.mimeType),
+      fallbackIconColor: color,
+      playBadgeColor: color,
     );
   }
 
@@ -3421,7 +3356,7 @@ class _FileGridCard extends StatelessWidget {
     final color = _color(mime);
     final thumb = file.thumbnailPath;
     final hasPreview = thumb != null && thumb.isNotEmpty;
-    final isMedia = mime.startsWith('image/') || mime.startsWith('video/');
+    final isMedia = MediaTypeHelper.isImage(mime) || MediaTypeHelper.isVideo(mime);
 
     return RepaintBoundary(child: GestureDetector(
       onTap: isSelectionMode ? onSelectTap : onTap,
@@ -3450,50 +3385,23 @@ class _FileGridCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Builder(builder: (_) {
-                    final clip = ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(16)),
-                      child: hasPreview
-                          ? CachedNetworkImage(
-                        imageUrl: thumb,
-                        fit: BoxFit.cover,
-                        memCacheWidth: 300,
-                        memCacheHeight: 300,
-                        fadeInDuration: const Duration(milliseconds: 200),
-                        placeholder: (_, __) => const ShimmerThumbnail(),
-                        errorWidget: (_, __, ___) => Container(
-                          color: color.withValues(alpha: 0.08),
-                          child: Icon(_icon(mime),
-                              color: color, size: 40),
-                        ),
-                      )
-                          : Container(
-                        color: color.withValues(alpha: 0.08),
-                        child: Center(
-                          child: Icon(_icon(mime),
-                              color: color, size: 40),
-                        ),
-                      ),
-                    );
-                    return isMedia && hasPreview
-                        ? Hero(tag: 'file_hero_${file.id}', child: clip)
-                        : clip;
-                  }),
-                  if (mime.startsWith('video/') && hasPreview)
-                    Center(
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color:
-                          Colors.black.withValues(alpha: 0.5),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.play_arrow_rounded,
-                            color: Colors.white, size: 20),
-                      ),
-                    ),
+                  MediaThumbnail(
+                    mimeType: file.mimeType,
+                    thumbnailPath: file.thumbnailPath,
+                    memCacheWidth: 300,
+                    memCacheHeight: 300,
+                    borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(16)),
+                    heroTag: isMedia && hasPreview
+                        ? 'file_hero_${file.id}'
+                        : null,
+                    fallbackIcon: _icon(mime),
+                    fallbackIconColor: color,
+                    fallbackBackgroundColor: color.withValues(alpha: 0.08),
+                    fallbackIconSize: 40,
+                    centeredPlayIcon: true,
+                    playBadgeColor: Colors.black.withValues(alpha: 0.5),
+                  ),
                   if (isSelected)
                     Positioned(
                       top: 6,
@@ -3593,6 +3501,7 @@ class _InfoBottomSheet extends StatefulWidget {
   final String previewUrl;
   final Color iconColor;
   final IconData icon;
+  final String mimeType;
   final Future<Map<String, dynamic>> Function() fetchInfo;
   final String Function(dynamic) fmt;
 
@@ -3603,6 +3512,7 @@ class _InfoBottomSheet extends StatefulWidget {
     required this.previewUrl,
     required this.iconColor,
     required this.icon,
+    this.mimeType = '',
     required this.fetchInfo,
     required this.fmt,
   });
@@ -3699,21 +3609,21 @@ class _InfoBottomSheetState extends State<_InfoBottomSheet> {
               ),
               child: Row(
                 children: [
-                  ClipRRect(
+                  widget.previewUrl.isNotEmpty
+                      ? MediaThumbnail(
+                    mimeType: widget.mimeType,
+                    thumbnailPath: widget.previewUrl,
+                    width: 52,
+                    height: 52,
+                    memCacheWidth: 160,
+                    memCacheHeight: 160,
                     borderRadius: BorderRadius.circular(10),
-                    child: widget.previewUrl.isNotEmpty
-                        ? CachedNetworkImage(
-                      imageUrl: widget.previewUrl,
-                      width: 52,
-                      height: 52,
-                      fit: BoxFit.cover,
-                      memCacheWidth: 160,
-                      memCacheHeight: 160,
-                      fadeInDuration: const Duration(milliseconds: 200),
-                      placeholder: (_, __) => _iconBox(cs),
-                      errorWidget: (_, __, ___) => _iconBox(cs),
-                    )
-                        : _iconBox(cs),
+                    fallbackIcon: widget.icon,
+                    fallbackIconColor: widget.iconColor,
+                  )
+                      : ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: _iconBox(cs),
                   ),
                   const SizedBox(width: 14),
                   Expanded(

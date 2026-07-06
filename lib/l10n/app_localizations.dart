@@ -931,6 +931,12 @@ abstract class AppLocalizations {
   /// **'Could not open video'**
   String get couldNotOpenVideo;
 
+  /// No description provided for @videoFormatNotSupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This video format is not supported for playback'**
+  String get videoFormatNotSupported;
+
   /// No description provided for @noSharedWithMe.
   ///
   /// In en, this message translates to:

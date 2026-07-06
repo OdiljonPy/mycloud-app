@@ -173,6 +173,7 @@
   },
   "couldNotOpenImage": "Could not open image",
   "couldNotOpenVideo": "Could not open video",
+  "videoFormatNotSupported": "This video format is not supported for playback",
   "noSharedWithMe": "No one has shared files",
   "noSharedWithMeSubtitle": "When someone shares a file — it will appear here",
   "noSharedByMe": "You haven't shared with anyone yet",
