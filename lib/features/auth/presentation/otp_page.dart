@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../data/auth_repository.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/error_localizer.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../home/presentation/main_page.dart';
 
 class OtpPage extends StatefulWidget {
@@ -39,6 +41,7 @@ class _OtpPageState extends State<OtpPage> {
   String get _otpCode => _controllers.map((c) => c.text).join();
 
   Future<void> _verify() async {
+    if (_isLoading) return;
     if (_otpCode.length < 6) {
       setState(() => _error = 'Enter the complete 6-digit code');
       return;
@@ -61,7 +64,10 @@ class _OtpPageState extends State<OtpPage> {
         );
       }
     } on AppException catch (e) {
-      setState(() => _error = e.message);
+      final localized = mounted
+          ? ErrorLocalizer.localize(e.message, AppLocalizations.of(context)!)
+          : e.message;
+      setState(() => _error = localized);
     } finally {
       setState(() => _isLoading = false);
     }
@@ -81,7 +87,10 @@ class _OtpPageState extends State<OtpPage> {
         );
       }
     } on AppException catch (e) {
-      setState(() => _error = e.message);
+      final localized = mounted
+          ? ErrorLocalizer.localize(e.message, AppLocalizations.of(context)!)
+          : e.message;
+      setState(() => _error = localized);
     } finally {
       setState(() => _isResending = false);
     }

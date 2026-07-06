@@ -39,6 +39,7 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
   String get _otpCode => _controllers.map((c) => c.text).join();
 
   Future<void> _verify() async {
+    if (_isLoading) return;
     if (_otpCode.length < 6) {
       setState(() => _error = 'Enter the complete 6-digit code');
       return;

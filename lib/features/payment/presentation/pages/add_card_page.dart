@@ -5,6 +5,7 @@ import '../bloc/payment_bloc.dart';
 import '../bloc/payment_event.dart';
 import '../bloc/payment_state.dart';
 import 'verify_card_page.dart';
+import '../widgets/card_preview_widget.dart';
 import '../../../../l10n/app_localizations.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -77,9 +78,14 @@ class _AddCardPageState extends State<AddCardPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 16),
-                    _CardPreview(
-                      number: _cardCtrl.text,
-                      expire: _expireCtrl.text,
+                    CardPreviewWidget(
+                      numberText: _cardCtrl.text.isEmpty
+                          ? '•••• •••• •••• ••••'
+                          : _cardCtrl.text.padRight(19, '•').substring(0, 19),
+                      expiryText: _expireCtrl.text.isEmpty
+                          ? 'MM/YY'
+                          : _expireCtrl.text,
+                      detectionDigits: _rawCardNumber,
                     ).animate().fadeIn(duration: 500.ms).slideY(begin: -0.06, curve: Curves.easeOut),
                     const SizedBox(height: 32),
                     TextFormField(
@@ -160,82 +166,6 @@ class _AddCardPageState extends State<AddCardPage> {
             );
           },
         ),
-      ),
-    );
-  }
-}
-
-class _CardPreview extends StatelessWidget {
-  final String number;
-  final String expire;
-
-  const _CardPreview({required this.number, required this.expire});
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final displayNumber = number.isEmpty ? '•••• •••• •••• ••••' : number.padRight(19, '•').substring(0, 19);
-    final displayExpire = expire.isEmpty ? 'MM/YY' : expire;
-
-    return Container(
-      height: 180,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1A73E8), Color(0xFF0D47A1)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1A73E8).withValues(alpha: 0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.credit_card, color: Colors.white70, size: 32),
-          const Spacer(),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 150),
-            child: Text(
-              displayNumber,
-              key: ValueKey(displayNumber),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                letterSpacing: 2,
-                fontFamily: 'monospace',
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Text(
-                l10n.validThruLabel,
-                style: const TextStyle(color: Colors.white60, fontSize: 10),
-              ),
-              const SizedBox(width: 8),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 150),
-                child: Text(
-                  displayExpire,
-                  key: ValueKey(displayExpire),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

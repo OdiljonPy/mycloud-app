@@ -68,7 +68,7 @@ class _SharedWithMeView extends StatelessWidget {
           }
           if (state is SharedWithMeLoaded) {
             if (state.users.isEmpty) {
-              return _buildEmpty(cs);
+              return _buildEmpty(context, cs);
             }
             return RefreshIndicator(
               onRefresh: () async => context
@@ -89,7 +89,8 @@ class _SharedWithMeView extends StatelessWidget {
     );
   }
 
-  Widget _buildEmpty(ColorScheme cs) {
+  Widget _buildEmpty(BuildContext context, ColorScheme cs) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -109,7 +110,7 @@ class _SharedWithMeView extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'Никто не делился файлами',
+            l10n.noSharedWithMe,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -118,7 +119,7 @@ class _SharedWithMeView extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Когда кто-то поделится файлом — они появятся здесь',
+            l10n.noSharedWithMeSubtitle,
             style: TextStyle(
               color: cs.onSurface.withValues(alpha: 0.5),
               fontSize: 13,
@@ -214,7 +215,7 @@ class _SharedWithMeView extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
           ),
           subtitle: Text(
-            '${user.owner.phoneNumber} · ${user.sharedCount} файлов',
+            '${user.owner.phoneNumber} · ${AppLocalizations.of(context)!.filesCount(user.sharedCount)}',
             style: TextStyle(color: cs.onSurface.withValues(alpha: 0.5), fontSize: 12),
           ),
           trailing: Container(
@@ -223,9 +224,9 @@ class _SharedWithMeView extends StatelessWidget {
               color: const Color(0xFF34A853).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Text(
-              'Открыть',
-              style: TextStyle(
+            child: Text(
+              AppLocalizations.of(context)!.open,
+              style: const TextStyle(
                 color: Color(0xFF34A853),
                 fontSize: 12,
                 fontWeight: FontWeight.w600,

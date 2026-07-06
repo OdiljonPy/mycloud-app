@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import '../data/home_repository.dart';
 import '../data/download_repository.dart';
 import '../data/models/folder_model.dart';
@@ -80,6 +81,18 @@ class FilesPageState extends State<FilesPage> {
     if (v >= 1073741824) return '${(v / 1073741824).toStringAsFixed(2)} GB';
     if (v >= 1048576) return '${(v / 1048576).toStringAsFixed(1)} MB';
     return '${(v / 1024).toStringAsFixed(0)} KB';
+  }
+
+  Future<void> _toggleFavourite(FileModel file) async {
+    try {
+      await FavouritesProvider.instance.toggleFavourite(file);
+    } catch (_) {
+      if (!mounted) return;
+      final t = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.favouriteUpdateFailed)),
+      );
+    }
   }
 
   Widget _buildPaginationRow({
@@ -340,6 +353,12 @@ class FilesPageState extends State<FilesPage> {
         _error = e.message;
         _isLoading = false;
       });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = AppLocalizations.of(context)!.genericErrorFallback;
+        _isLoading = false;
+      });
     }
   }
 
@@ -367,6 +386,16 @@ class FilesPageState extends State<FilesPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.message),
+          action: SnackBarAction(label: t.retry, onPressed: _loadMoreContent),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoadingMore = false);
+      final t = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(t.genericErrorFallback),
           action: SnackBarAction(label: t.retry, onPressed: _loadMoreContent),
         ),
       );
@@ -884,13 +913,15 @@ class FilesPageState extends State<FilesPage> {
                       _showDeleteConfirmDialog(
                         itemName: folder.name,
                         onConfirm: () async {
+                          final idx = _folders.indexOf(folder);
+                          if (idx == -1) return;
+                          setState(() => _folders.removeAt(idx));
                           try {
                             await _repo.deleteItem(
                                 type: 'folder', id: folder.id);
-                            if (!mounted) return;
-                            _loadContent();
                           } on AppException catch (e) {
                             if (!mounted) return;
+                            setState(() => _folders.insert(idx, folder));
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                   content: Text(e.message),
@@ -1037,7 +1068,7 @@ class FilesPageState extends State<FilesPage> {
                       : t.addToFavourites,
                   onTap: () {
                     Navigator.pop(ctx);
-                    FavouritesProvider.instance.toggleFavourite(file);
+                    _toggleFavourite(file);
                   },
                 ),
                 _buildBottomSheetItem(
@@ -1146,12 +1177,21 @@ class FilesPageState extends State<FilesPage> {
                     _showDeleteConfirmDialog(
                       itemName: file.name,
                       onConfirm: () async {
+                        final idx = _files.indexOf(file);
+                        if (idx == -1) return;
+                        setState(() {
+                          _files.removeAt(idx);
+                          _totalFilesCount =
+                              (_totalFilesCount - 1).clamp(0, 1 << 31);
+                        });
                         try {
                           await _repo.deleteItem(type: 'file', id: file.id);
-                          if (!mounted) return;
-                          _loadContent();
                         } on AppException catch (e) {
                           if (!mounted) return;
+                          setState(() {
+                            _files.insert(idx, file);
+                            _totalFilesCount++;
+                          });
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                                 content: Text(e.message),
@@ -1517,7 +1557,7 @@ class FilesPageState extends State<FilesPage> {
                       onTap: () {
                         for (var f in _files.where(
                                 (e) => _selectedFiles.contains(e.id))) {
-                          FavouritesProvider.instance.toggleFavourite(f);
+                          _toggleFavourite(f);
                         }
                         setState(() {
                           _selectedFiles.clear();
@@ -1607,22 +1647,36 @@ class FilesPageState extends State<FilesPage> {
                           itemName: t.deleteItems(_selectedFiles.length +
                               _selectedFolders.length),
                           onConfirm: () async {
-                            setState(() => _isLoading = true);
+                            final removedFileIds = _selectedFiles.toList();
+                            final removedFolderIds = _selectedFolders
+                                .where((id) => !_folders.any((f) => f.id == id && f.isSync))
+                                .toList();
+                            final filesSnapshot = List<FileModel>.from(_files);
+                            final foldersSnapshot =
+                                List<FolderModel>.from(_folders);
+                            setState(() {
+                              _files.removeWhere(
+                                  (f) => removedFileIds.contains(f.id));
+                              _folders.removeWhere(
+                                  (f) => removedFolderIds.contains(f.id));
+                              _totalFilesCount =
+                                  (_totalFilesCount - removedFileIds.length)
+                                      .clamp(0, 1 << 31);
+                              _selectedFiles.clear();
+                              _selectedFolders.clear();
+                            });
                             try {
                               await HomeRepository().deleteItems(
-                                files: _selectedFiles.toList(),
-                                folders: _selectedFolders
-                                    .where((id) => !_folders.any((f) => f.id == id && f.isSync))
-                                    .toList(),
+                                files: removedFileIds,
+                                folders: removedFolderIds,
                               );
-                              setState(() {
-                                _selectedFiles.clear();
-                                _selectedFolders.clear();
-                              });
-                              _loadContent();
                             } catch (e) {
-                              setState(() => _isLoading = false);
                               if (!mounted) return;
+                              setState(() {
+                                _files = filesSnapshot;
+                                _folders = foldersSnapshot;
+                                _totalFilesCount += removedFileIds.length;
+                              });
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(e.toString()),
@@ -2063,8 +2117,7 @@ class FilesPageState extends State<FilesPage> {
                     },
                     onSelectTap: () => _toggleFileSelection(f.id),
                     onMenuTap: () => _showFileMenu(f),
-                    onFavouriteTap: () =>
-                        FavouritesProvider.instance.toggleFavourite(f),
+                    onFavouriteTap: () => _toggleFavourite(f),
                   ),
                 );
               },
@@ -2258,8 +2311,7 @@ class FilesPageState extends State<FilesPage> {
               onMenuTap: () => _showFileMenu(f),
               downloadProgress: _downloadProgress[f.id],
               downloadReceivedBytes: _downloadReceivedBytes[f.id],
-              onFavouriteTap: () =>
-                  FavouritesProvider.instance.toggleFavourite(f),
+              onFavouriteTap: () => _toggleFavourite(f),
             ),
           );
         },
@@ -3386,13 +3438,8 @@ class _InfoBottomSheetState extends State<_InfoBottomSheet> {
     if (raw == null) return '—';
     try {
       final dt = DateTime.parse(raw).toLocal();
-      const months = [
-        'янв', 'фев', 'мар', 'апр', 'май', 'июн',
-        'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'
-      ];
-      return '${dt.day} ${months[dt.month - 1]}. ${dt.year} г., '
-          '${dt.hour.toString().padLeft(2, '0')}:'
-          '${dt.minute.toString().padLeft(2, '0')}';
+      final locale = Localizations.localeOf(context).toString();
+      return DateFormat('d MMM yyyy, HH:mm', locale).format(dt);
     } catch (e) {
       if (kDebugMode) debugPrint('[FilesPage] _formatDate failed: $e');
       return raw;

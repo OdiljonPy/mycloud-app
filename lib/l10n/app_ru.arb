@@ -158,6 +158,19 @@
     }
   },
   "addedToFavourites": "Добавлено в избранное",
+  "favouriteUpdateFailed": "Не удалось обновить избранное",
+  "unitBytes": "байт",
+  "unitKb": "КБ",
+  "unitMb": "МБ",
+  "unitGb": "ГБ",
+  "unitTb": "ТБ",
+  "storageUsedOfLimit": "{used} использовано из {limit}",
+  "@storageUsedOfLimit": {
+    "placeholders": {
+      "used": { "type": "String" },
+      "limit": { "type": "String" }
+    }
+  },
   "couldNotOpenImage": "Не удалось открыть изображение",
   "couldNotOpenVideo": "Не удалось открыть видео",
   "noSharedWithMe": "Никто не делился файлами",
@@ -366,5 +379,81 @@
     "placeholders": { "storage": { "type": "String" } }
   },
   "dataPreservedNote": "Ваши данные сохранятся при обновлении тарифа.",
-  "unknownError": "Неизвестная ошибка"
+  "unknownError": "Неизвестная ошибка",
+  "switchPlanButton": "Перейти на этот план",
+  "addCardPrompt": "Добавьте карту для оплаты",
+  "downgradeWarningTitle": "Подтвердите переход на другой тариф",
+  "downgradeWarningMessage": "Сейчас используется {used} из доступных. На плане «{plan}» доступно {limit}. После перехода синхронизация новых файлов остановится, пока хранилище не будет в пределах лимита. Существующие файлы не будут удалены.",
+  "@downgradeWarningMessage": {
+    "placeholders": {
+      "used": { "type": "String" },
+      "plan": { "type": "String" },
+      "limit": { "type": "String" }
+    }
+  },
+  "continueAnyway": "Всё равно перейти",
+  "staySamePlan": "Остаться на текущем плане",
+  "popularBadge": "Популярный",
+  "cardTypeUzcard": "Uzcard",
+  "cardTypeHumo": "Humo",
+  "cardTypeVisa": "Visa",
+  "cardTypeMastercard": "Mastercard",
+  "cardTypeUnknown": "Карта",
+  "errorInvalidCredentials": "Неверный номер телефона или пароль",
+  "errorUserNotFound": "Пользователь не найден",
+  "errorInvalidCode": "Неверный код подтверждения",
+  "errorSessionExpired": "Сессия истекла, попробуйте снова",
+  "errorUserAlreadyExists": "Пользователь с таким номером уже существует",
+  "genericErrorFallback": "Произошла ошибка, попробуйте позже",
+  "planNameFree": "Бесплатно",
+  "planNameStart": "Старт",
+  "planNamePlus": "Плюс",
+  "planNameFamily": "Семья",
+  "planNamePro": "Про",
+  "clearDoneButton": "Очистить",
+  "allUploadedStatus": "Всё загружено!",
+  "noNetworkWaiting": "Нет сети — ожидание...",
+  "uploadingProgress": "Загрузка {current} из {total}...",
+  "@uploadingProgress": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "tapToSelectFiles": "Нажмите чтобы выбрать",
+  "photosAndVideosOnly": "Только фото и видео",
+  "uploadingCountBadge": "{count} загружается",
+  "@uploadingCountBadge": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "pausedCountBadge": "{count} на паузе",
+  "@pausedCountBadge": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "doneCountBadge": "{count} готово",
+  "@doneCountBadge": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "addFilesButton": "Добавить",
+  "waitingForNetworkShort": "Ожидание сети...",
+  "uploadingEllipsis": "Загрузка...",
+  "selectPhotosVideos": "Выбрать фото / видео",
+  "uploadMoreButton": "Загрузить ещё",
+  "addMoreButton": "Добавить ещё",
+  "pausedWillResumeAuto": "Нет сети — возобновится автоматически",
+  "shareButtonWithCount": "Поделиться ({count})",
+  "@shareButtonWithCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "filesAndFoldersCount": "{files} файлов, {folders} папок",
+  "@filesAndFoldersCount": {
+    "placeholders": {
+      "files": { "type": "int" },
+      "folders": { "type": "int" }
+    }
+  },
+  "chooseFolderTitle": "Выберите папку",
+  "homeFolderLabel": "Главная",
+  "invalidPhoneNumber": "Неверный номер телефона",
+  "repeatPasswordHint": "Повторите пароль"
 }

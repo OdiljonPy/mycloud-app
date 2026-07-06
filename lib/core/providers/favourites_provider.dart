@@ -75,11 +75,8 @@ class FavouritesProvider extends ChangeNotifier {
       if (wasFav) {
         // Send file ID (UUID) not the record ID, as per backend expectation
         await _repo.removeFromFavourites(file.id);
-        await loadFavourites();
       } else {
         await _repo.addToFavourites(file.id);
-        // We probably need the new favouriteId record, so we reload to sync state
-        await loadFavourites();
       }
     } catch (e) {
       // Revert optimistic update on failure

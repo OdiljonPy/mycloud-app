@@ -407,6 +407,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addedToFavourites => 'Added to favourites';
 
   @override
+  String get favouriteUpdateFailed => 'Failed to update favourites';
+
+  @override
+  String get unitBytes => 'bytes';
+
+  @override
+  String get unitKb => 'KB';
+
+  @override
+  String get unitMb => 'MB';
+
+  @override
+  String get unitGb => 'GB';
+
+  @override
+  String get unitTb => 'TB';
+
+  @override
+  String storageUsedOfLimit(String used, String limit) {
+    return '$used used of $limit';
+  }
+
+  @override
   String get couldNotOpenImage => 'Could not open image';
 
   @override
@@ -782,4 +805,153 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unknownError => 'Unknown error';
+
+  @override
+  String get switchPlanButton => 'Switch to this plan';
+
+  @override
+  String get addCardPrompt => 'Add a card to pay';
+
+  @override
+  String get downgradeWarningTitle => 'Confirm plan change';
+
+  @override
+  String downgradeWarningMessage(String used, String plan, String limit) {
+    return 'You are currently using $used. The «$plan» plan offers $limit. After switching, syncing new files will pause until your storage is within the limit. Existing files will not be deleted.';
+  }
+
+  @override
+  String get continueAnyway => 'Switch anyway';
+
+  @override
+  String get staySamePlan => 'Stay on current plan';
+
+  @override
+  String get popularBadge => 'Popular';
+
+  @override
+  String get cardTypeUzcard => 'Uzcard';
+
+  @override
+  String get cardTypeHumo => 'Humo';
+
+  @override
+  String get cardTypeVisa => 'Visa';
+
+  @override
+  String get cardTypeMastercard => 'Mastercard';
+
+  @override
+  String get cardTypeUnknown => 'Card';
+
+  @override
+  String get errorInvalidCredentials => 'Incorrect phone number or password';
+
+  @override
+  String get errorUserNotFound => 'User not found';
+
+  @override
+  String get errorInvalidCode => 'Invalid verification code';
+
+  @override
+  String get errorSessionExpired => 'Session expired, please try again';
+
+  @override
+  String get errorUserAlreadyExists => 'A user with this phone number already exists';
+
+  @override
+  String get genericErrorFallback => 'Something went wrong, please try again later';
+
+  @override
+  String get planNameFree => 'Free';
+
+  @override
+  String get planNameStart => 'Start';
+
+  @override
+  String get planNamePlus => 'Plus';
+
+  @override
+  String get planNameFamily => 'Family';
+
+  @override
+  String get planNamePro => 'Pro';
+
+  @override
+  String get clearDoneButton => 'Clear';
+
+  @override
+  String get allUploadedStatus => 'All uploaded!';
+
+  @override
+  String get noNetworkWaiting => 'No network — waiting...';
+
+  @override
+  String uploadingProgress(int current, int total) {
+    return 'Uploading $current of $total...';
+  }
+
+  @override
+  String get tapToSelectFiles => 'Tap to select';
+
+  @override
+  String get photosAndVideosOnly => 'Photos and videos only';
+
+  @override
+  String uploadingCountBadge(int count) {
+    return '$count uploading';
+  }
+
+  @override
+  String pausedCountBadge(int count) {
+    return '$count paused';
+  }
+
+  @override
+  String doneCountBadge(int count) {
+    return '$count done';
+  }
+
+  @override
+  String get addFilesButton => 'Add';
+
+  @override
+  String get waitingForNetworkShort => 'Waiting for network...';
+
+  @override
+  String get uploadingEllipsis => 'Uploading...';
+
+  @override
+  String get selectPhotosVideos => 'Select photos / videos';
+
+  @override
+  String get uploadMoreButton => 'Upload more';
+
+  @override
+  String get addMoreButton => 'Add more';
+
+  @override
+  String get pausedWillResumeAuto => 'No network — will resume automatically';
+
+  @override
+  String shareButtonWithCount(int count) {
+    return 'Share ($count)';
+  }
+
+  @override
+  String filesAndFoldersCount(int files, int folders) {
+    return '$files files, $folders folders';
+  }
+
+  @override
+  String get chooseFolderTitle => 'Choose folder';
+
+  @override
+  String get homeFolderLabel => 'Home';
+
+  @override
+  String get invalidPhoneNumber => 'Invalid phone number';
+
+  @override
+  String get repeatPasswordHint => 'Repeat your password';
 }

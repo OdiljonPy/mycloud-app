@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../data/auth_repository.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/error_localizer.dart';
 import '../../../core/utils/uzbek_phone_formatter.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../home/presentation/main_page.dart';
 import 'forgot_password_page.dart';
 import 'register_page.dart';
@@ -71,7 +73,10 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } on AppException catch (e) {
-      setState(() => _error = e.message);
+      final localized = mounted
+          ? ErrorLocalizer.localize(e.message, AppLocalizations.of(context)!)
+          : e.message;
+      setState(() => _error = localized);
     } finally {
       setState(() => _isLoading = false);
     }
@@ -218,7 +223,7 @@ class _LoginPageState extends State<LoginPage> {
               if (_phoneTouched && !_isPhoneValid) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'Неверный номер телефона',
+                  AppLocalizations.of(context)!.invalidPhoneNumber,
                   style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],
@@ -293,7 +298,7 @@ class _LoginPageState extends State<LoginPage> {
               if (_passwordTouched && !_isPasswordValid) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'Минимум 8 символов',
+                  AppLocalizations.of(context)!.passwordTooShort,
                   style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],

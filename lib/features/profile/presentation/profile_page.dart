@@ -7,15 +7,16 @@ import '../../../core/storage/secure_storage.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/services/language_notifier.dart';
+import '../../../core/utils/plan_localizer.dart';
+import '../../../core/utils/safe_action_mixin.dart';
+import '../../../core/utils/format_bytes.dart';
 import '../../auth/presentation/login_page.dart';
 import '../data/profile_repository.dart';
 import '../../../main.dart';
 import '../../share/presentation/share_requests_page.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../payment/data/repository/payment_repository.dart';
 import '../../payment/data/models/payment_models.dart';
-import '../../payment/presentation/bloc/payment_bloc.dart';
-import '../../payment/presentation/pages/plans_page.dart';
+import '../../payment/presentation/pages/subscription_page.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -26,7 +27,7 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfilePage> {
   final _repo = ProfileRepository();
   final _paymentRepo = PaymentRepository();
 
@@ -110,15 +111,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   String? get _avatarUrl => _userData?['image'] as String?;
 
-  String _formatBytes(dynamic bytes) {
-    if (bytes == null) return '0 KB';
-    final b = (bytes is num)
-        ? bytes.toDouble()
-        : double.tryParse(bytes.toString()) ?? 0;
-    if (b >= 1073741824) return '${(b / 1073741824).toStringAsFixed(2)} GB';
-    if (b >= 1048576) return '${(b / 1048576).toStringAsFixed(1)} MB';
-    return '${(b / 1024).toStringAsFixed(0)} KB';
-  }
+  String _formatBytes(dynamic bytes) =>
+      formatBytes(bytes, AppLocalizations.of(context)!);
 
   Future<void> _deleteAccount() async {
     try {
@@ -155,32 +149,35 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Future<void> _pickAvatar() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(type: FileType.image);
-      if (result == null || result.files.single.path == null) return;
-      final file = File(result.files.single.path!);
-      await _repo.uploadAvatar(file);
-      await _loadData();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.avatarUpdated)),
-        );
-      }
-    } on AppException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
+  Future<void> _pickAvatar() => safeAction(() async {
+        try {
+          final result =
+              await FilePicker.platform.pickFiles(type: FileType.image);
+          if (result == null || result.files.single.path == null) return;
+          final file = File(result.files.single.path!);
+          await _repo.uploadAvatar(file);
+          await _loadData();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content:
+                      Text(AppLocalizations.of(context)!.avatarUpdated)),
+            );
+          }
+        } on AppException catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+            );
+          }
+        }
+      });
 
   void _showEditNameSheet() {
     final controller = TextEditingController(text: _fullName);
@@ -663,7 +660,7 @@ class _ProfilePageState extends State<ProfilePage> {
             right: 0,
             child: Center(
               child: GestureDetector(
-                onTap: _pickAvatar,
+                onTap: isProcessing ? null : _pickAvatar,
                 child: Stack(
                   children: [
                     CircleAvatar(
@@ -677,6 +674,21 @@ class _ProfilePageState extends State<ProfilePage> {
                           size: 48, color: Colors.white)
                           : null,
                     ),
+                    if (isProcessing)
+                      const Positioned.fill(
+                        child: CircleAvatar(
+                          radius: 48,
+                          backgroundColor: Colors.black45,
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
                     Positioned(
                       bottom: 0,
                       right: 0,
@@ -849,7 +861,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          '${_formatBytes(used)} использовано из ${_formatBytes(limit)}',
+                          t.storageUsedOfLimit(_formatBytes(used), _formatBytes(limit)),
                           style: TextStyle(
                             color: textPrimary,
                             fontSize: 13,
@@ -921,15 +933,15 @@ class _ProfilePageState extends State<ProfilePage> {
               width: double.infinity,
               height: 46,
               child: FilledButton.icon(
-                onPressed: () => showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (_) => BlocProvider(
-                    create: (_) => PaymentBloc(PaymentRepository()),
-                    child: PlansPage(currentPlanId: sub?.planId),
-                  ),
-                ),
+                onPressed: () => Navigator.of(context)
+                    .push(
+                      MaterialPageRoute(
+                        builder: (_) => const SubscriptionPage(),
+                      ),
+                    )
+                    .then((_) {
+                  if (mounted) _loadData();
+                }),
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF1A73E8),
                   shape: RoundedRectangleBorder(
@@ -939,7 +951,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 icon: const Icon(Icons.rocket_launch_rounded, size: 18),
                 label: Text(
                   nextPlan != null
-                      ? t.upgradeToPlan(nextPlan.name)
+                      ? t.upgradeToPlan(PlanLocalizer.localize(nextPlan.name, t))
                       : hasActive
                           ? t.changePlan
                           : t.choosePlan,

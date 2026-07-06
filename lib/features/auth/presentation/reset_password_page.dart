@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/auth_repository.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../l10n/app_localizations.dart';
 import 'login_page.dart';
 
 class ResetPasswordPage extends StatefulWidget {
@@ -220,7 +221,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               if (_passwordTouched && !_isPasswordValid) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'Минимум 8 символов',
+                  AppLocalizations.of(context)!.passwordTooShort,
                   style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],
@@ -290,7 +291,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               if (_confirmTouched && !_isConfirmValid) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'Пароли не совпадают',
+                  AppLocalizations.of(context)!.passwordsDoNotMatch,
                   style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],

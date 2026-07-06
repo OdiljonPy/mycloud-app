@@ -52,7 +52,7 @@ class _VerifyCardPageState extends State<VerifyCardPage> {
                 backgroundColor: Colors.green,
               ),
             );
-            // AddCardPage used pushReplacement — only one pop needed to return to PaymentPage
+            // AddCardPage used pushReplacement — only one pop needed to return to SubscriptionPage
             Navigator.of(context).pop();
             context.read<PaymentBloc>().add(const LoadPaymentData());
           } else if (state is PaymentError) {

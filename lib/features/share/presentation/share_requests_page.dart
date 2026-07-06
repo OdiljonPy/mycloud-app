@@ -74,7 +74,7 @@ class _ShareRequestsViewState extends State<_ShareRequestsView> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Share Requests',
+          AppLocalizations.of(context)!.shareRequests,
           style: TextStyle(
             color: cs.onSurface,
             fontWeight: FontWeight.bold,
@@ -107,8 +107,8 @@ class _ShareRequestsViewState extends State<_ShareRequestsView> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.permission.status == 'approved'
-                    ? 'Доступ одобрен'
-                    : 'Доступ отклонён'),
+                    ? AppLocalizations.of(context)!.accessApproved
+                    : AppLocalizations.of(context)!.accessRejected),
                 backgroundColor: state.permission.status == 'approved'
                     ? Colors.green
                     : Colors.red,
@@ -130,7 +130,7 @@ class _ShareRequestsViewState extends State<_ShareRequestsView> {
           }
 
           if (_requests.isEmpty && state is! ShareLoading) {
-            return _buildEmpty(cs);
+            return _buildEmpty(context, cs);
           }
 
           return RefreshIndicator(
@@ -170,7 +170,7 @@ class _ShareRequestsViewState extends State<_ShareRequestsView> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Share Requests',
+                                AppLocalizations.of(context)!.shareRequests,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15,
@@ -178,7 +178,7 @@ class _ShareRequestsViewState extends State<_ShareRequestsView> {
                                 ),
                               ),
                               Text(
-                                'Review links and approve access',
+                                AppLocalizations.of(context)!.shareRequestsSubtitle,
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: cs.onSurface.withValues(alpha: 0.5),
@@ -266,7 +266,8 @@ class _ShareRequestsViewState extends State<_ShareRequestsView> {
     );
   }
 
-  Widget _buildEmpty(ColorScheme cs) {
+  Widget _buildEmpty(BuildContext context, ColorScheme cs) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -282,7 +283,7 @@ class _ShareRequestsViewState extends State<_ShareRequestsView> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Нет share requests',
+            l10n.noShareRequests,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -291,7 +292,7 @@ class _ShareRequestsViewState extends State<_ShareRequestsView> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Поделитесь файлами по ссылке\nи они появятся здесь',
+            l10n.noShareRequestsSubtitle,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: cs.onSurface.withValues(alpha: 0.5),
@@ -431,6 +432,7 @@ class _DetailPanelState extends State<_DetailPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final link =
         'https://cloud.zerodev.uz/share-content/${widget.detail.link}';
     final cs = widget.cs;
@@ -461,7 +463,7 @@ class _DetailPanelState extends State<_DetailPanel> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Share request details',
+                  l10n.shareRequestDetails,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -469,7 +471,7 @@ class _DetailPanelState extends State<_DetailPanel> {
                   ),
                 ),
                 Text(
-                  'Request #${widget.detail.id}',
+                  '${l10n.request} #${widget.detail.id}',
                   style: TextStyle(
                     fontSize: 12,
                     color: cs.onSurface.withValues(alpha: 0.5),
@@ -498,7 +500,7 @@ class _DetailPanelState extends State<_DetailPanel> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'LINK NAME',
+                          l10n.linkNameLabel,
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
@@ -572,7 +574,7 @@ class _DetailPanelState extends State<_DetailPanel> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'SHARE LINK',
+                  l10n.shareLinkLabel,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
@@ -630,7 +632,7 @@ class _DetailPanelState extends State<_DetailPanel> {
               child: Row(
                 children: [
                   Text(
-                    'PERMISSION REQUESTS',
+                    l10n.permissionRequests,
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
@@ -667,14 +669,14 @@ class _DetailPanelState extends State<_DetailPanel> {
                 child: Row(
                   children: [
                     _PermFilterTab(
-                      label: 'All',
+                      label: l10n.all,
                       count: _count('all'),
                       isActive: _permFilter == 'all',
                       onTap: () => setState(() => _permFilter = 'all'),
                     ),
                     const SizedBox(width: 8),
                     _PermFilterTab(
-                      label: 'Pending',
+                      label: l10n.pending,
                       count: _count('pending'),
                       isActive: _permFilter == 'pending',
                       color: Colors.orange,
@@ -682,7 +684,7 @@ class _DetailPanelState extends State<_DetailPanel> {
                     ),
                     const SizedBox(width: 8),
                     _PermFilterTab(
-                      label: 'Approved',
+                      label: l10n.approved,
                       count: _count('approved'),
                       isActive: _permFilter == 'approved',
                       color: Colors.green,
@@ -690,7 +692,7 @@ class _DetailPanelState extends State<_DetailPanel> {
                     ),
                     const SizedBox(width: 8),
                     _PermFilterTab(
-                      label: 'Rejected',
+                      label: l10n.rejected,
                       count: _count('rejected'),
                       isActive: _permFilter == 'rejected',
                       color: Colors.red,
@@ -799,18 +801,19 @@ class _PermissionCard extends StatelessWidget {
     }
   }
 
-  String _statusLabel(String status) {
+  String _statusLabel(String status, AppLocalizations l10n) {
     switch (status) {
       case 'approved':
-        return 'Approved';
+        return l10n.approved;
       case 'rejected':
-        return 'Rejected';
+        return l10n.rejected;
       default:
-        return 'Pending';
+        return l10n.pending;
     }
   }
 
   void _showReviewDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -818,7 +821,7 @@ class _PermissionCard extends StatelessWidget {
         shape:
         RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
-          'Review access request',
+          l10n.reviewAccessRequest,
           style: TextStyle(
             color: cs.onSurface,
             fontWeight: FontWeight.bold,
@@ -830,7 +833,7 @@ class _PermissionCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Choose whether this user should get access to the shared content.',
+              l10n.reviewAccessRequestSubtitle,
               style: TextStyle(
                 color: cs.onSurface.withValues(alpha: 0.6),
                 fontSize: 13,
@@ -893,7 +896,7 @@ class _PermissionCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      _statusLabel(permission.status),
+                      _statusLabel(permission.status, l10n),
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -913,8 +916,8 @@ class _PermissionCard extends StatelessWidget {
               onUpdate(permission.id, 'rejected');
             },
             icon: const Icon(Icons.close, size: 16, color: Colors.red),
-            label: const Text('Reject',
-                style: TextStyle(
+            label: Text(l10n.reject,
+                style: const TextStyle(
                     color: Colors.red, fontWeight: FontWeight.w600)),
           ),
           ElevatedButton.icon(
@@ -929,8 +932,8 @@ class _PermissionCard extends StatelessWidget {
             ),
             icon:
             const Icon(Icons.check, size: 16, color: Colors.white),
-            label: const Text('Approve',
-                style: TextStyle(
+            label: Text(l10n.approve,
+                style: const TextStyle(
                     color: Colors.white, fontWeight: FontWeight.w600)),
           ),
         ],
@@ -940,6 +943,7 @@ class _PermissionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       padding: const EdgeInsets.all(14),
@@ -1012,7 +1016,7 @@ class _PermissionCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  _statusLabel(permission.status),
+                  _statusLabel(permission.status, l10n),
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -1034,7 +1038,7 @@ class _PermissionCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10)),
               ),
               child: Text(
-                'Review',
+                l10n.review,
                 style: TextStyle(
                   color: cs.onSurface,
                   fontSize: 13,

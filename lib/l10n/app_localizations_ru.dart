@@ -407,6 +407,29 @@ class AppLocalizationsRu extends AppLocalizations {
   String get addedToFavourites => 'Добавлено в избранное';
 
   @override
+  String get favouriteUpdateFailed => 'Не удалось обновить избранное';
+
+  @override
+  String get unitBytes => 'байт';
+
+  @override
+  String get unitKb => 'КБ';
+
+  @override
+  String get unitMb => 'МБ';
+
+  @override
+  String get unitGb => 'ГБ';
+
+  @override
+  String get unitTb => 'ТБ';
+
+  @override
+  String storageUsedOfLimit(String used, String limit) {
+    return '$used использовано из $limit';
+  }
+
+  @override
   String get couldNotOpenImage => 'Не удалось открыть изображение';
 
   @override
@@ -782,4 +805,153 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get unknownError => 'Неизвестная ошибка';
+
+  @override
+  String get switchPlanButton => 'Перейти на этот план';
+
+  @override
+  String get addCardPrompt => 'Добавьте карту для оплаты';
+
+  @override
+  String get downgradeWarningTitle => 'Подтвердите переход на другой тариф';
+
+  @override
+  String downgradeWarningMessage(String used, String plan, String limit) {
+    return 'Сейчас используется $used из доступных. На плане «$plan» доступно $limit. После перехода синхронизация новых файлов остановится, пока хранилище не будет в пределах лимита. Существующие файлы не будут удалены.';
+  }
+
+  @override
+  String get continueAnyway => 'Всё равно перейти';
+
+  @override
+  String get staySamePlan => 'Остаться на текущем плане';
+
+  @override
+  String get popularBadge => 'Популярный';
+
+  @override
+  String get cardTypeUzcard => 'Uzcard';
+
+  @override
+  String get cardTypeHumo => 'Humo';
+
+  @override
+  String get cardTypeVisa => 'Visa';
+
+  @override
+  String get cardTypeMastercard => 'Mastercard';
+
+  @override
+  String get cardTypeUnknown => 'Карта';
+
+  @override
+  String get errorInvalidCredentials => 'Неверный номер телефона или пароль';
+
+  @override
+  String get errorUserNotFound => 'Пользователь не найден';
+
+  @override
+  String get errorInvalidCode => 'Неверный код подтверждения';
+
+  @override
+  String get errorSessionExpired => 'Сессия истекла, попробуйте снова';
+
+  @override
+  String get errorUserAlreadyExists => 'Пользователь с таким номером уже существует';
+
+  @override
+  String get genericErrorFallback => 'Произошла ошибка, попробуйте позже';
+
+  @override
+  String get planNameFree => 'Бесплатно';
+
+  @override
+  String get planNameStart => 'Старт';
+
+  @override
+  String get planNamePlus => 'Плюс';
+
+  @override
+  String get planNameFamily => 'Семья';
+
+  @override
+  String get planNamePro => 'Про';
+
+  @override
+  String get clearDoneButton => 'Очистить';
+
+  @override
+  String get allUploadedStatus => 'Всё загружено!';
+
+  @override
+  String get noNetworkWaiting => 'Нет сети — ожидание...';
+
+  @override
+  String uploadingProgress(int current, int total) {
+    return 'Загрузка $current из $total...';
+  }
+
+  @override
+  String get tapToSelectFiles => 'Нажмите чтобы выбрать';
+
+  @override
+  String get photosAndVideosOnly => 'Только фото и видео';
+
+  @override
+  String uploadingCountBadge(int count) {
+    return '$count загружается';
+  }
+
+  @override
+  String pausedCountBadge(int count) {
+    return '$count на паузе';
+  }
+
+  @override
+  String doneCountBadge(int count) {
+    return '$count готово';
+  }
+
+  @override
+  String get addFilesButton => 'Добавить';
+
+  @override
+  String get waitingForNetworkShort => 'Ожидание сети...';
+
+  @override
+  String get uploadingEllipsis => 'Загрузка...';
+
+  @override
+  String get selectPhotosVideos => 'Выбрать фото / видео';
+
+  @override
+  String get uploadMoreButton => 'Загрузить ещё';
+
+  @override
+  String get addMoreButton => 'Добавить ещё';
+
+  @override
+  String get pausedWillResumeAuto => 'Нет сети — возобновится автоматически';
+
+  @override
+  String shareButtonWithCount(int count) {
+    return 'Поделиться ($count)';
+  }
+
+  @override
+  String filesAndFoldersCount(int files, int folders) {
+    return '$files файлов, $folders папок';
+  }
+
+  @override
+  String get chooseFolderTitle => 'Выберите папку';
+
+  @override
+  String get homeFolderLabel => 'Главная';
+
+  @override
+  String get invalidPhoneNumber => 'Неверный номер телефона';
+
+  @override
+  String get repeatPasswordHint => 'Повторите пароль';
 }

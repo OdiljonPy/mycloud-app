@@ -226,7 +226,8 @@ class _ShareDialogState extends State<ShareDialog> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Поделиться (${_fileIds.length + _folderIds.length})',
+                          AppLocalizations.of(context)!.shareButtonWithCount(
+                              _fileIds.length + _folderIds.length),
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
@@ -257,7 +258,7 @@ class _ShareDialogState extends State<ShareDialog> {
                       children: [
                         Expanded(
                           child: _ModeTab(
-                            label: 'По номеру',
+                            label: AppLocalizations.of(context)!.shareByPhone,
                             icon: Icons.phone_rounded,
                             isActive: _mode == _ShareMode.byPhone,
                             isDark: isDark,
@@ -269,7 +270,7 @@ class _ShareDialogState extends State<ShareDialog> {
                         ),
                         Expanded(
                           child: _ModeTab(
-                            label: 'По ссылке',
+                            label: AppLocalizations.of(context)!.shareByLink,
                             icon: Icons.link_rounded,
                             isActive: _mode == _ShareMode.byLink,
                             isDark: isDark,
@@ -392,7 +393,7 @@ class _ShareDialogState extends State<ShareDialog> {
         _buildActionButtons(
           isDark: isDark,
           onAction: _shareByPhone,
-          actionLabel: 'Поделиться',
+          actionLabel: AppLocalizations.of(context)!.share,
         ),
       ],
     );
@@ -530,7 +531,8 @@ class _ShareDialogState extends State<ShareDialog> {
           const Icon(Icons.info_outline, size: 16, color: Colors.grey),
           const SizedBox(width: 8),
           Text(
-            '${_fileIds.length} файлов, ${_folderIds.length} папок',
+            AppLocalizations.of(context)!
+                .filesAndFoldersCount(_fileIds.length, _folderIds.length),
             style: const TextStyle(fontSize: 13, color: Colors.grey),
           ),
         ],

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../data/auth_repository.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/error_localizer.dart';
 import '../../../core/utils/uzbek_phone_formatter.dart';
+import '../../../l10n/app_localizations.dart';
 import 'reset_password_otp_page.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
@@ -47,7 +49,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         );
       }
     } on AppException catch (e) {
-      setState(() => _error = e.message);
+      final localized = mounted
+          ? ErrorLocalizer.localize(e.message, AppLocalizations.of(context)!)
+          : e.message;
+      setState(() => _error = localized);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -181,7 +186,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               if (_phoneTouched && !_isPhoneValid) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'Неверный номер телефона',
+                  AppLocalizations.of(context)!.invalidPhoneNumber,
                   style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],

@@ -341,7 +341,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                 _buildBottomSheetItem(
                   icon: Icons.delete_rounded,
                   color: Colors.red,
-                  title: 'Удалить',
+                  title: AppLocalizations.of(ctx)!.delete,
                   onTap: () {
                     Navigator.pop(ctx);
                     _showDeleteConfirmDialog(
@@ -420,7 +420,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                 _buildBottomSheetItem(
                   icon: Icons.folder_open,
                   color: Colors.blue,
-                  title: 'Открыть',
+                  title: AppLocalizations.of(ctx)!.open,
                   onTap: () {
                     Navigator.pop(ctx);
                     _openFolder(folder);
@@ -429,7 +429,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                 _buildBottomSheetItem(
                   icon: Icons.delete_rounded,
                   color: Colors.red,
-                  title: 'Удалить',
+                  title: AppLocalizations.of(ctx)!.delete,
                   onTap: () {
                     Navigator.pop(ctx);
                     _showDeleteConfirmDialog(
@@ -690,7 +690,8 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Выбрано: ${_selectedFiles.length + _selectedFolders.length}',
+                        AppLocalizations.of(context)!.selected(
+                            _selectedFiles.length + _selectedFolders.length),
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
@@ -712,9 +713,9 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: const Text(
-                          'Все',
-                          style: TextStyle(
+                        child: Text(
+                          AppLocalizations.of(context)!.all,
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: Colors.blue,
@@ -739,15 +740,15 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                   children: [
                     _buildActionItem(
                       icon: Icons.delete_rounded,
-                      label: 'Удалить',
+                      label: AppLocalizations.of(context)!.delete,
                       iconColor: Colors.red.shade400,
                       textColor: textColor,
                       onTap: () {
                         final fIds = _selectedFiles.toList();
                         final dIds = _selectedFolders.toList();
                         _showDeleteConfirmDialog(
-                          itemName:
-                              '${fIds.length + dIds.length} элементов',
+                          itemName: AppLocalizations.of(context)!
+                              .deleteItems(fIds.length + dIds.length),
                           onConfirm: () {
                             _shareBloc.add(RevokeShare(
                               fileIds: fIds,
@@ -953,9 +954,9 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 Wrap(spacing: 10, runSpacing: 10, children: [
-                  _buildFilterChip(ctx, 'Все', Icons.apps_rounded, _SffFilterType.all),
-                  _buildFilterChip(ctx, 'Фото', Icons.image_rounded, _SffFilterType.images),
-                  _buildFilterChip(ctx, 'Видео', Icons.videocam_rounded, _SffFilterType.videos),
+                  _buildFilterChip(ctx, AppLocalizations.of(ctx)!.all, Icons.apps_rounded, _SffFilterType.all),
+                  _buildFilterChip(ctx, AppLocalizations.of(ctx)!.photos, Icons.image_rounded, _SffFilterType.images),
+                  _buildFilterChip(ctx, AppLocalizations.of(ctx)!.videos, Icons.videocam_rounded, _SffFilterType.videos),
                 ]),
                 const SizedBox(height: 8),
               ],
@@ -1057,7 +1058,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                         : Theme.of(context).colorScheme.onSurface,
                   ),
                   onPressed: _showFilterSheet,
-                  tooltip: 'Фильтр',
+                  tooltip: AppLocalizations.of(context)!.filter,
                 ),
                 IconButton(
                   icon: Icon(_isGrid ? Icons.list : Icons.grid_view),
@@ -1102,17 +1103,17 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                           ),
                         )
                       else if (_folders.isEmpty && _files.isEmpty)
-                        const SliverFillRemaining(
+                        SliverFillRemaining(
                           child: Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.folder_off,
+                                const Icon(Icons.folder_off,
                                     color: Colors.grey, size: 48),
-                                SizedBox(height: 12),
+                                const SizedBox(height: 12),
                                 Text(
-                                  'Нет файлов',
-                                  style: TextStyle(color: Colors.grey),
+                                  AppLocalizations.of(context)!.folderEmpty,
+                                  style: const TextStyle(color: Colors.grey),
                                 ),
                               ],
                             ),
@@ -1130,7 +1131,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                             delegate: SliverChildListDelegate([
                               if (_folders.isNotEmpty) ...[
                                 _buildSectionHeader(
-                                    'Папки',
+                                    AppLocalizations.of(context)!.folders,
                                     Icons.folder_rounded,
                                     _folders.length),
                                 const SizedBox(height: 8),
@@ -1140,7 +1141,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                               ],
                               if (_displayFiles.isNotEmpty) ...[
                                 _buildSectionHeader(
-                                    'Файлы',
+                                    AppLocalizations.of(context)!.files,
                                     Icons.insert_drive_file,
                                     _displayFiles.length),
                                 const SizedBox(height: 8),

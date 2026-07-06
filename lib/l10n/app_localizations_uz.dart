@@ -407,6 +407,29 @@ class AppLocalizationsUz extends AppLocalizations {
   String get addedToFavourites => 'Sevimlilarga qo\'shildi';
 
   @override
+  String get favouriteUpdateFailed => 'Sevimlilarni yangilab bo\'lmadi';
+
+  @override
+  String get unitBytes => 'bayt';
+
+  @override
+  String get unitKb => 'KB';
+
+  @override
+  String get unitMb => 'MB';
+
+  @override
+  String get unitGb => 'GB';
+
+  @override
+  String get unitTb => 'TB';
+
+  @override
+  String storageUsedOfLimit(String used, String limit) {
+    return '$limit dan $used ishlatilgan';
+  }
+
+  @override
   String get couldNotOpenImage => 'Rasmni ochib bo\'lmadi';
 
   @override
@@ -479,7 +502,7 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String syncStatusUploading(int uploaded, int total) {
-    return '$uploaded/$total yuklandi';
+    return '$total tadan $uploaded yuklandi';
   }
 
   @override
@@ -488,7 +511,7 @@ class AppLocalizationsUz extends AppLocalizations {
   }
 
   @override
-  String get syncStatusComplete => 'Sinxronizatsiya tugallandi';
+  String get syncStatusComplete => 'Sinxronizatsiya tugadi';
 
   @override
   String syncStatusErrors(int count) {
@@ -496,34 +519,34 @@ class AppLocalizationsUz extends AppLocalizations {
   }
 
   @override
-  String get syncSettingsTitle => 'Avto-sinxronizatsiya';
+  String get syncSettingsTitle => 'Avtomatik sinxronizatsiya';
 
   @override
-  String get syncEnableToggle => 'Avto-sinxronizatsiyani yoqish';
+  String get syncEnableToggle => 'Avtomatik sinxronizatsiyani yoqish';
 
   @override
   String get syncWifiOnly => 'Faqat Wi-Fi orqali';
 
   @override
-  String get syncNowButton => 'Hozir sinxronlash';
+  String get syncNowButton => 'Hozir sinxronlashtirish';
 
   @override
   String get syncResetButton => 'Navbatni tozalash';
 
   @override
-  String get syncFolderReadOnly => 'Bu sizning Sinxronizatsiya papkangiz. Bu yerdagi fayllar avtomatik boshqariladi.';
+  String get syncFolderReadOnly => 'Bu sinxronizatsiya papkasi. Fayllar avtomatik boshqariladi.';
 
   @override
   String get syncResetConfirmTitle => 'Navbatni tozalash?';
 
   @override
-  String get syncResetConfirmMessage => 'Barcha yozuvlar o\'chiriladi. Keyin ilova galereyani qayta skanerlaydi.';
+  String get syncResetConfirmMessage => 'Barcha yozuvlar o\'chiriladi. Ilova galereyani qaytadan skanerlaydi.';
 
   @override
   String get syncResetConfirmButton => 'Tozalash';
 
   @override
-  String get syncAutoUpload => 'Foto va videolarni avtomatik yuklash';
+  String get syncAutoUpload => 'Rasmlar va videolarni avtomatik yuklash';
 
   @override
   String get syncNoMobileData => 'Mobil internet orqali sinxronlamaslik';
@@ -782,4 +805,153 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get unknownError => 'Noma\'lum xato';
+
+  @override
+  String get switchPlanButton => 'Ushbu tarifga o\'tish';
+
+  @override
+  String get addCardPrompt => 'To\'lov uchun karta qo\'shing';
+
+  @override
+  String get downgradeWarningTitle => 'Tarifni almashtirishni tasdiqlang';
+
+  @override
+  String downgradeWarningMessage(String used, String plan, String limit) {
+    return 'Hozir $used ishlatilmoqda. «$plan» tarifida $limit mavjud. O\'tishdan so\'ng, xotira limit doirasiga tushmaguncha yangi fayllar sinxronizatsiyasi to\'xtaydi. Mavjud fayllar o\'chirilmaydi.';
+  }
+
+  @override
+  String get continueAnyway => 'Baribir o\'tish';
+
+  @override
+  String get staySamePlan => 'Joriy tarifda qolish';
+
+  @override
+  String get popularBadge => 'Ommabop';
+
+  @override
+  String get cardTypeUzcard => 'Uzcard';
+
+  @override
+  String get cardTypeHumo => 'Humo';
+
+  @override
+  String get cardTypeVisa => 'Visa';
+
+  @override
+  String get cardTypeMastercard => 'Mastercard';
+
+  @override
+  String get cardTypeUnknown => 'Karta';
+
+  @override
+  String get errorInvalidCredentials => 'Telefon raqami yoki parol noto\'g\'ri';
+
+  @override
+  String get errorUserNotFound => 'Foydalanuvchi topilmadi';
+
+  @override
+  String get errorInvalidCode => 'Tasdiqlash kodi noto\'g\'ri';
+
+  @override
+  String get errorSessionExpired => 'Sessiya muddati tugadi, qaytadan urinib ko\'ring';
+
+  @override
+  String get errorUserAlreadyExists => 'Bu telefon raqami bilan foydalanuvchi allaqachon mavjud';
+
+  @override
+  String get genericErrorFallback => 'Xatolik yuz berdi, keyinroq urinib ko\'ring';
+
+  @override
+  String get planNameFree => 'Bepul';
+
+  @override
+  String get planNameStart => 'Start';
+
+  @override
+  String get planNamePlus => 'Plus';
+
+  @override
+  String get planNameFamily => 'Oila';
+
+  @override
+  String get planNamePro => 'Pro';
+
+  @override
+  String get clearDoneButton => 'Tozalash';
+
+  @override
+  String get allUploadedStatus => 'Barchasi yuklandi!';
+
+  @override
+  String get noNetworkWaiting => 'Tarmoq yo\'q — kutilmoqda...';
+
+  @override
+  String uploadingProgress(int current, int total) {
+    return '$current/$total yuklanmoqda...';
+  }
+
+  @override
+  String get tapToSelectFiles => 'Tanlash uchun bosing';
+
+  @override
+  String get photosAndVideosOnly => 'Faqat foto va videolar';
+
+  @override
+  String uploadingCountBadge(int count) {
+    return '$count ta yuklanmoqda';
+  }
+
+  @override
+  String pausedCountBadge(int count) {
+    return '$count ta pauzada';
+  }
+
+  @override
+  String doneCountBadge(int count) {
+    return '$count ta tayyor';
+  }
+
+  @override
+  String get addFilesButton => 'Qo\'shish';
+
+  @override
+  String get waitingForNetworkShort => 'Tarmoq kutilmoqda...';
+
+  @override
+  String get uploadingEllipsis => 'Yuklanmoqda...';
+
+  @override
+  String get selectPhotosVideos => 'Foto / video tanlash';
+
+  @override
+  String get uploadMoreButton => 'Yana yuklash';
+
+  @override
+  String get addMoreButton => 'Yana qo\'shish';
+
+  @override
+  String get pausedWillResumeAuto => 'Tarmoq yo\'q — avtomatik davom etadi';
+
+  @override
+  String shareButtonWithCount(int count) {
+    return 'Ulashish ($count)';
+  }
+
+  @override
+  String filesAndFoldersCount(int files, int folders) {
+    return '$files fayl, $folders papka';
+  }
+
+  @override
+  String get chooseFolderTitle => 'Papkani tanlang';
+
+  @override
+  String get homeFolderLabel => 'Bosh sahifa';
+
+  @override
+  String get invalidPhoneNumber => 'Telefon raqami noto\'g\'ri';
+
+  @override
+  String get repeatPasswordHint => 'Parolni takrorlang';
 }

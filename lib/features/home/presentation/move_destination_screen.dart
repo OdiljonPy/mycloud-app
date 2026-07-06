@@ -94,6 +94,7 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
   }
 
   Future<void> _confirmMove() async {
+    if (_isLoading) return;
     if (_currentFolderId == widget.currentFolderId) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.filesAlreadyInFolder)),
@@ -129,9 +130,9 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
     return Dialog.fullscreen(
       child: Scaffold(
         appBar: AppBar(
-          title: const Text(
-            'Выберите папку',
-            style: TextStyle(color: Colors.black87, fontSize: 18),
+          title: Text(
+            AppLocalizations.of(context)!.chooseFolderTitle,
+            style: const TextStyle(color: Colors.black87, fontSize: 18),
           ),
           backgroundColor: Colors.white,
           elevation: 1,
@@ -171,7 +172,7 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
         itemBuilder: (context, index) {
           if (index == 0) {
             return _BreadcrumbItem(
-              title: 'Главная',
+              title: AppLocalizations.of(context)!.homeFolderLabel,
               isLast: _breadcrumb.isEmpty,
               onTap: () => _navigateUp(-1),
             );

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../data/auth_repository.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/utils/uzbek_phone_formatter.dart';
+import '../../../l10n/app_localizations.dart';
 import 'otp_page.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -192,7 +193,7 @@ class _RegisterPageState extends State<RegisterPage> {
               if (_phoneTouched && !_isPhoneValid) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'Неверный номер телефона',
+                  AppLocalizations.of(context)!.invalidPhoneNumber,
                   style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],
@@ -225,7 +226,7 @@ class _RegisterPageState extends State<RegisterPage> {
               if (_passwordTouched && !_isPasswordValid) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'Минимум 8 символов',
+                  AppLocalizations.of(context)!.passwordTooShort,
                   style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],
@@ -234,7 +235,7 @@ class _RegisterPageState extends State<RegisterPage> {
               // Confirm Password
               _buildField(
                 label: 'Confirm Password',
-                hint: 'Повторите пароль',
+                hint: AppLocalizations.of(context)!.repeatPasswordHint,
                 controller: _confirmPasswordController,
                 icon: Icons.lock_outline_rounded,
                 obscure: _obscureConfirmPassword,
@@ -259,7 +260,7 @@ class _RegisterPageState extends State<RegisterPage> {
               if (_confirmPasswordTouched && !_isConfirmValid) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'Пароли не совпадают',
+                  AppLocalizations.of(context)!.passwordsDoNotMatch,
                   style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],

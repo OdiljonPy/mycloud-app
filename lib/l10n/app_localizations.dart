@@ -877,6 +877,48 @@ abstract class AppLocalizations {
   /// **'Added to favourites'**
   String get addedToFavourites;
 
+  /// No description provided for @favouriteUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update favourites'**
+  String get favouriteUpdateFailed;
+
+  /// No description provided for @unitBytes.
+  ///
+  /// In en, this message translates to:
+  /// **'bytes'**
+  String get unitBytes;
+
+  /// No description provided for @unitKb.
+  ///
+  /// In en, this message translates to:
+  /// **'KB'**
+  String get unitKb;
+
+  /// No description provided for @unitMb.
+  ///
+  /// In en, this message translates to:
+  /// **'MB'**
+  String get unitMb;
+
+  /// No description provided for @unitGb.
+  ///
+  /// In en, this message translates to:
+  /// **'GB'**
+  String get unitGb;
+
+  /// No description provided for @unitTb.
+  ///
+  /// In en, this message translates to:
+  /// **'TB'**
+  String get unitTb;
+
+  /// No description provided for @storageUsedOfLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} used of {limit}'**
+  String storageUsedOfLimit(String used, String limit);
+
   /// No description provided for @couldNotOpenImage.
   ///
   /// In en, this message translates to:
@@ -1566,6 +1608,276 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unknown error'**
   String get unknownError;
+
+  /// No description provided for @switchPlanButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to this plan'**
+  String get switchPlanButton;
+
+  /// No description provided for @addCardPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a card to pay'**
+  String get addCardPrompt;
+
+  /// No description provided for @downgradeWarningTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm plan change'**
+  String get downgradeWarningTitle;
+
+  /// No description provided for @downgradeWarningMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You are currently using {used}. The «{plan}» plan offers {limit}. After switching, syncing new files will pause until your storage is within the limit. Existing files will not be deleted.'**
+  String downgradeWarningMessage(String used, String plan, String limit);
+
+  /// No description provided for @continueAnyway.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch anyway'**
+  String get continueAnyway;
+
+  /// No description provided for @staySamePlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay on current plan'**
+  String get staySamePlan;
+
+  /// No description provided for @popularBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Popular'**
+  String get popularBadge;
+
+  /// No description provided for @cardTypeUzcard.
+  ///
+  /// In en, this message translates to:
+  /// **'Uzcard'**
+  String get cardTypeUzcard;
+
+  /// No description provided for @cardTypeHumo.
+  ///
+  /// In en, this message translates to:
+  /// **'Humo'**
+  String get cardTypeHumo;
+
+  /// No description provided for @cardTypeVisa.
+  ///
+  /// In en, this message translates to:
+  /// **'Visa'**
+  String get cardTypeVisa;
+
+  /// No description provided for @cardTypeMastercard.
+  ///
+  /// In en, this message translates to:
+  /// **'Mastercard'**
+  String get cardTypeMastercard;
+
+  /// No description provided for @cardTypeUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Card'**
+  String get cardTypeUnknown;
+
+  /// No description provided for @errorInvalidCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect phone number or password'**
+  String get errorInvalidCredentials;
+
+  /// No description provided for @errorUserNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'User not found'**
+  String get errorUserNotFound;
+
+  /// No description provided for @errorInvalidCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid verification code'**
+  String get errorInvalidCode;
+
+  /// No description provided for @errorSessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Session expired, please try again'**
+  String get errorSessionExpired;
+
+  /// No description provided for @errorUserAlreadyExists.
+  ///
+  /// In en, this message translates to:
+  /// **'A user with this phone number already exists'**
+  String get errorUserAlreadyExists;
+
+  /// No description provided for @genericErrorFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong, please try again later'**
+  String get genericErrorFallback;
+
+  /// No description provided for @planNameFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Free'**
+  String get planNameFree;
+
+  /// No description provided for @planNameStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get planNameStart;
+
+  /// No description provided for @planNamePlus.
+  ///
+  /// In en, this message translates to:
+  /// **'Plus'**
+  String get planNamePlus;
+
+  /// No description provided for @planNameFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Family'**
+  String get planNameFamily;
+
+  /// No description provided for @planNamePro.
+  ///
+  /// In en, this message translates to:
+  /// **'Pro'**
+  String get planNamePro;
+
+  /// No description provided for @clearDoneButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clearDoneButton;
+
+  /// No description provided for @allUploadedStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'All uploaded!'**
+  String get allUploadedStatus;
+
+  /// No description provided for @noNetworkWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'No network — waiting...'**
+  String get noNetworkWaiting;
+
+  /// No description provided for @uploadingProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading {current} of {total}...'**
+  String uploadingProgress(int current, int total);
+
+  /// No description provided for @tapToSelectFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to select'**
+  String get tapToSelectFiles;
+
+  /// No description provided for @photosAndVideosOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos and videos only'**
+  String get photosAndVideosOnly;
+
+  /// No description provided for @uploadingCountBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} uploading'**
+  String uploadingCountBadge(int count);
+
+  /// No description provided for @pausedCountBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} paused'**
+  String pausedCountBadge(int count);
+
+  /// No description provided for @doneCountBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} done'**
+  String doneCountBadge(int count);
+
+  /// No description provided for @addFilesButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get addFilesButton;
+
+  /// No description provided for @waitingForNetworkShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for network...'**
+  String get waitingForNetworkShort;
+
+  /// No description provided for @uploadingEllipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading...'**
+  String get uploadingEllipsis;
+
+  /// No description provided for @selectPhotosVideos.
+  ///
+  /// In en, this message translates to:
+  /// **'Select photos / videos'**
+  String get selectPhotosVideos;
+
+  /// No description provided for @uploadMoreButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload more'**
+  String get uploadMoreButton;
+
+  /// No description provided for @addMoreButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add more'**
+  String get addMoreButton;
+
+  /// No description provided for @pausedWillResumeAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'No network — will resume automatically'**
+  String get pausedWillResumeAuto;
+
+  /// No description provided for @shareButtonWithCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Share ({count})'**
+  String shareButtonWithCount(int count);
+
+  /// No description provided for @filesAndFoldersCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{files} files, {folders} folders'**
+  String filesAndFoldersCount(int files, int folders);
+
+  /// No description provided for @chooseFolderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose folder'**
+  String get chooseFolderTitle;
+
+  /// No description provided for @homeFolderLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get homeFolderLabel;
+
+  /// No description provided for @invalidPhoneNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid phone number'**
+  String get invalidPhoneNumber;
+
+  /// No description provided for @repeatPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat your password'**
+  String get repeatPasswordHint;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

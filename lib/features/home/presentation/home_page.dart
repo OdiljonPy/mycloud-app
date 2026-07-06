@@ -6,12 +6,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/config/app_config.dart';
+import '../../../core/utils/plan_localizer.dart';
+import '../../../core/utils/format_bytes.dart';
 import '../../profile/data/profile_repository.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../payment/data/repository/payment_repository.dart';
 import '../../payment/data/models/payment_models.dart';
-import '../../payment/presentation/bloc/payment_bloc.dart';
-import '../../payment/presentation/pages/plans_page.dart';
+import '../../payment/presentation/pages/subscription_page.dart';
 import '../../sync/presentation/auto_sync_settings_page.dart';
 import '../../sync/auto_sync_service.dart';
 import '../../sync/data/gallery_service.dart';
@@ -197,13 +197,7 @@ class HomePageState extends State<HomePage> {
 
   void reloadContent() => _loadData();
 
-  String _fmt(dynamic b) {
-    if (b == null) return '0 KB';
-    final v = (b is num) ? b.toDouble() : double.tryParse(b.toString()) ?? 0;
-    if (v >= 1073741824) return '${(v / 1073741824).toStringAsFixed(2)} GB';
-    if (v >= 1048576) return '${(v / 1048576).toStringAsFixed(1)} MB';
-    return '${(v / 1024).toStringAsFixed(0)} KB';
-  }
+  String _fmt(dynamic b) => formatBytes(b, AppLocalizations.of(context)!);
 
   @override
   Widget build(BuildContext context) {
@@ -398,7 +392,7 @@ class HomePageState extends State<HomePage> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            '${_fmt(used)} использовано из ${_fmt(limit)}',
+                            t.storageUsedOfLimit(_fmt(used), _fmt(limit)),
                             style: TextStyle(
                               color: textPrimary,
                               fontSize: 13,
@@ -475,15 +469,15 @@ class HomePageState extends State<HomePage> {
                 width: double.infinity,
                 height: 46,
                 child: FilledButton.icon(
-                  onPressed: () => showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => BlocProvider(
-                      create: (_) => PaymentBloc(PaymentRepository()),
-                      child: PlansPage(currentPlanId: sub?.planId),
-                    ),
-                  ),
+                  onPressed: () => Navigator.of(context)
+                      .push(
+                        MaterialPageRoute(
+                          builder: (_) => const SubscriptionPage(),
+                        ),
+                      )
+                      .then((_) {
+                    if (mounted) _loadData();
+                  }),
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFF1A73E8),
                     shape: RoundedRectangleBorder(
@@ -493,7 +487,7 @@ class HomePageState extends State<HomePage> {
                   icon: const Icon(Icons.rocket_launch_rounded, size: 18),
                   label: Text(
                     nextPlan != null
-                        ? t.upgradeToPlan(nextPlan.name)
+                        ? t.upgradeToPlan(PlanLocalizer.localize(nextPlan.name, t))
                         : hasActive
                             ? t.changePlan
                             : t.choosePlan,
