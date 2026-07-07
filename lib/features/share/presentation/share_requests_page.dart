@@ -8,6 +8,7 @@ import '../data/repository/share_repository_impl.dart';
 import 'bloc/share_bloc.dart';
 import 'bloc/share_event.dart';
 import 'bloc/share_state.dart';
+import '../../../core/utils/error_localizer.dart';
 import '../../../core/network/dio_client.dart';
 
 class ShareRequestsPage extends StatelessWidget {
@@ -118,7 +119,7 @@ class _ShareRequestsViewState extends State<_ShareRequestsView> {
             setState(() => _loadingDetail = false);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
+                content: Text(ErrorLocalizer.forException(state.error, AppLocalizations.of(context)!)),
                 backgroundColor: Colors.red,
               ),
             );

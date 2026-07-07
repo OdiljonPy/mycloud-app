@@ -5,7 +5,7 @@ import 'package:cloud_app/l10n/app_localizations.dart';
 import '../../../shared/widgets/media_thumbnail.dart';
 import '../../../core/utils/media_type_helper.dart';
 import '../data/home_repository.dart';
-import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/error_localizer.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/network/dio_client.dart';
@@ -32,7 +32,9 @@ class _SharedPageState extends State<SharedPage> {
   final _repo = HomeRepository();
 
   List<_SharedUser> _users = [];
-  bool _isLoading = true;
+  // Starts false: _loadSharedUsers()/_openSharedFolder() guard on this flag,
+  // and both flip it true synchronously before their first await.
+  bool _isLoading = false;
   String? _error;
   final Map<String, String> _previewUrls = {};
 
@@ -134,18 +136,23 @@ class _SharedPageState extends State<SharedPage> {
   }
 
   Future<void> _loadSharedUsers() async {
-    if (!mounted) return;
+    if (!mounted || _isLoading) return;
     setState(() { _isLoading = true; _error = null; });
     try {
       final results = await _repo.getSharedWithMe();
       if (!mounted) return;
       setState(() {
         _users = results.map((e) => _SharedUser.fromJson(e as Map<String, dynamic>)).toList();
-        _isLoading = false;
       });
-    } on AppException catch (e) {
+    } catch (e) {
+      // Broad catch (not just AppException) + finally below — a narrower
+      // catch left _isLoading stuck true on e.g. a parse error, which with
+      // the re-entrancy guard above meant the page could never load again.
       if (!mounted) return;
-      setState(() { _error = e.message; _isLoading = false; });
+      final l10n = AppLocalizations.of(context)!;
+      setState(() { _error = ErrorLocalizer.forException(e, l10n); });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -157,7 +164,7 @@ class _SharedPageState extends State<SharedPage> {
   }
 
   Future<void> _openSharedFolder(String folderId) async {
-    if (_selectedUserId == null) return;
+    if (_selectedUserId == null || _isLoading) return;
     setState(() { _selectedFolderId = folderId; _isLoading = true; });
     try {
       final data = await _repo.getSharedFolder(_selectedUserId!, folderId);
@@ -171,11 +178,16 @@ class _SharedPageState extends State<SharedPage> {
       } else {
         items = data['results'] ?? data['files'] ?? [];
       }
-      setState(() { _items = items; _isLoading = false; });
+      setState(() => _items = items);
       _loadPreviewUrls(_items);
-    } on AppException catch (e) {
+    } catch (e) {
+      // Broad catch + finally below — same reasoning as _loadSharedUsers:
+      // a narrower catch could leave _isLoading stuck true forever.
       if (!mounted) return;
-      setState(() { _error = e.message; _isLoading = false; });
+      final l10n = AppLocalizations.of(context)!;
+      setState(() => _error = ErrorLocalizer.forException(e, l10n));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -313,7 +325,7 @@ class _SharedPageState extends State<SharedPage> {
         child: BlocBuilder<ShareBloc, ShareState>(
           builder: (context, state) {
             if (state is ShareLoading) return const Center(child: CircularProgressIndicator());
-            if (state is ShareError) return _buildByMeError(state.message, t);
+            if (state is ShareError) return _buildByMeError(ErrorLocalizer.forException(state.error, t), t);
             if (_activeByMeTab == 0 && state is SharedByMeUsersLoaded) return _buildByMeUsers(state.users, t);
             if (_activeByMeTab == 1 && state is SharedByMeLoaded) return _buildByMeItems(state.shares, t);
             return const SizedBox.shrink();
@@ -619,6 +631,7 @@ class _SharedPageState extends State<SharedPage> {
     return MediaThumbnail(
       mimeType: mime,
       thumbnailPath: previewUrl,
+      cacheKey: id,
       width: 44,
       height: 44,
       memCacheWidth: 130,

@@ -17,17 +17,33 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
   // true = user manually stopped → show "Continue" + "Reset"
   bool _paused = false;
   bool _isResetting = false;
+  // Separate flags (not a single shared one) — start can run for a while
+  // (gallery scan + uploads) and stop must still be able to interrupt it,
+  // so the two must not block each other.
+  bool _isStarting = false;
+  bool _isStopping = false;
 
   // ─── Button actions ───────────────────────────────────────────────────────
 
   void _startSync() {
+    if (_isStarting) return;
+    _isStarting = true;
     if (mounted) setState(() => _paused = false);
-    ref.read(syncRepositoryProvider).startAutoSync();
+    ref
+        .read(syncRepositoryProvider)
+        .startAutoSync()
+        .whenComplete(() => _isStarting = false);
   }
 
   Future<void> _stopSync() async {
+    if (_isStopping) return;
+    _isStopping = true;
     if (mounted) setState(() => _paused = true);
-    await ref.read(syncRepositoryProvider).stopSync();
+    try {
+      await ref.read(syncRepositoryProvider).stopSync();
+    } finally {
+      _isStopping = false;
+    }
   }
 
   Future<void> _resetQueue() async {

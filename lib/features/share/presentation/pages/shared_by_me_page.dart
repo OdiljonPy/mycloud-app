@@ -12,6 +12,7 @@ import '../bloc/share_state.dart';
 import 'share_user_files_page.dart';
 import '../widgets/share_dialog.dart';
 import '../../../../shared/widgets/shimmer_placeholders.dart';
+import '../../../../core/utils/error_localizer.dart';
 
 /// Page showing users with whom I shared files (Shared by me → users list).
 class SharedByMePage extends StatelessWidget {
@@ -78,7 +79,7 @@ class _SharedByMeView extends StatelessWidget {
             return const UserListShimmer();
           }
           if (state is ShareError) {
-            return _buildError(context, state.message);
+            return _buildError(context, ErrorLocalizer.forException(state.error, AppLocalizations.of(context)!));
           }
           if (state is SharedByMeUsersLoaded) {
             if (state.users.isEmpty) {

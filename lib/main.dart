@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'core/config/app_config.dart';
 import 'core/services/language_notifier.dart';
+import 'core/services/navigation_service.dart';
 import 'features/auth/presentation/splash_page.dart';
 import 'l10n/app_localizations.dart';
 
@@ -99,6 +100,8 @@ class CloudApp extends StatelessWidget {
       builder: (context, _) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
+          navigatorKey: NavigationService.navigatorKey,
+          scaffoldMessengerKey: NavigationService.scaffoldMessengerKey,
           title: 'Bulutcha',
           theme: _lightTheme,
           darkTheme: _darkTheme,

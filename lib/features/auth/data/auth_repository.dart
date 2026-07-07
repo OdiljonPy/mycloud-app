@@ -52,6 +52,7 @@ class AuthRepository {
         accessToken: accessToken?.toString() ?? '',
         refreshToken: refreshToken?.toString() ?? '',
       );
+      DioClient.resetLogoutFlag();
       await AutoSyncService().onLogout();
 
       final me = await _dio.get('authentication/users/me/');
@@ -132,6 +133,7 @@ class AuthRepository {
           accessToken: accessToken.toString(),
           refreshToken: refreshToken?.toString() ?? '',
         );
+        DioClient.resetLogoutFlag();
         await AutoSyncService().onLogout();
 
         final me = await _dio.get('authentication/users/me/');

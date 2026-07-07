@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/errors/app_exception.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/services/app_initializer.dart';
 import '../../../core/services/language_notifier.dart';
+import '../../profile/data/profile_repository.dart';
 import 'login_page.dart';
 import '../../home/presentation/main_page.dart';
 
@@ -55,13 +57,35 @@ class _SplashPageState extends State<SplashPage>
     if (!mounted) return;
 
     if (token != null && token.isNotEmpty) {
-      _go(const MainPage());
+      final valid = await _isSessionValid();
+      if (!mounted) return;
+      if (valid) {
+        _go(const MainPage());
+      } else {
+        await SecureStorage.clearTokens();
+        if (!mounted) return;
+        _go(const LoginPage());
+      }
     } else if (!langChosen) {
       _go(const LanguageSelectionPage());
     } else if (!onboardDone) {
       _go(const OnboardingPage());
     } else {
       _go(const LoginPage());
+    }
+  }
+
+  // Лёгкая проверка токена. 401/403 → сессия невалидна.
+  // Любая другая ошибка (нет сети, таймаут) → пускаем внутрь по кэшу,
+  // не блокируем оффлайн-вход.
+  Future<bool> _isSessionValid() async {
+    try {
+      await ProfileRepository().getMe(silent: true);
+      return true;
+    } on AppException catch (e) {
+      return e.statusCode != 401 && e.statusCode != 403;
+    } catch (_) {
+      return true;
     }
   }
 

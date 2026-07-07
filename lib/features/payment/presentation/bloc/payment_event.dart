@@ -33,7 +33,9 @@ class VerifyCardEvent extends PaymentEvent {
 }
 
 class LoadPlansEvent extends PaymentEvent {
-  const LoadPlansEvent();
+  final bool forceRefresh;
+
+  const LoadPlansEvent({this.forceRefresh = false});
 }
 
 class PurchasePlanEvent extends PaymentEvent {

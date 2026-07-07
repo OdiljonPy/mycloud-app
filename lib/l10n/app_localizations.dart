@@ -1711,6 +1711,12 @@ abstract class AppLocalizations {
   /// **'Session expired, please try again'**
   String get errorSessionExpired;
 
+  /// No description provided for @errorSessionExpiredRelogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Session expired. Please sign in again'**
+  String get errorSessionExpiredRelogin;
+
   /// No description provided for @errorUserAlreadyExists.
   ///
   /// In en, this message translates to:
@@ -1902,6 +1908,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Can\'t move a folder into itself'**
   String get cannotMoveIntoItself;
+
+  /// No description provided for @forgotPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot Password?'**
+  String get forgotPasswordTitle;
+
+  /// No description provided for @forgotPasswordSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your phone number and we\'ll send you a code to reset your password.'**
+  String get forgotPasswordSubtitle;
+
+  /// No description provided for @phoneNumberLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone Number'**
+  String get phoneNumberLabel;
+
+  /// No description provided for @sendOtpCodeButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Send OTP Code'**
+  String get sendOtpCodeButton;
+
+  /// No description provided for @verifyOtpCodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify OTP Code'**
+  String get verifyOtpCodeTitle;
+
+  /// No description provided for @otpSentToPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'We sent a 6-digit code to '**
+  String get otpSentToPrefix;
+
+  /// No description provided for @enterCompleteOtpCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the complete 6-digit code'**
+  String get enterCompleteOtpCode;
+
+  /// No description provided for @verifyButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify'**
+  String get verifyButton;
+
+  /// No description provided for @resendCodeButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend Code'**
+  String get resendCodeButton;
+
+  /// No description provided for @otpCodeResentMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'OTP code resent'**
+  String get otpCodeResentMessage;
+
+  /// No description provided for @setNewPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set New Password'**
+  String get setNewPasswordTitle;
+
+  /// No description provided for @setNewPasswordSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a strong password with at least 8 characters.'**
+  String get setNewPasswordSubtitle;
+
+  /// No description provided for @enterNewPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter new password'**
+  String get enterNewPasswordHint;
+
+  /// No description provided for @confirmNewPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm new password'**
+  String get confirmNewPasswordHint;
+
+  /// No description provided for @resetPasswordButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Password'**
+  String get resetPasswordButton;
+
+  /// No description provided for @passwordResetSuccessMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Password reset successfully!'**
+  String get passwordResetSuccessMessage;
+
+  /// No description provided for @errorOtpStillValid.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous verification code is still valid. Please wait before requesting a new one.'**
+  String get errorOtpStillValid;
+
+  /// No description provided for @loginWelcomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome back to\nBulutcha'**
+  String get loginWelcomeTitle;
+
+  /// No description provided for @loginSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Please sign in to access your secure files.'**
+  String get loginSubtitle;
+
+  /// No description provided for @passwordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get passwordLabel;
+
+  /// No description provided for @enterYourPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password'**
+  String get enterYourPasswordHint;
+
+  /// No description provided for @signInButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In'**
+  String get signInButton;
+
+  /// No description provided for @noAccountPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t have an account? '**
+  String get noAccountPrompt;
+
+  /// No description provided for @registerLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Register'**
+  String get registerLink;
+
+  /// No description provided for @enterOtpCodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter OTP Code'**
+  String get enterOtpCodeTitle;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

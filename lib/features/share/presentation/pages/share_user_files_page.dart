@@ -14,6 +14,7 @@ import '../../data/repository/share_repository_impl.dart';
 import '../bloc/share_bloc.dart';
 import '../bloc/share_event.dart';
 import '../bloc/share_state.dart';
+import '../../../../core/utils/error_localizer.dart';
 
 /// Page showing files/folders shared with/by a specific user.
 class ShareUserFilesPage extends StatefulWidget {
@@ -187,7 +188,7 @@ class _ShareUserFilesPageState extends State<ShareUserFilesPage> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (state is ShareError) {
-                  return _buildError(ctx2, state.message);
+                  return _buildError(ctx2, ErrorLocalizer.forException(state.error, AppLocalizations.of(ctx2)!));
                 }
                 if (state is SharedUserFilesLoaded) {
                   return _buildContent(ctx2, cs, state.response.result);
@@ -320,7 +321,7 @@ class _ShareUserFilesPageState extends State<ShareUserFilesPage> {
           ],
         ),
         child: ListTile(
-          leading: _buildLeading(isFolder, isImage, isVideo, thumbUrl),
+          leading: _buildLeading(isFolder, isImage, isVideo, thumbUrl, id),
           title: Text(
             name,
             style:
@@ -345,7 +346,7 @@ class _ShareUserFilesPageState extends State<ShareUserFilesPage> {
   }
 
   Widget _buildLeading(
-      bool isFolder, bool isImage, bool isVideo, String? thumbUrl) {
+      bool isFolder, bool isImage, bool isVideo, String? thumbUrl, String id) {
     if (isFolder) {
       return Container(
         width: 44,
@@ -372,6 +373,7 @@ class _ShareUserFilesPageState extends State<ShareUserFilesPage> {
     return MediaThumbnail(
       mimeType: isVideo ? 'video/*' : (isImage ? 'image/*' : ''),
       thumbnailPath: thumbUrl,
+      cacheKey: id,
       width: 44,
       height: 44,
       memCacheWidth: 130,

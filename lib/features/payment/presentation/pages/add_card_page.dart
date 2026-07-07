@@ -7,6 +7,7 @@ import '../bloc/payment_state.dart';
 import 'verify_card_page.dart';
 import '../widgets/card_preview_widget.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../core/utils/error_localizer.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class AddCardPage extends StatefulWidget {
@@ -61,7 +62,7 @@ class _AddCardPageState extends State<AddCardPage> {
           } else if (state is PaymentError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
+                content: Text(ErrorLocalizer.forException(state.error, l10n)),
                 backgroundColor: Colors.red,
               ),
             );

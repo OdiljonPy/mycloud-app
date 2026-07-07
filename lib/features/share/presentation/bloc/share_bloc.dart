@@ -6,6 +6,14 @@ import 'share_state.dart';
 class ShareBloc extends Bloc<ShareEvent, ShareState> {
   final ShareRepository _repository;
 
+  // Guards only the mutating handlers below (share/revoke/create-request/
+  // approve-reject) — not the Load* handlers, which are read-only and some
+  // are dispatched in pairs, so gating on the shared ShareLoading state
+  // would drop one of them. A double-tap on share/revoke/approve/reject
+  // while one is already in flight is a no-op instead of a duplicate
+  // share/revoke/permission-decision request.
+  bool _mutationInFlight = false;
+
   ShareBloc(this._repository) : super(const ShareInitial()) {
     on<LoadSharedByMe>(_onLoadSharedByMe);
     on<ShareFilesEvent>(_onShareFiles);
@@ -30,23 +38,29 @@ class ShareBloc extends Bloc<ShareEvent, ShareState> {
       final shares = await _repository.getSharedByMe();
       emit(SharedByMeLoaded(shares: shares));
     } catch (e) {
-      emit(ShareError(message: e.toString()));
+      emit(ShareError(error: e));
     }
   }
 
   Future<void> _onShareFiles(
       ShareFilesEvent event, Emitter<ShareState> emit) async {
+    if (_mutationInFlight) return;
+    _mutationInFlight = true;
     emit(const ShareLoading());
     try {
       final share = await _repository.shareFiles(event.body);
       emit(ShareSuccess(share: share));
     } catch (e) {
-      emit(ShareError(message: e.toString()));
+      emit(ShareError(error: e));
+    } finally {
+      _mutationInFlight = false;
     }
   }
 
   Future<void> _onRevokeShare(
       RevokeShare event, Emitter<ShareState> emit) async {
+    if (_mutationInFlight) return;
+    _mutationInFlight = true;
     emit(const ShareLoading());
     try {
       final share = await _repository.revokeShare(
@@ -56,7 +70,9 @@ class ShareBloc extends Bloc<ShareEvent, ShareState> {
       );
       emit(ShareSuccess(share: share));
     } catch (e) {
-      emit(ShareError(message: e.toString()));
+      emit(ShareError(error: e));
+    } finally {
+      _mutationInFlight = false;
     }
   }
 
@@ -65,9 +81,14 @@ class ShareBloc extends Bloc<ShareEvent, ShareState> {
     emit(const ShareLoading());
     try {
       final users = await _repository.getSharedByMeUsers();
-      emit(SharedByMeUsersLoaded(users: users));
+      // Defensive dedup — no client-side pagination here, but guards
+      // against the backend returning the same user more than once.
+      final seenIds = <int>{};
+      final deduped =
+          users.where((u) => seenIds.add(u.sharedWith.id)).toList();
+      emit(SharedByMeUsersLoaded(users: deduped));
     } catch (e) {
-      emit(ShareError(message: e.toString()));
+      emit(ShareError(error: e));
     }
   }
 
@@ -78,7 +99,7 @@ class ShareBloc extends Bloc<ShareEvent, ShareState> {
       final response = await _repository.getSharedByMeUser(event.userId);
       emit(SharedUserFilesLoaded(response: response));
     } catch (e) {
-      emit(ShareError(message: e.toString()));
+      emit(ShareError(error: e));
     }
   }
 
@@ -90,7 +111,7 @@ class ShareBloc extends Bloc<ShareEvent, ShareState> {
           event.userId, event.folderId);
       emit(SharedUserFilesLoaded(response: response));
     } catch (e) {
-      emit(ShareError(message: e.toString()));
+      emit(ShareError(error: e));
     }
   }
 
@@ -99,9 +120,13 @@ class ShareBloc extends Bloc<ShareEvent, ShareState> {
     emit(const ShareLoading());
     try {
       final users = await _repository.getSharedWithMe();
-      emit(SharedWithMeLoaded(users: users));
+      // Defensive dedup — no client-side pagination here, but guards
+      // against the backend returning the same user more than once.
+      final seenIds = <int>{};
+      final deduped = users.where((u) => seenIds.add(u.owner.id)).toList();
+      emit(SharedWithMeLoaded(users: deduped));
     } catch (e) {
-      emit(ShareError(message: e.toString()));
+      emit(ShareError(error: e));
     }
   }
 
@@ -112,7 +137,7 @@ class ShareBloc extends Bloc<ShareEvent, ShareState> {
       final response = await _repository.getSharedWithMeUser(event.userId);
       emit(SharedUserFilesLoaded(response: response));
     } catch (e) {
-      emit(ShareError(message: e.toString()));
+      emit(ShareError(error: e));
     }
   }
 
@@ -124,18 +149,22 @@ class ShareBloc extends Bloc<ShareEvent, ShareState> {
           event.userId, event.folderId);
       emit(SharedUserFilesLoaded(response: response));
     } catch (e) {
-      emit(ShareError(message: e.toString()));
+      emit(ShareError(error: e));
     }
   }
 
   Future<void> _onCreateShareRequest(
       CreateShareRequestEvent event, Emitter<ShareState> emit) async {
+    if (_mutationInFlight) return;
+    _mutationInFlight = true;
     emit(const ShareLoading());
     try {
       final request = await _repository.createShareRequest(event.body);
       emit(ShareRequestCreated(request: request));
     } catch (e) {
-      emit(ShareError(message: e.toString()));
+      emit(ShareError(error: e));
+    } finally {
+      _mutationInFlight = false;
     }
   }
 
@@ -146,7 +175,7 @@ class ShareBloc extends Bloc<ShareEvent, ShareState> {
       final requests = await _repository.getShareRequests();
       emit(ShareRequestsLoaded(requests: requests));
     } catch (e) {
-      emit(ShareError(message: e.toString()));
+      emit(ShareError(error: e));
     }
   }
 
@@ -157,12 +186,14 @@ class ShareBloc extends Bloc<ShareEvent, ShareState> {
       final detail = await _repository.getShareRequestDetail(event.id);
       emit(ShareRequestDetailLoaded(detail: detail));
     } catch (e) {
-      emit(ShareError(message: e.toString()));
+      emit(ShareError(error: e));
     }
   }
 
   Future<void> _onUpdatePermissionStatus(
       UpdatePermissionStatus event, Emitter<ShareState> emit) async {
+    if (_mutationInFlight) return;
+    _mutationInFlight = true;
     try {
       final permission = await _repository.updatePermissionStatus(
         permissionId: event.permissionId,
@@ -170,7 +201,9 @@ class ShareBloc extends Bloc<ShareEvent, ShareState> {
       );
       emit(PermissionStatusUpdated(permission: permission));
     } catch (e) {
-      emit(ShareError(message: e.toString()));
+      emit(ShareError(error: e));
+    } finally {
+      _mutationInFlight = false;
     }
   }
 }

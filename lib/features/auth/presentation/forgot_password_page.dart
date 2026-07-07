@@ -119,7 +119,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               const SizedBox(height: 24),
 
               Text(
-                'Forgot Password?',
+                AppLocalizations.of(context)!.forgotPasswordTitle,
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -128,14 +128,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Enter your phone number and we\'ll send you a code to reset your password.',
+                AppLocalizations.of(context)!.forgotPasswordSubtitle,
                 style: TextStyle(fontSize: 14, color: subtitleColor),
               ),
 
               const SizedBox(height: 40),
 
               Text(
-                'Phone Number',
+                AppLocalizations.of(context)!.phoneNumberLabel,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -244,9 +244,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
-                          'Send OTP Code',
-                          style: TextStyle(
+                      : Text(
+                          AppLocalizations.of(context)!.sendOtpCodeButton,
+                          style: const TextStyle(
                             fontSize: 16,
                             color: Colors.white,
                             fontWeight: FontWeight.w600,

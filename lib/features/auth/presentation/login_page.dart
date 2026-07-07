@@ -142,7 +142,7 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 32),
 
               Text(
-                'Welcome back to\nBulutcha',
+                AppLocalizations.of(context)!.loginWelcomeTitle,
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -152,7 +152,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Please sign in to access your secure files.',
+                AppLocalizations.of(context)!.loginSubtitle,
                 style: TextStyle(fontSize: 14, color: subtitleColor),
               ),
 
@@ -160,7 +160,7 @@ class _LoginPageState extends State<LoginPage> {
 
               // Phone field
               Text(
-                'Phone Number',
+                AppLocalizations.of(context)!.phoneNumberLabel,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -232,7 +232,7 @@ class _LoginPageState extends State<LoginPage> {
 
               // Password field
               Text(
-                'Password',
+                AppLocalizations.of(context)!.passwordLabel,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -247,7 +247,7 @@ class _LoginPageState extends State<LoginPage> {
                 style: TextStyle(fontSize: 15, color: textColor),
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
-                  hintText: 'Enter your password',
+                  hintText: AppLocalizations.of(context)!.enterYourPasswordHint,
                   hintStyle: TextStyle(color: hintColor),
                   filled: true,
                   fillColor: Theme.of(context).brightness == Brightness.dark
@@ -320,7 +320,7 @@ class _LoginPageState extends State<LoginPage> {
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                   child: Text(
-                    'Forgot Password?',
+                    AppLocalizations.of(context)!.forgotPasswordTitle,
                     style: TextStyle(
                       color: accentColor,
                       fontSize: 13,
@@ -389,9 +389,9 @@ class _LoginPageState extends State<LoginPage> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
-                          'Sign In',
-                          style: TextStyle(
+                      : Text(
+                          AppLocalizations.of(context)!.signInButton,
+                          style: const TextStyle(
                             fontSize: 16,
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -409,7 +409,7 @@ class _LoginPageState extends State<LoginPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Don\'t have an account? ',
+                      AppLocalizations.of(context)!.noAccountPrompt,
                       style: TextStyle(
                         fontSize: 14,
                         color: subtitleColor,
@@ -422,7 +422,7 @@ class _LoginPageState extends State<LoginPage> {
                             builder: (_) => const RegisterPage()),
                       ),
                       child: Text(
-                        'Register',
+                        AppLocalizations.of(context)!.registerLink,
                         style: TextStyle(
                           fontSize: 14,
                           color: accentColor,

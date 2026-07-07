@@ -3,6 +3,7 @@ import 'package:video_player/video_player.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/error_localizer.dart';
 import '../data/download_repository.dart';
 
 class VideoPlayerPage extends StatefulWidget {
@@ -47,7 +48,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     } on AppException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
+            backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _isDownloading = false);

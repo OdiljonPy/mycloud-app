@@ -860,6 +860,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get errorSessionExpired => 'Сессия истекла, попробуйте снова';
 
   @override
+  String get errorSessionExpiredRelogin => 'Сессия истекла. Войдите заново';
+
+  @override
   String get errorUserAlreadyExists => 'Пользователь с таким номером уже существует';
 
   @override
@@ -966,4 +969,79 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get cannotMoveIntoItself => 'Нельзя переместить папку внутрь самой себя';
+
+  @override
+  String get forgotPasswordTitle => 'Забыли пароль?';
+
+  @override
+  String get forgotPasswordSubtitle => 'Введите номер телефона, и мы отправим код для сброса пароля.';
+
+  @override
+  String get phoneNumberLabel => 'Номер телефона';
+
+  @override
+  String get sendOtpCodeButton => 'Отправить код';
+
+  @override
+  String get verifyOtpCodeTitle => 'Подтвердите код';
+
+  @override
+  String get otpSentToPrefix => 'Мы отправили 6-значный код на ';
+
+  @override
+  String get enterCompleteOtpCode => 'Введите полный 6-значный код';
+
+  @override
+  String get verifyButton => 'Подтвердить';
+
+  @override
+  String get resendCodeButton => 'Отправить код повторно';
+
+  @override
+  String get otpCodeResentMessage => 'Код отправлен повторно';
+
+  @override
+  String get setNewPasswordTitle => 'Задайте новый пароль';
+
+  @override
+  String get setNewPasswordSubtitle => 'Придумайте надёжный пароль не менее 8 символов.';
+
+  @override
+  String get enterNewPasswordHint => 'Введите новый пароль';
+
+  @override
+  String get confirmNewPasswordHint => 'Подтвердите новый пароль';
+
+  @override
+  String get resetPasswordButton => 'Сбросить пароль';
+
+  @override
+  String get passwordResetSuccessMessage => 'Пароль успешно изменён!';
+
+  @override
+  String get errorOtpStillValid => 'Предыдущий код ещё действителен. Подождите перед запросом нового.';
+
+  @override
+  String get loginWelcomeTitle => 'С возвращением в\nBulutcha';
+
+  @override
+  String get loginSubtitle => 'Войдите, чтобы получить доступ к своим файлам.';
+
+  @override
+  String get passwordLabel => 'Пароль';
+
+  @override
+  String get enterYourPasswordHint => 'Введите пароль';
+
+  @override
+  String get signInButton => 'Войти';
+
+  @override
+  String get noAccountPrompt => 'Нет аккаунта? ';
+
+  @override
+  String get registerLink => 'Регистрация';
+
+  @override
+  String get enterOtpCodeTitle => 'Введите код подтверждения';
 }

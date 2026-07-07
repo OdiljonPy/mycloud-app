@@ -6,6 +6,14 @@ import 'payment_state.dart';
 class PaymentBloc extends Bloc<PaymentEvent, PaymentState> {
   final PaymentRepository _repository;
 
+  // Guards only the mutating (money-moving) handlers below — not
+  // LoadPaymentData/LoadPlansEvent, which are read-only and dispatched
+  // together on page open, so gating on the shared PaymentLoading state
+  // would drop one of that pair. A double-tap on Add/Delete/Verify/Set
+  // default/Purchase while one is already in flight is a no-op instead of
+  // a duplicate charge/verification/deletion request.
+  bool _mutationInFlight = false;
+
   PaymentBloc(this._repository) : super(const PaymentInitial()) {
     on<LoadPaymentData>(_onLoadPaymentData);
     on<AddCardEvent>(_onAddCard);
@@ -24,12 +32,14 @@ class PaymentBloc extends Bloc<PaymentEvent, PaymentState> {
       final subscription = await _repository.getCurrentSubscription();
       emit(PaymentDataLoaded(cards: cards, subscription: subscription));
     } catch (e) {
-      emit(PaymentError(e.toString()));
+      emit(PaymentError(e));
     }
   }
 
   Future<void> _onAddCard(
       AddCardEvent event, Emitter<PaymentState> emit) async {
+    if (_mutationInFlight) return;
+    _mutationInFlight = true;
     emit(const PaymentLoading());
     try {
       final card = await _repository.addCard(
@@ -38,34 +48,46 @@ class PaymentBloc extends Bloc<PaymentEvent, PaymentState> {
       );
       emit(CardAdded(card));
     } catch (e) {
-      emit(PaymentError(e.toString()));
+      emit(PaymentError(e));
+    } finally {
+      _mutationInFlight = false;
     }
   }
 
   Future<void> _onDeleteCard(
       DeleteCardEvent event, Emitter<PaymentState> emit) async {
+    if (_mutationInFlight) return;
+    _mutationInFlight = true;
     emit(const PaymentLoading());
     try {
       await _repository.deleteCard(event.cardId);
       emit(CardDeleted(event.cardId));
     } catch (e) {
-      emit(PaymentError(e.toString()));
+      emit(PaymentError(e));
+    } finally {
+      _mutationInFlight = false;
     }
   }
 
   Future<void> _onSetDefaultCard(
       SetDefaultCardEvent event, Emitter<PaymentState> emit) async {
+    if (_mutationInFlight) return;
+    _mutationInFlight = true;
     emit(const PaymentLoading());
     try {
       final card = await _repository.setDefaultCard(event.cardId);
       emit(CardSetDefault(card));
     } catch (e) {
-      emit(PaymentError(e.toString()));
+      emit(PaymentError(e));
+    } finally {
+      _mutationInFlight = false;
     }
   }
 
   Future<void> _onVerifyCard(
       VerifyCardEvent event, Emitter<PaymentState> emit) async {
+    if (_mutationInFlight) return;
+    _mutationInFlight = true;
     emit(const PaymentLoading());
     try {
       final card = await _repository.verifyCard(
@@ -74,7 +96,9 @@ class PaymentBloc extends Bloc<PaymentEvent, PaymentState> {
       );
       emit(CardVerified(card));
     } catch (e) {
-      emit(PaymentError(e.toString()));
+      emit(PaymentError(e));
+    } finally {
+      _mutationInFlight = false;
     }
   }
 
@@ -82,21 +106,25 @@ class PaymentBloc extends Bloc<PaymentEvent, PaymentState> {
       LoadPlansEvent event, Emitter<PaymentState> emit) async {
     emit(const PaymentLoading());
     try {
-      final plans = await _repository.getPlans();
+      final plans = await _repository.getPlans(forceRefresh: event.forceRefresh);
       emit(PlansLoaded(plans));
     } catch (e) {
-      emit(PaymentError(e.toString()));
+      emit(PaymentError(e));
     }
   }
 
   Future<void> _onPurchasePlan(
       PurchasePlanEvent event, Emitter<PaymentState> emit) async {
+    if (_mutationInFlight) return;
+    _mutationInFlight = true;
     emit(const PaymentLoading());
     try {
       final response = await _repository.purchasePlan(event.planId);
       emit(PlanPurchased(response));
     } catch (e) {
-      emit(PaymentError(e.toString()));
+      emit(PaymentError(e));
+    } finally {
+      _mutationInFlight = false;
     }
   }
 }

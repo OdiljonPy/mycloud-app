@@ -13,6 +13,12 @@ import 'shimmer_placeholders.dart';
 class MediaThumbnail extends StatelessWidget {
   final String mimeType;
   final String? thumbnailPath;
+  // Stable cache identity (typically the file id). thumbnailPath itself is
+  // often a pre-signed URL whose query/signature rotates on every server
+  // response — using it as the cache key defeats CachedNetworkImage's disk
+  // cache (every reload looks like a new image). Pass a stable id here so
+  // repeat views of the same file hit the disk cache instead of re-downloading.
+  final String? cacheKey;
   final double? width;
   final double? height;
   final BoxFit fit;
@@ -26,13 +32,13 @@ class MediaThumbnail extends StatelessWidget {
   final Color? fallbackBackgroundColor;
   final double fallbackIconSize;
   final bool showPlayBadge;
-  final bool centeredPlayIcon;
   final Color playBadgeColor;
 
   const MediaThumbnail({
     super.key,
     required this.mimeType,
     required this.thumbnailPath,
+    this.cacheKey,
     this.width,
     this.height,
     this.fit = BoxFit.cover,
@@ -46,7 +52,6 @@ class MediaThumbnail extends StatelessWidget {
     this.fallbackBackgroundColor,
     this.fallbackIconSize = 20,
     this.showPlayBadge = true,
-    this.centeredPlayIcon = false,
     this.playBadgeColor = Colors.black54,
   });
 
@@ -63,6 +68,7 @@ class MediaThumbnail extends StatelessWidget {
         children: [
           CachedNetworkImage(
             imageUrl: thumbnailPath!,
+            cacheKey: (cacheKey != null && cacheKey!.isNotEmpty) ? cacheKey : null,
             fit: fit,
             memCacheWidth: memCacheWidth,
             memCacheHeight: memCacheHeight,
@@ -73,14 +79,15 @@ class MediaThumbnail extends StatelessWidget {
               height: height,
               borderRadius: borderRadius ?? BorderRadius.zero,
             ),
-            errorWidget: (_, __, ___) =>
-                isVid ? const _VideoPlaceholder() : _fallbackBox(),
+            errorWidget: (_, __, ___) => isVid
+                ? _VideoPlaceholder(playBadgeColor: playBadgeColor, showBadge: showPlayBadge)
+                : _fallbackBox(),
           ),
-          if (isVid && showPlayBadge) _playBadge(),
+          if (isVid && showPlayBadge) _CenteredPlayBadge(color: playBadgeColor),
         ],
       );
     } else if (isVid) {
-      content = const _VideoPlaceholder();
+      content = _VideoPlaceholder(playBadgeColor: playBadgeColor, showBadge: showPlayBadge);
     } else {
       content = _fallbackBox();
     }
@@ -104,52 +111,76 @@ class MediaThumbnail extends StatelessWidget {
     );
   }
 
-  Widget _playBadge() {
-    if (centeredPlayIcon) {
-      return Center(
-        child: Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(color: playBadgeColor, shape: BoxShape.circle),
-          child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
-        ),
-      );
-    }
-    return Positioned(
-      right: 2,
-      bottom: 2,
-      child: Container(
-        width: 14,
-        height: 14,
-        decoration: BoxDecoration(color: playBadgeColor, shape: BoxShape.circle),
-        child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 10),
+}
+
+/// Single play-badge style used everywhere a video is shown — whether over a
+/// real thumbnail frame or over [_VideoPlaceholder]. Size scales with the
+/// tile instead of being fixed, so it reads correctly from a 44px list tile
+/// up to a full-width detail card.
+class _CenteredPlayBadge extends StatelessWidget {
+  final Color color;
+
+  const _CenteredPlayBadge({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final side = constraints.biggest.shortestSide;
+          final badgeSize = side.isFinite ? (side * 0.4).clamp(20.0, 44.0) : 32.0;
+          return Container(
+            width: badgeSize,
+            height: badgeSize,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            child: Icon(
+              Icons.play_arrow_rounded,
+              color: Colors.white.withValues(alpha: 0.92),
+              size: badgeSize * 0.55,
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-/// Standard "no frame available" video placeholder: adaptive dark
-/// background + centered play icon (Telegram/WhatsApp/Google Photos style).
+/// "No frame available" video placeholder: dark gray gradient (not flat
+/// black, so it doesn't read as broken/empty) + the same centered play badge
+/// used over real frames, plus a small corner video icon — since there's no
+/// frame here to make "this is a video" obvious on its own.
 class _VideoPlaceholder extends StatelessWidget {
-  const _VideoPlaceholder();
+  final Color playBadgeColor;
+  final bool showBadge;
+
+  const _VideoPlaceholder({required this.playBadgeColor, required this.showBadge});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      color: isDark ? const Color(0xFF2A2A2E) : const Color(0xFF1C1C1E),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final side = constraints.biggest.shortestSide;
-          final iconSize = side.isFinite ? side * 0.4 : 28.0;
-          return Center(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [const Color(0xFF3A3A3E), const Color(0xFF232326)]
+              : [const Color(0xFF4A4A4E), const Color(0xFF2E2E31)],
+        ),
+      ),
+      child: Stack(
+        children: [
+          if (showBadge) _CenteredPlayBadge(color: playBadgeColor),
+          Positioned(
+            left: 4,
+            top: 4,
             child: Icon(
-              Icons.play_circle_fill_rounded,
-              color: Colors.white.withValues(alpha: 0.9),
-              size: iconSize.clamp(16.0, 40.0),
+              Icons.videocam_rounded,
+              size: 12,
+              color: Colors.white.withValues(alpha: 0.6),
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }

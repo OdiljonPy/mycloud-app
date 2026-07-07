@@ -464,12 +464,11 @@ class HomeRepository {
         }
 
         return null;
-      } on DioException catch (e) {
-        if (e.response?.statusCode == 404) return null;
-        if (attempt < maxAttempts - 1) {
-          await Future.delayed(delay);
-          continue;
-        }
+      } on DioException catch (_) {
+        // Retry loop is only for "preview still generating" (processing/
+        // pending above) — a network error/5xx/404 here isn't going to fix
+        // itself in 2s, and looping up to 10x turned a transient network
+        // blip into a ~20s freeze before the photo/video viewer opened.
         return null;
       }
     }

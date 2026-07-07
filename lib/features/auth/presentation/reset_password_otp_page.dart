@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../data/auth_repository.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/error_localizer.dart';
+import '../../../l10n/app_localizations.dart';
 import 'reset_password_page.dart';
 
 class ResetPasswordOtpPage extends StatefulWidget {
@@ -41,7 +43,7 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
   Future<void> _verify() async {
     if (_isLoading) return;
     if (_otpCode.length < 6) {
-      setState(() => _error = 'Enter the complete 6-digit code');
+      setState(() => _error = AppLocalizations.of(context)!.enterCompleteOtpCode);
       return;
     }
 
@@ -69,7 +71,10 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
         );
       }
     } on AppException catch (e) {
-      setState(() => _error = e.message);
+      final localized = mounted
+          ? ErrorLocalizer.forException(e, AppLocalizations.of(context)!)
+          : e.message;
+      setState(() => _error = localized);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -87,14 +92,17 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('OTP code resent'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.otpCodeResentMessage),
             backgroundColor: Colors.green,
           ),
         );
       }
     } on AppException catch (e) {
-      setState(() => _error = e.message);
+      final localized = mounted
+          ? ErrorLocalizer.forException(e, AppLocalizations.of(context)!)
+          : e.message;
+      setState(() => _error = localized);
     } finally {
       if (mounted) setState(() => _isResending = false);
     }
@@ -154,7 +162,7 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
               const SizedBox(height: 24),
 
               Text(
-                'Verify OTP Code',
+                AppLocalizations.of(context)!.verifyOtpCodeTitle,
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -166,7 +174,7 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
                 text: TextSpan(
                   style: TextStyle(fontSize: 14, color: subtitleColor),
                   children: [
-                    const TextSpan(text: 'We sent a 6-digit code to '),
+                    TextSpan(text: AppLocalizations.of(context)!.otpSentToPrefix),
                     TextSpan(
                       text: widget.phoneNumber,
                       style: TextStyle(
@@ -277,9 +285,9 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
-                          'Verify',
-                          style: TextStyle(
+                      : Text(
+                          AppLocalizations.of(context)!.verifyButton,
+                          style: const TextStyle(
                             fontSize: 16,
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -303,7 +311,7 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
                           ),
                         )
                       : Text(
-                          'Resend Code',
+                          AppLocalizations.of(context)!.resendCodeButton,
                           style: TextStyle(
                             color: accentColor,
                             fontWeight: FontWeight.w600,

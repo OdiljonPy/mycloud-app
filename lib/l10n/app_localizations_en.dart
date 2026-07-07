@@ -860,6 +860,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorSessionExpired => 'Session expired, please try again';
 
   @override
+  String get errorSessionExpiredRelogin => 'Session expired. Please sign in again';
+
+  @override
   String get errorUserAlreadyExists => 'A user with this phone number already exists';
 
   @override
@@ -966,4 +969,79 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cannotMoveIntoItself => 'Can\'t move a folder into itself';
+
+  @override
+  String get forgotPasswordTitle => 'Forgot Password?';
+
+  @override
+  String get forgotPasswordSubtitle => 'Enter your phone number and we\'ll send you a code to reset your password.';
+
+  @override
+  String get phoneNumberLabel => 'Phone Number';
+
+  @override
+  String get sendOtpCodeButton => 'Send OTP Code';
+
+  @override
+  String get verifyOtpCodeTitle => 'Verify OTP Code';
+
+  @override
+  String get otpSentToPrefix => 'We sent a 6-digit code to ';
+
+  @override
+  String get enterCompleteOtpCode => 'Enter the complete 6-digit code';
+
+  @override
+  String get verifyButton => 'Verify';
+
+  @override
+  String get resendCodeButton => 'Resend Code';
+
+  @override
+  String get otpCodeResentMessage => 'OTP code resent';
+
+  @override
+  String get setNewPasswordTitle => 'Set New Password';
+
+  @override
+  String get setNewPasswordSubtitle => 'Create a strong password with at least 8 characters.';
+
+  @override
+  String get enterNewPasswordHint => 'Enter new password';
+
+  @override
+  String get confirmNewPasswordHint => 'Confirm new password';
+
+  @override
+  String get resetPasswordButton => 'Reset Password';
+
+  @override
+  String get passwordResetSuccessMessage => 'Password reset successfully!';
+
+  @override
+  String get errorOtpStillValid => 'Previous verification code is still valid. Please wait before requesting a new one.';
+
+  @override
+  String get loginWelcomeTitle => 'Welcome back to\nBulutcha';
+
+  @override
+  String get loginSubtitle => 'Please sign in to access your secure files.';
+
+  @override
+  String get passwordLabel => 'Password';
+
+  @override
+  String get enterYourPasswordHint => 'Enter your password';
+
+  @override
+  String get signInButton => 'Sign In';
+
+  @override
+  String get noAccountPrompt => 'Don\'t have an account? ';
+
+  @override
+  String get registerLink => 'Register';
+
+  @override
+  String get enterOtpCodeTitle => 'Enter OTP Code';
 }

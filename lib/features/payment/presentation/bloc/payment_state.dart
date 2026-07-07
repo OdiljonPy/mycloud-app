@@ -59,7 +59,7 @@ class PlanPurchased extends PaymentState {
 }
 
 class PaymentError extends PaymentState {
-  final String message;
+  final Object error;
 
-  const PaymentError(this.message);
+  const PaymentError(this.error);
 }

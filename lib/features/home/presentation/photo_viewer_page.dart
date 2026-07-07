@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/error_localizer.dart';
 import '../../../core/utils/media_type_helper.dart';
 import '../data/download_repository.dart';
 import 'package:video_player/video_player.dart';
@@ -42,6 +44,10 @@ class PhotoViewerPage extends StatefulWidget {
 }
 
 class _PhotoViewerPageState extends State<PhotoViewerPage> {
+  // Neighbors preloaded/precached on both sides of the current page so
+  // swiping in either direction is instant instead of loading from scratch.
+  static const _preloadRadius = 2;
+
   late PageController _pageController;
   late int _currentIndex;
 
@@ -55,14 +61,24 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
-    // Preload full URL for initial page (and next page)
-    _loadUrlForIndex(widget.initialIndex);
+    _preloadWindow(widget.initialIndex);
   }
 
   @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  // Cache key for the full-resolution image — distinct from the thumbnail's
+  // cache key (plain fileId, used by MediaThumbnail in the list) so the full
+  // download never collides with — or is masked by — the cached thumbnail.
+  String _fullCacheKey(String fileId) => '${fileId}_full';
+
+  void _preloadWindow(int centerIndex) {
+    for (var offset = -_preloadRadius; offset <= _preloadRadius; offset++) {
+      _loadUrlForIndex(centerIndex + offset);
+    }
   }
 
   Future<void> _loadUrlForIndex(int index) async {
@@ -80,6 +96,23 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
 
     final fullUrl = await widget.onNeedFullUrl?.call(item.fileId);
 
+    if (mounted &&
+        fullUrl != null &&
+        fullUrl.isNotEmpty &&
+        !MediaTypeHelper.isVideo(item.mimeType)) {
+      // Warm the actual image bytes into cache — fetching the URL alone
+      // doesn't decode/store pixels, so without this the swipe still stalls
+      // on first paint even though the URL was "preloaded".
+      unawaited(precacheImage(
+        CachedNetworkImageProvider(
+          fullUrl,
+          cacheKey: _fullCacheKey(item.fileId),
+          headers: _buildHeaders(fullUrl),
+        ),
+        context,
+      ));
+    }
+
     if (mounted) {
       setState(() {
         // Only store if we got a real URL back
@@ -88,11 +121,6 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
         }
         _loading.remove(item.fileId);
       });
-    }
-
-    // Preload next page
-    if (index + 1 < widget.files.length) {
-      _loadUrlForIndex(index + 1);
     }
   }
 
@@ -125,7 +153,7 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
         itemCount: widget.files.length,
         onPageChanged: (index) {
           setState(() => _currentIndex = index);
-          _loadUrlForIndex(index);
+          _preloadWindow(index);
         },
         itemBuilder: (ctx, index) => _buildPage(index),
       ),
@@ -172,6 +200,13 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
     }
 
     final headers = _buildHeaders(displayUrl);
+    // Thumbnail phase reuses the list's thumbnail cache entry (plain fileId)
+    // so it paints instantly from disk; the full-res phase uses a distinct
+    // key so it gets its own cache entry and survives closing/reopening the
+    // viewer instead of re-downloading every time.
+    final cacheKey = item.fileId.isEmpty
+        ? null
+        : (hasFullUrl ? _fullCacheKey(item.fileId) : item.fileId);
 
     final viewer = InteractiveViewer(
       minScale: 0.5,
@@ -181,24 +216,20 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
           alignment: Alignment.center,
           children: [
             // Main image — shows thumbnail first, then full seamlessly
-            Image.network(
-              displayUrl,
-              headers: headers,
+            CachedNetworkImage(
+              imageUrl: displayUrl,
+              cacheKey: cacheKey,
+              httpHeaders: headers,
               fit: BoxFit.contain,
-              gaplessPlayback: true, // KEY: prevents blank flash on URL switch
-              loadingBuilder: (_, child, progress) {
-                if (progress == null) return child;
-                return Center(
-                  child: CircularProgressIndicator(
-                    value: progress.expectedTotalBytes != null
-                        ? progress.cumulativeBytesLoaded /
-                        progress.expectedTotalBytes!
-                        : null,
-                    color: Colors.white,
-                  ),
-                );
-              },
-              errorBuilder: (_, __, ___) => const Column(
+              useOldImageOnUrlChange: true, // prevents blank flash on URL switch
+              fadeInDuration: Duration.zero,
+              progressIndicatorBuilder: (_, __, progress) => Center(
+                child: CircularProgressIndicator(
+                  value: progress.progress,
+                  color: Colors.white,
+                ),
+              ),
+              errorWidget: (_, __, ___) => const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.broken_image, color: Colors.grey, size: 64),
@@ -211,7 +242,7 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
               ),
               // Decode at the physical screen resolution — best quality the
               // display can show without holding full multi-MP originals in RAM
-              cacheWidth: (MediaQuery.of(context).size.width *
+              memCacheWidth: (MediaQuery.of(context).size.width *
                       MediaQuery.of(context).devicePixelRatio)
                   .round(),
             ),
@@ -305,7 +336,9 @@ class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
     } on AppException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
+            backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _isDownloading = false);

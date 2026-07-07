@@ -43,7 +43,7 @@ class _OtpPageState extends State<OtpPage> {
   Future<void> _verify() async {
     if (_isLoading) return;
     if (_otpCode.length < 6) {
-      setState(() => _error = 'Enter the complete 6-digit code');
+      setState(() => _error = AppLocalizations.of(context)!.enterCompleteOtpCode);
       return;
     }
 
@@ -80,8 +80,8 @@ class _OtpPageState extends State<OtpPage> {
       setState(() => _otpKey = newKey);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('OTP code resent'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.otpCodeResentMessage),
             backgroundColor: Colors.green,
           ),
         );
@@ -150,7 +150,7 @@ class _OtpPageState extends State<OtpPage> {
               const SizedBox(height: 24),
 
               Text(
-                'Enter OTP Code',
+                AppLocalizations.of(context)!.enterOtpCodeTitle,
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -162,7 +162,7 @@ class _OtpPageState extends State<OtpPage> {
                 text: TextSpan(
                   style: TextStyle(fontSize: 14, color: subtitleColor),
                   children: [
-                    const TextSpan(text: 'We sent a 6-digit code to '),
+                    TextSpan(text: AppLocalizations.of(context)!.otpSentToPrefix),
                     TextSpan(
                       text: widget.phoneNumber,
                       style: TextStyle(
@@ -273,9 +273,9 @@ class _OtpPageState extends State<OtpPage> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
-                          'Verify',
-                          style: TextStyle(
+                      : Text(
+                          AppLocalizations.of(context)!.verifyButton,
+                          style: const TextStyle(
                             fontSize: 16,
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -299,7 +299,7 @@ class _OtpPageState extends State<OtpPage> {
                           ),
                         )
                       : Text(
-                          'Resend Code',
+                          AppLocalizations.of(context)!.resendCodeButton,
                           style: TextStyle(
                             color: accentColor,
                             fontWeight: FontWeight.w600,

@@ -50,6 +50,10 @@ class HomePageState extends State<HomePage> {
   List<Plan> _plans = [];
   String? _userName;
   bool _isLoading = true;
+  // Guards against overlapping _loadData() calls (refresh button spam,
+  // pull-to-refresh, return-from-subscription) — separate from _isLoading,
+  // which only tracks the initial-load shimmer and must stay false after that.
+  bool _isFetchingData = false;
 
   // Pagination state
   int _currentPage = 1;
@@ -109,38 +113,49 @@ class HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadData() async {
-    final name = await SecureStorage.getFullName();
+    if (_isFetchingData) return;
+    _isFetchingData = true;
     try {
-      final results = await Future.wait([
-        _profileRepo.getStorageUsed(),
-        _profileRepo.getStorageUsage(),
-        _loadBackendGalleryFiles(),
-        _loadSubscriptionSilently(),
-        _loadPlansSilently(),
-      ]);
-      if (mounted) {
-        setState(() {
-          _userName = name;
-          _storageData = results[0] as Map<String, dynamic>;
-          _usageData = (results[1] as Map<String, dynamic>?) ?? {};
-          _subscription = results[3] as CurrentSubscription?;
-          _plans = results[4] as List<Plan>;
-          _isLoading = false;
-        });
-      }
+      final name = await SecureStorage.getFullName();
+      try {
+        final results = await Future.wait([
+          _profileRepo.getStorageUsed(),
+          _profileRepo.getStorageUsage(),
+          _loadBackendGalleryFiles(),
+          _loadSubscriptionSilently(),
+          _loadPlansSilently(),
+        ]);
+        if (mounted) {
+          setState(() {
+            _userName = name;
+            _storageData = results[0] as Map<String, dynamic>;
+            _usageData = (results[1] as Map<String, dynamic>?) ?? {};
+            _subscription = results[3] as CurrentSubscription?;
+            _plans = results[4] as List<Plan>;
+            _isLoading = false;
+          });
+        }
 
-      // Sinxronizatsiyani qayta tekshirish
-      AutoSyncService().startAutoSync().catchError((e) {
-        debugPrint('[HomePage] Auto-sync refresh error: $e');
-      });
-    } catch (e) {
-      if (kDebugMode) debugPrint('[HomePage] _loadData failed: $e');
-      if (mounted) setState(() { _userName = name; _isLoading = false; });
+        // Sinxronizatsiyani qayta tekshirish
+        AutoSyncService().startAutoSync().catchError((e) {
+          debugPrint('[HomePage] Auto-sync refresh error: $e');
+        });
+      } catch (e) {
+        if (kDebugMode) debugPrint('[HomePage] _loadData failed: $e');
+        if (mounted) setState(() { _userName = name; _isLoading = false; });
+      }
+    } finally {
+      _isFetchingData = false;
     }
   }
 
   // Load backend gallery files with pagination
   Future<void> _loadBackendGalleryFiles() async {
+    // A load-more (scroll pagination) is already in flight — resetting and
+    // clearing the list now would race with its in-progress addAll() and
+    // can drop or duplicate results once it resolves.
+    if (_isLoadingMore) return;
+
     final token = await SecureStorage.getAccessToken();
     if (token == null || token.isEmpty) return;
 
@@ -179,10 +194,19 @@ class HomePageState extends State<HomePage> {
       );
 
       if (mounted) {
+        // Defensive dedup: offset-based pagination can repeat an item across
+        // pages if the gallery changed between requests (upload mid-scroll).
+        final existingIds = _backendGalleryFiles.map((f) => f.id).toSet();
+        final newFiles =
+            response.results.where((f) => existingIds.add(f.id)).toList();
         setState(() {
-          _backendGalleryFiles.addAll(response.results);
+          _backendGalleryFiles.addAll(newFiles);
           _currentPage++;
-          _hasMoreGalleryFiles = response.next != null;
+          // A short page (fewer results than requested) means the server
+          // has no more data even if `next` says otherwise — stops pagination
+          // instead of firing one more (empty) request forever.
+          _hasMoreGalleryFiles =
+              response.next != null && response.results.length >= _pageSize;
           _isLoadingMore = false;
         });
       }
@@ -775,7 +799,7 @@ class HomePageState extends State<HomePage> {
       }
 
       return (
-        url: id.isNotEmpty ? '' : (_normalizeUrl(item['thumbnail_path']?.toString()) ?? ''),
+        url: _normalizeUrl(item['thumbnail_path']?.toString()) ?? '',
         name: decodedName,
         fileId: id,
         mimeType: decodedMime,
@@ -931,6 +955,7 @@ class _BackendGalleryItemGrid extends StatelessWidget {
       child: MediaThumbnail(
         mimeType: file.mimeType,
         thumbnailPath: normalizedUrl,
+        cacheKey: file.id,
         borderRadius: BorderRadius.circular(12),
         fallbackIcon: Icons.image_not_supported_rounded,
         fallbackIconColor: isDark ? Colors.grey[600]! : Colors.grey[400]!,
@@ -1031,6 +1056,7 @@ class _BackendGalleryItemList extends StatelessWidget {
             MediaThumbnail(
               mimeType: file.mimeType,
               thumbnailPath: normalizedUrl,
+              cacheKey: file.id,
               width: 60,
               height: 60,
               memCacheWidth: 180,

@@ -13,6 +13,7 @@ import '../data/download_repository.dart';
 import '../data/models/folder_model.dart';
 import '../data/models/file_model.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/error_localizer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/storage/secure_storage.dart';
 import 'package:cloud_app/features/home/presentation/move_destination_screen.dart';
@@ -30,6 +31,7 @@ import '../../../shared/widgets/staggered_list_item.dart';
 import '../../../shared/widgets/media_thumbnail.dart';
 import '../../../core/utils/media_type_helper.dart';
 import '../../../core/utils/page_transitions.dart';
+import '../../../core/utils/safe_action_mixin.dart';
 
 
 enum _FilterType { all, images, videos }
@@ -43,14 +45,16 @@ class FilesPage extends StatefulWidget {
   State<FilesPage> createState() => FilesPageState();
 }
 
-class FilesPageState extends State<FilesPage> {
+class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
   final _repo = HomeRepository();
   final _downloadRepo = DownloadRepository();
   final _profileRepo = ProfileRepository();
 
   List<FolderModel> _folders = [];
   List<FileModel> _files = [];
-  bool _isLoading = true;
+  // Starts false: _loadContent() guards on this flag and flips it true
+  // synchronously before its first await.
+  bool _isLoading = false;
   String? _error;
   bool _isGrid = true;
   String? _authToken;
@@ -210,8 +214,8 @@ class FilesPageState extends State<FilesPage> {
       setState(() => _pinnedFolders =
           _pinnedFolders.where((p) => p['pinId'] != folder.id).toList());
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!))));
       }
     }
   }
@@ -226,8 +230,8 @@ class FilesPageState extends State<FilesPage> {
     } on AppException catch (e) {
       setState(() => _pinnedFolders = backup);
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!))));
       }
     }
   }
@@ -365,7 +369,7 @@ class FilesPageState extends State<FilesPage> {
   }
 
   Future<void> _loadContent() async {
-    if (!mounted) return;
+    if (!mounted || _isLoading) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -402,7 +406,6 @@ class FilesPageState extends State<FilesPage> {
         _hasNextPage = result['hasNext'] as bool;
         _pinnedFolders = pinned;
         _totalFilesCount = result['totalCount'] as int? ?? _files.length;
-        _isLoading = false;
         _staggerActive = true;
       });
       Future.delayed(const Duration(milliseconds: 600), () {
@@ -410,18 +413,17 @@ class FilesPageState extends State<FilesPage> {
       });
       _precacheThumbnails();
 
-    } on AppException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.message;
-        _isLoading = false;
-      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = AppLocalizations.of(context)!.genericErrorFallback;
-        _isLoading = false;
+        _error = ErrorLocalizer.forException(e, AppLocalizations.of(context)!);
       });
+    } finally {
+      // finally (not just the catch branch) — guarantees _isLoading always
+      // clears even if something other than the awaited calls above throws,
+      // so the re-entrancy guard at the top of this function can never
+      // permanently wedge the page.
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -435,7 +437,12 @@ class FilesPageState extends State<FilesPage> {
         page: _currentPage + 1,
       );
       if (!mounted) return;
-      final newFiles = result['files'] as List<FileModel>;
+      // Defensive dedup: offset-based pagination can repeat an item across
+      // pages if the folder changed between requests (upload/delete mid-scroll).
+      final existingIds = _files.map((f) => f.id).toSet();
+      final newFiles = (result['files'] as List<FileModel>)
+          .where((f) => existingIds.add(f.id))
+          .toList();
       setState(() {
         _files.addAll(newFiles);
         _currentPage++;
@@ -567,8 +574,20 @@ class FilesPageState extends State<FilesPage> {
   }
 
   void _openFolder(FolderModel folder) {
+    // Pinned folders (e.g. Sync) are reachable from any depth, not just
+    // root — tapping the one we're already inside (or one already on the
+    // stack, via a pin shortcut) must not re-append it as a new segment.
+    final existingIndex = _breadcrumb.indexWhere((b) => b.id == folder.id);
+    if (existingIndex != -1 && existingIndex == _breadcrumb.length - 1) {
+      return; // already viewing this folder
+    }
+
     setState(() {
-      _breadcrumb.add((id: folder.id, isSync: folder.isSync, name: folder.name));
+      if (existingIndex != -1) {
+        _breadcrumb.removeRange(existingIndex + 1, _breadcrumb.length);
+      } else {
+        _breadcrumb.add((id: folder.id, isSync: folder.isSync, name: folder.name));
+      }
       _showFavourites = false;
       _activeFilter = _FilterType.all;
       _folderPage = 0;
@@ -802,26 +821,28 @@ class FilesPageState extends State<FilesPage> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () async {
+                        onPressed: () {
                           final name = controller.text.trim();
                           if (name.isEmpty) return;
                           Navigator.pop(ctx);
-                          try {
-                            final newFolder = await _repo.createFolder(
-                              name: name,
-                              parentId: _currentFolderId,
-                            );
-                            _openFolder(newFolder);
-                          } on AppException catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(e.message),
-                                  backgroundColor: Colors.red,
-                                ),
+                          safeAction(() async {
+                            try {
+                              final newFolder = await _repo.createFolder(
+                                name: name,
+                                parentId: _currentFolderId,
                               );
+                              _openFolder(newFolder);
+                            } on AppException catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
                             }
-                          }
+                          });
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
@@ -992,7 +1013,7 @@ class FilesPageState extends State<FilesPage> {
                       Navigator.pop(ctx);
                       _showRenameDialog(
                         currentName: folder.name,
-                        onRename: (newName) async {
+                        onRename: (newName) => safeAction(() async {
                           try {
                             await _repo.renameItem(
                                 type: 'folder', id: folder.id, name: newName);
@@ -1009,11 +1030,11 @@ class FilesPageState extends State<FilesPage> {
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                  content: Text(e.message),
+                                  content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
                                   backgroundColor: Colors.red),
                             );
                           }
-                        },
+                        }),
                       );
                     },
                   ),
@@ -1053,7 +1074,7 @@ class FilesPageState extends State<FilesPage> {
                       Navigator.pop(ctx);
                       _showDeleteConfirmDialog(
                         itemName: folder.name,
-                        onConfirm: () async {
+                        onConfirm: () => safeAction(() async {
                           final idx = _folders.indexOf(folder);
                           if (idx == -1) return;
                           setState(() => _folders.removeAt(idx));
@@ -1065,11 +1086,11 @@ class FilesPageState extends State<FilesPage> {
                             setState(() => _folders.insert(idx, folder));
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                  content: Text(e.message),
+                                  content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
                                   backgroundColor: Colors.red),
                             );
                           }
-                        },
+                        }),
                       );
                     },
                   ),
@@ -1255,7 +1276,7 @@ class FilesPageState extends State<FilesPage> {
                     Navigator.pop(ctx);
                     _showRenameDialog(
                       currentName: file.name,
-                      onRename: (newName) async {
+                      onRename: (newName) => safeAction(() async {
                         try {
                           await _repo.renameItem(
                               type: 'file', id: file.id, name: newName);
@@ -1273,11 +1294,11 @@ class FilesPageState extends State<FilesPage> {
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                                content: Text(e.message),
+                                content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
                                 backgroundColor: Colors.red),
                           );
                         }
-                      },
+                      }),
                     );
                   },
                 ),
@@ -1326,7 +1347,7 @@ class FilesPageState extends State<FilesPage> {
                     Navigator.pop(ctx);
                     _showDeleteConfirmDialog(
                       itemName: file.name,
-                      onConfirm: () async {
+                      onConfirm: () => safeAction(() async {
                         final idx = _files.indexOf(file);
                         if (idx == -1) return;
                         setState(() {
@@ -1344,11 +1365,11 @@ class FilesPageState extends State<FilesPage> {
                           });
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                                content: Text(e.message),
+                                content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
                                 backgroundColor: Colors.red),
                           );
                         }
-                      },
+                      }),
                     );
                   },
                 ),
@@ -1800,7 +1821,7 @@ class FilesPageState extends State<FilesPage> {
                         _showDeleteConfirmDialog(
                           itemName: t.deleteItems(_selectedFiles.length +
                               _selectedFolders.length),
-                          onConfirm: () async {
+                          onConfirm: () => safeAction(() async {
                             final removedFileIds = _selectedFiles.toList();
                             final removedFolderIds = _selectedFolders
                                 .where((id) => !_folders.any((f) => f.id == id && f.isSync))
@@ -1833,12 +1854,12 @@ class FilesPageState extends State<FilesPage> {
                               });
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(e.toString()),
+                                  content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
                                   backgroundColor: Colors.red,
                                 ),
                               );
                             }
-                          },
+                          }),
                         );
                       },
                     ),
@@ -2066,7 +2087,7 @@ class FilesPageState extends State<FilesPage> {
       if (!mounted) return;
       setState(() => _removeDownloadNotifier(file.id));
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+        SnackBar(content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)), backgroundColor: Colors.red),
       );
     }
   }
@@ -3151,6 +3172,7 @@ class _FileTile extends StatelessWidget {
     return MediaThumbnail(
       mimeType: file.mimeType,
       thumbnailPath: file.thumbnailPath,
+      cacheKey: file.id,
       width: 42,
       height: 42,
       memCacheWidth: 130,
@@ -3388,6 +3410,7 @@ class _FileGridCard extends StatelessWidget {
                   MediaThumbnail(
                     mimeType: file.mimeType,
                     thumbnailPath: file.thumbnailPath,
+                    cacheKey: file.id,
                     memCacheWidth: 300,
                     memCacheHeight: 300,
                     borderRadius: const BorderRadius.vertical(
@@ -3399,7 +3422,6 @@ class _FileGridCard extends StatelessWidget {
                     fallbackIconColor: color,
                     fallbackBackgroundColor: color.withValues(alpha: 0.08),
                     fallbackIconSize: 40,
-                    centeredPlayIcon: true,
                     playBadgeColor: Colors.black.withValues(alpha: 0.5),
                   ),
                   if (isSelected)
@@ -3544,7 +3566,7 @@ class _InfoBottomSheetState extends State<_InfoBottomSheet> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = ErrorLocalizer.forException(e, AppLocalizations.of(context)!);
           _isLoading = false;
         });
       }
@@ -3613,6 +3635,7 @@ class _InfoBottomSheetState extends State<_InfoBottomSheet> {
                       ? MediaThumbnail(
                     mimeType: widget.mimeType,
                     thumbnailPath: widget.previewUrl,
+                    cacheKey: widget.id,
                     width: 52,
                     height: 52,
                     memCacheWidth: 160,

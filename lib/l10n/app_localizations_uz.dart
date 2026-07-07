@@ -860,6 +860,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get errorSessionExpired => 'Sessiya muddati tugadi, qaytadan urinib ko\'ring';
 
   @override
+  String get errorSessionExpiredRelogin => 'Sessiya muddati tugadi. Qaytadan kiring';
+
+  @override
   String get errorUserAlreadyExists => 'Bu telefon raqami bilan foydalanuvchi allaqachon mavjud';
 
   @override
@@ -966,4 +969,79 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get cannotMoveIntoItself => 'Papkani o\'zining ichiga ko\'chirib bo\'lmaydi';
+
+  @override
+  String get forgotPasswordTitle => 'Parolni unutdingizmi?';
+
+  @override
+  String get forgotPasswordSubtitle => 'Telefon raqamingizni kiriting, biz parolni tiklash uchun kod yuboramiz.';
+
+  @override
+  String get phoneNumberLabel => 'Telefon raqami';
+
+  @override
+  String get sendOtpCodeButton => 'Kodni yuborish';
+
+  @override
+  String get verifyOtpCodeTitle => 'Tasdiqlash kodini kiriting';
+
+  @override
+  String get otpSentToPrefix => 'Biz 6 xonali kodni yubordik: ';
+
+  @override
+  String get enterCompleteOtpCode => '6 xonali kodni to\'liq kiriting';
+
+  @override
+  String get verifyButton => 'Tasdiqlash';
+
+  @override
+  String get resendCodeButton => 'Kodni qayta yuborish';
+
+  @override
+  String get otpCodeResentMessage => 'Kod qayta yuborildi';
+
+  @override
+  String get setNewPasswordTitle => 'Yangi parol o\'rnating';
+
+  @override
+  String get setNewPasswordSubtitle => 'Kamida 8 belgidan iborat kuchli parol yarating.';
+
+  @override
+  String get enterNewPasswordHint => 'Yangi parolni kiriting';
+
+  @override
+  String get confirmNewPasswordHint => 'Yangi parolni tasdiqlang';
+
+  @override
+  String get resetPasswordButton => 'Parolni tiklash';
+
+  @override
+  String get passwordResetSuccessMessage => 'Parol muvaffaqiyatli o\'zgartirildi!';
+
+  @override
+  String get errorOtpStillValid => 'Oldingi tasdiqlash kodi hali amal qiladi. Yangisini so\'rashdan oldin kuting.';
+
+  @override
+  String get loginWelcomeTitle => 'Xush kelibsiz\nBulutcha';
+
+  @override
+  String get loginSubtitle => 'Fayllaringizga kirish uchun tizimga kiring.';
+
+  @override
+  String get passwordLabel => 'Parol';
+
+  @override
+  String get enterYourPasswordHint => 'Parolni kiriting';
+
+  @override
+  String get signInButton => 'Kirish';
+
+  @override
+  String get noAccountPrompt => 'Akkountingiz yo\'qmi? ';
+
+  @override
+  String get registerLink => 'Ro\'yxatdan o\'tish';
+
+  @override
+  String get enterOtpCodeTitle => 'Tasdiqlash kodini kiriting';
 }

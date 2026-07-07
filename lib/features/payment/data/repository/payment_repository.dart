@@ -117,14 +117,23 @@ class PaymentRepository {
     }
   }
 
+  // Plans are effectively static (pricing/storage tiers) — cached for the
+  // app session so every _loadData()/page-open doesn't re-fetch the same
+  // list (was ~64 GET /storage/plan/ calls in one logged session).
+  static List<Plan>? _cachedPlans;
+
+  static void clearPlansCache() => _cachedPlans = null;
+
   // GET /storage/plan/
-  Future<List<Plan>> getPlans() async {
+  Future<List<Plan>> getPlans({bool forceRefresh = false}) async {
+    if (!forceRefresh && _cachedPlans != null) return _cachedPlans!;
     try {
       final r = await _dio.get('/storage/plan/');
       final raw = (r.data is List ? r.data : (r.data['results'] ?? [])) as List;
-      return raw
-          .map((e) => Plan.fromJson(e as Map<String, dynamic>))
-          .toList();
+      final plans =
+          raw.map((e) => Plan.fromJson(e as Map<String, dynamic>)).toList();
+      _cachedPlans = plans;
+      return plans;
     } on DioException catch (e) {
       throw AppException(
         message: _extractError(e.response?.data),

@@ -7,7 +7,7 @@ import '../../../core/utils/media_type_helper.dart';
 import '../data/home_repository.dart';
 import '../data/models/folder_model.dart';
 import '../data/models/file_model.dart';
-import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/error_localizer.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/network/dio_client.dart';
 import 'photo_viewer_page.dart';
@@ -40,7 +40,9 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
   final _repo = HomeRepository();
   List<FolderModel> _folders = [];
   List<FileModel> _files = [];
-  bool _isLoading = true;
+  // Starts false: _loadContent() guards on this flag and flips it true
+  // synchronously before its first await.
+  bool _isLoading = false;
   String? _error;
   bool _isGrid = true;
   String? _authToken;
@@ -93,7 +95,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
   }
 
   Future<void> _loadContent() async {
-    if (!mounted) return;
+    if (!mounted || _isLoading) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -137,21 +139,18 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
       setState(() {
         _folders = folders;
         _files = files;
-        _isLoading = false;
       });
       _loadPreviewUrls(files);
-    } on AppException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.message;
-        _isLoading = false;
-      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
-        _isLoading = false;
+        _error = ErrorLocalizer.forException(e, AppLocalizations.of(context)!);
       });
+    } finally {
+      // finally (not just the catch branch) — guarantees _isLoading always
+      // clears so the re-entrancy guard at the top can never permanently
+      // wedge the page.
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -798,6 +797,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
             MediaThumbnail(
               mimeType: file.mimeType,
               thumbnailPath: previewUrl,
+              cacheKey: file.id,
               width: 44,
               height: 44,
               memCacheWidth: 130,
@@ -998,7 +998,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
           if (state is ShareError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
+                content: Text(ErrorLocalizer.forException(state.error, AppLocalizations.of(context)!)),
                 backgroundColor: Colors.red,
               ),
             );

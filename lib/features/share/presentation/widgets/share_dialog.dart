@@ -7,6 +7,7 @@ import '../../data/models/share_models.dart';
 import '../bloc/share_bloc.dart';
 import '../bloc/share_event.dart';
 import '../bloc/share_state.dart';
+import '../../../../core/utils/error_localizer.dart';
 
 class _PhoneInputFormatter extends TextInputFormatter {
   @override
@@ -171,7 +172,7 @@ class _ShareDialogState extends State<ShareDialog> {
           setState(() => _isSending = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(state.message),
+              content: Text(ErrorLocalizer.forException(state.error, AppLocalizations.of(context)!)),
               backgroundColor: Colors.red,
             ),
           );

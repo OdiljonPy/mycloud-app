@@ -9,6 +9,7 @@ import '../bloc/payment_state.dart';
 import 'add_card_page.dart';
 import '../widgets/card_preview_widget.dart';
 import '../../../../core/utils/plan_localizer.dart';
+import '../../../../core/utils/error_localizer.dart';
 import '../../../../core/utils/format_bytes.dart';
 import '../../../../l10n/app_localizations.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -41,6 +42,7 @@ class _SubscriptionViewState extends State<_SubscriptionView> {
   List<Plan> _plans = [];
   int? _selectedPlanId;
   int _usedStorageBytes = 0;
+  bool _isLoadingStorage = false;
 
   static const _accent = Color(0xFF1A73E8);
   static const _green = Color(0xFF22C55E);
@@ -52,6 +54,8 @@ class _SubscriptionViewState extends State<_SubscriptionView> {
   }
 
   Future<void> _loadStorage() async {
+    if (_isLoadingStorage) return;
+    _isLoadingStorage = true;
     try {
       final data = await _profileRepo.getStorageUsed();
       if (!mounted) return;
@@ -60,6 +64,8 @@ class _SubscriptionViewState extends State<_SubscriptionView> {
       });
     } catch (_) {
       // Storage usage is only needed for the downgrade warning; ignore failures.
+    } finally {
+      _isLoadingStorage = false;
     }
   }
 
@@ -205,7 +211,7 @@ class _SubscriptionViewState extends State<_SubscriptionView> {
           } else if (state is PaymentError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
+                content: Text(ErrorLocalizer.forException(state.error, l10n)),
                 backgroundColor: Colors.red,
               ),
             );
@@ -226,7 +232,9 @@ class _SubscriptionViewState extends State<_SubscriptionView> {
           return RefreshIndicator(
             onRefresh: () async {
               context.read<PaymentBloc>().add(const LoadPaymentData());
-              context.read<PaymentBloc>().add(const LoadPlansEvent());
+              context
+                  .read<PaymentBloc>()
+                  .add(const LoadPlansEvent(forceRefresh: true));
               await _loadStorage();
             },
             child: ListView(

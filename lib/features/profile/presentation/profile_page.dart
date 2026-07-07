@@ -8,6 +8,7 @@ import '../../../core/network/dio_client.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/services/language_notifier.dart';
 import '../../../core/utils/plan_localizer.dart';
+import '../../../core/utils/error_localizer.dart';
 import '../../../core/utils/safe_action_mixin.dart';
 import '../../../core/utils/format_bytes.dart';
 import '../../auth/presentation/login_page.dart';
@@ -96,6 +97,11 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
       });
     } catch (e) {
       if (!mounted) return;
+      // 401/403 → сессия невалидна, глобальный auto-logout уже уводит на login.
+      // Не рендерим карточку с нулевыми данными как валидное состояние.
+      if (e is AppException && (e.statusCode == 401 || e.statusCode == 403)) {
+        return;
+      }
       setState(() => _isLoading = false);
     }
   }
@@ -129,7 +135,7 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
     } on AppException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+          SnackBar(content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)), backgroundColor: Colors.red),
         );
       }
     }
@@ -165,16 +171,12 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
                       Text(AppLocalizations.of(context)!.avatarUpdated)),
             );
           }
-        } on AppException catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(e.message), backgroundColor: Colors.red),
-            );
-          }
         } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+              SnackBar(
+                  content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
+                  backgroundColor: Colors.red),
             );
           }
         }
@@ -251,7 +253,7 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                              content: Text(e.message),
+                              content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
                               backgroundColor: Colors.red),
                         );
                       }
@@ -344,7 +346,7 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                              content: Text(e.message),
+                              content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
                               backgroundColor: Colors.red),
                         );
                       }
@@ -462,7 +464,7 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                                content: Text(e.message),
+                                content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
                                 backgroundColor: Colors.red),
                           );
                         }
