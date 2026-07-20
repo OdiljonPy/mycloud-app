@@ -9,6 +9,7 @@ import '../bloc/payment_state.dart';
 import 'add_card_page.dart';
 import '../widgets/card_preview_widget.dart';
 import '../../../../core/utils/plan_localizer.dart';
+import '../../../../core/utils/plan_style.dart';
 import '../../../../core/utils/error_localizer.dart';
 import '../../../../core/utils/format_bytes.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -435,7 +436,8 @@ class _PlanListTile extends StatelessWidget {
         plan.price.startsWith('0.');
     final borderColor = isCurrent
         ? _green
-        : (isSelected ? _accent : Colors.grey.withValues(alpha: 0.3));
+        : (isSelected ? _accent : Colors.white.withValues(alpha: 0.08));
+    final style = PlanStyle.forName(plan.name);
 
     return GestureDetector(
       onTap: isCurrent ? null : onTap,
@@ -444,6 +446,11 @@ class _PlanListTile extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: style.gradient,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           border: Border.all(
             color: borderColor,
             width: (isCurrent || isSelected) ? 2 : 1,
@@ -451,6 +458,16 @@ class _PlanListTile extends StatelessWidget {
         ),
         child: Row(
           children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(style.icon, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -460,7 +477,9 @@ class _PlanListTile extends StatelessWidget {
                       Text(
                         PlanLocalizer.localize(plan.name, l10n),
                         style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w700),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white),
                       ),
                       if (plan.isPopular && !isCurrent) ...[
                         const SizedBox(width: 8),
@@ -468,13 +487,13 @@ class _PlanListTile extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: _accent.withValues(alpha: 0.15),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             l10n.popularBadge,
                             style: const TextStyle(
-                                color: _accent,
+                                color: Colors.white,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600),
                           ),
@@ -484,13 +503,18 @@ class _PlanListTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(_formatStorage(plan.storage, l10n),
-                      style: const TextStyle(fontSize: 13, color: Colors.grey)),
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withValues(alpha: 0.7))),
                   const SizedBox(height: 2),
                   Text(
                     isFree
                         ? l10n.freeLabel
                         : '$priceFormatted UZS / $periodLabel',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white),
                   ),
                 ],
               ),
@@ -500,7 +524,7 @@ class _PlanListTile extends StatelessWidget {
             else
               Icon(
                 isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-                color: isSelected ? _accent : Colors.grey,
+                color: isSelected ? _accent : Colors.white.withValues(alpha: 0.6),
               ),
           ],
         ),
