@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/utils/page_transitions.dart';
 import '../sync_progress.dart';
 import '../sync_providers.dart';
+import 'select_sync_files_page.dart';
 
 class AutoSyncSettingsPage extends ConsumerStatefulWidget {
   const AutoSyncSettingsPage({super.key});
@@ -79,8 +81,50 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
     await ref.read(syncSettingsProvider.notifier).setWifiOnly(value);
   }
 
+  // Свич сам по себе не может включить режим "только выбранные" без
+  // непустого списка — вместо этого сразу открываем пикер.
   Future<void> _setUseSelected(bool value) async {
+    if (value && ref.read(syncSettingsProvider).selectedFiles.isEmpty) {
+      await _openFilePicker();
+      return;
+    }
     await ref.read(syncSettingsProvider.notifier).setUseSelectedFiles(value);
+    if (value) {
+      // Свич включили с уже сохранённым выбором альбомов (не через пикер) —
+      // всё равно чистим очередь от того, что могло насинкаться в full-sync
+      // режиме, пока свич был выключен.
+      await ref.read(syncRepositoryProvider).purgeNonSelectedAlbums();
+    }
+  }
+
+  // Тап по строке (не по свичу) — всегда открывает пикер для
+  // просмотра/изменения текущего выбора.
+  Future<void> _openFilePicker() async {
+    final notifier = ref.read(syncSettingsProvider.notifier);
+    final current = ref.read(syncSettingsProvider).selectedFiles.toSet();
+
+    final result = await Navigator.of(context).push<List<String>>(
+      slideUpRoute(SelectSyncFilesPage(initiallySelected: current)),
+    );
+    if (result == null || !mounted) return; // отмена/свайп назад — не трогаем
+
+    if (result.isEmpty) {
+      // Submit с 0 файлов: список не трогаем, режим не включаем.
+      await notifier.setUseSelectedFiles(false);
+      return;
+    }
+
+    await notifier.saveSelectedFiles(result);
+    await notifier.setUseSelectedFiles(true);
+    // Вычищаем из очереди всё, что не входит в новый выбор альбомов —
+    // иначе то, что уже насканилось раньше (full-sync или прошлый выбор),
+    // всё равно догрузится в фоне.
+    await ref.read(syncRepositoryProvider).purgeNonSelectedAlbums();
+
+    // Синк уже идёт — сразу подхватываем новый фильтр без перезахода.
+    if (ref.read(syncSettingsProvider).autoSyncEnabled) {
+      ref.read(syncRepositoryProvider).startAutoSync();
+    }
   }
 
   // ─── Build ────────────────────────────────────────────────────────────────
@@ -164,9 +208,12 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
                   ),
                   _buildSwitchTile(
                     title: t.syncSelectedFiles,
-                    subtitle: t.syncSelectedFilesSubtitle,
+                    subtitle: settings.selectedFiles.isNotEmpty
+                        ? t.syncSelectedCount(settings.selectedFiles.length)
+                        : t.syncSelectedFilesSubtitle,
                     value: settings.useSelectedFiles,
                     onChanged: _setUseSelected,
+                    onTitleTap: _openFilePicker,
                     iosBlue: iosBlue,
                     textColor: textColor,
                     labelColor: labelColor,
@@ -386,7 +433,30 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
     required Color labelColor,
     required Color separatorColor,
     required bool showDivider,
+    VoidCallback? onTitleTap,
   }) {
+    final titleColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+            color: textColor,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 13,
+            color: labelColor,
+          ),
+        ),
+      ],
+    );
+
     return Column(
       children: [
         Padding(
@@ -394,27 +464,13 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
           child: Row(
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w400,
-                        color: textColor,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: labelColor,
-                      ),
-                    ),
-                  ],
-                ),
+                child: onTitleTap != null
+                    ? GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: onTitleTap,
+                        child: titleColumn,
+                      )
+                    : titleColumn,
               ),
               const SizedBox(width: 12),
               Transform.scale(

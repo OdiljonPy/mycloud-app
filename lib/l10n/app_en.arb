@@ -261,6 +261,15 @@
   "syncResumeButton": "Resume Sync",
   "syncSelectedFiles": "Selected files",
   "syncSelectedFilesSubtitle": "Sync only selected",
+  "syncSelectedCount": "{count} media selected",
+  "@syncSelectedCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "selectSyncFilesTitle": "Select files to sync",
+  "selectSyncFilesDone": "Done",
+  "selectSyncFilesPermissionDenied": "No access to gallery. Allow access in system settings.",
   "syncTotal": "Total",
   "uploadedLabel": "Uploaded",
   "uploadPageTitle": "Upload",

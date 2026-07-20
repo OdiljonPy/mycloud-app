@@ -582,6 +582,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncSelectedFilesSubtitle => 'Sync only selected';
 
   @override
+  String syncSelectedCount(int count) {
+    return '$count media selected';
+  }
+
+  @override
+  String get selectSyncFilesTitle => 'Select files to sync';
+
+  @override
+  String get selectSyncFilesDone => 'Done';
+
+  @override
+  String get selectSyncFilesPermissionDenied => 'No access to gallery. Allow access in system settings.';
+
+  @override
   String get syncTotal => 'Total';
 
   @override

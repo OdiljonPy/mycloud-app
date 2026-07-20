@@ -7,7 +7,10 @@ import '../data/sync_task.dart';
 class MediaScanner {
   final SyncQueueDb db;
   final Set<String> uploadedKeys;
-  final Set<String>? selectedLocalIds;
+
+  /// Album/bucket id (AssetPathEntity.id), не asset id. Если задан — сканер
+  /// проходит только по этим альбомам, а не по всей галерее.
+  final Set<String>? selectedAlbumIds;
   final String? sessionId;
   final void Function(int pending)? onProgress;
 
@@ -22,7 +25,7 @@ class MediaScanner {
   MediaScanner({
     required this.db,
     required this.uploadedKeys,
-    this.selectedLocalIds,
+    this.selectedAlbumIds,
     this.sessionId,
     this.onProgress,
     this.filterFromMs,
@@ -75,6 +78,16 @@ class MediaScanner {
       final now = DateTime.now().millisecondsSinceEpoch;
 
       for (final album in albums) {
+        // "All" — виртуальный агрегирующий альбом (дублирует все реальные
+        // папки). Пропускаем всегда: иначе один и тот же asset сначала
+        // вставился бы с albumId="All", и потом никогда бы не совпал с
+        // реальным выбранным альбомом (Camera/Screenshots) при purge.
+        if (album.isAll) continue;
+
+        if (selectedAlbumIds != null && !selectedAlbumIds!.contains(album.id)) {
+          continue;
+        }
+
         final assetCount = await album.assetCountAsync;
         if (assetCount == 0) continue;
 
@@ -91,12 +104,6 @@ class MediaScanner {
           await Future.delayed(Duration.zero);
           for (final asset in assets) {
             try {
-              // Skip if selective sync is on and asset not selected
-              if (selectedLocalIds != null &&
-                  !selectedLocalIds!.contains(asset.id)) {
-                continue;
-              }
-
               // Delta filter: пропускаем если ассет старее watermark
               final assetCreatedMs = asset.createDateTime.millisecondsSinceEpoch;
               if (filterFromMs != null && assetCreatedMs < filterFromMs!) continue;
@@ -154,6 +161,7 @@ class MediaScanner {
                   bucketDay: bucketDay,
                   createdAt: now,
                   updatedAt: now,
+                  albumId: album.id,
                 ));
                 continue;
               }
@@ -171,6 +179,7 @@ class MediaScanner {
                 bucketDay: bucketDay,
                 createdAt: now,
                 updatedAt: now,
+                albumId: album.id,
               ));
               enqueued++;
               onProgress?.call(enqueued);

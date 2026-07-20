@@ -400,9 +400,10 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
       markedFolders.sort((a, b) => a.isSync ? -1 : (b.isSync ? 1 : 0));
 
       if (!mounted) return;
+      final loadedFiles = result['files'] as List<FileModel>;
       setState(() {
         _folders = markedFolders;
-        _files = result['files'] as List<FileModel>;
+        _files = _isSyncFolder ? _sortByCaptureDate(loadedFiles) : loadedFiles;
         _hasNextPage = result['hasNext'] as bool;
         _pinnedFolders = pinned;
         _totalFilesCount = result['totalCount'] as int? ?? _files.length;
@@ -445,6 +446,7 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
           .toList();
       setState(() {
         _files.addAll(newFiles);
+        if (_isSyncFolder) _files = _sortByCaptureDate(_files);
         _currentPage++;
         _hasNextPage = result['hasNext'] as bool;
         _isLoadingMore = false;
@@ -2437,6 +2439,21 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
         },
       ),
     );
+  }
+
+  /// Список-вид для sync-папок (обычная — сортировка не трогается,
+  /// возвращается порядок с сервера как есть): порядок как в галерее
+  /// телефона — по дате съёмки (или создания записи, если съёмки нет),
+  /// новые сверху. Та же логика, что уже использует _groupFilesByDate
+  /// для grid-режима.
+  List<FileModel> _sortByCaptureDate(List<FileModel> files) {
+    final sorted = [...files];
+    sorted.sort((a, b) {
+      final aDate = a.capturedAt ?? a.createdAt;
+      final bDate = b.capturedAt ?? b.createdAt;
+      return bDate.compareTo(aDate);
+    });
+    return sorted;
   }
 
   List<MapEntry<String, List<FileModel>>> _groupFilesByDate(List<FileModel> files) {

@@ -1195,6 +1195,30 @@ abstract class AppLocalizations {
   /// **'Sync only selected'**
   String get syncSelectedFilesSubtitle;
 
+  /// No description provided for @syncSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} media selected'**
+  String syncSelectedCount(int count);
+
+  /// No description provided for @selectSyncFilesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select files to sync'**
+  String get selectSyncFilesTitle;
+
+  /// No description provided for @selectSyncFilesDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get selectSyncFilesDone;
+
+  /// No description provided for @selectSyncFilesPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'No access to gallery. Allow access in system settings.'**
+  String get selectSyncFilesPermissionDenied;
+
   /// No description provided for @syncTotal.
   ///
   /// In en, this message translates to:

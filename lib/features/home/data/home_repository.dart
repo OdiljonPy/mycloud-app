@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/errors/app_exception.dart';
@@ -9,6 +12,8 @@ import '../../../core/storage/secure_storage.dart';
 
 class HomeRepository {
   final Dio _dio = DioClient.instance;
+
+  static const String _kAlbumFolderMapKey = 'sync_album_folder_map';
 
   /// Cached root folders for sync-folder guard checks (last resort).
   List<FolderModel> _cachedRootFolders = [];
@@ -163,6 +168,74 @@ class HomeRepository {
       debugPrint('[HomeRepo] Create sync folder failed: $e');
       rethrow;
     }
+  }
+
+  /// Одна подпапка на альбом с телефона — живёт ВНУТРИ единой sync-папки
+  /// (resolveSyncFolder()), не в корне. Бэкенд разрешает только одну
+  /// is_sync=true папку на аккаунт (подтверждено логами:
+  /// "Sync folder already exists" на любую вторую попытку) — поэтому
+  /// подпапки создаются как обычные (без is_sync), матч по имени+родителю
+  /// достаточен, коллизия с ручной папкой юзера того же имени возможна
+  /// только если он сам создаст такую же папку внутри Sync. Маппинг
+  /// albumId → folderId кэшируется в prefs, чтобы не гонять листинг на
+  /// каждый файл.
+  Future<FolderModel> resolveSyncFolderForAlbum({
+    required String albumId,
+    required String albumName,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final map = _readAlbumFolderMap(prefs);
+    final cachedFolderId = map[albumId];
+
+    final syncRoot = await resolveSyncFolder();
+    final result = await getContent(parentId: syncRoot.id);
+    final folders = result['folders'] as List<FolderModel>;
+
+    if (cachedFolderId != null) {
+      final cachedMatch = folders.where((f) => f.id == cachedFolderId);
+      if (cachedMatch.isNotEmpty) return cachedMatch.first;
+      // Папка пропала на сервере (удалена/переименована мимо приложения) —
+      // забываем маппинг и ищем/создаём заново ниже.
+    }
+
+    for (final folder in folders) {
+      if (folder.name == albumName) {
+        await _saveAlbumFolderMapping(prefs, map, albumId, folder.id);
+        return folder;
+      }
+    }
+
+    debugPrint('[HomeRepo] No subfolder for album "$albumName" under Sync, creating...');
+    try {
+      final created = await createFolder(name: albumName, parentId: syncRoot.id);
+      await _saveAlbumFolderMapping(prefs, map, albumId, created.id);
+      return created;
+    } catch (e) {
+      debugPrint('[HomeRepo] Create subfolder for album "$albumName" failed: $e');
+      rethrow;
+    }
+  }
+
+  Map<String, String> _readAlbumFolderMap(SharedPreferences prefs) {
+    final raw = prefs.getString(_kAlbumFolderMapKey);
+    if (raw == null) return {};
+    try {
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      return decoded.map((key, value) => MapEntry(key, value.toString()));
+    } catch (e) {
+      debugPrint('[HomeRepo] Album folder map decode failed: $e');
+      return {};
+    }
+  }
+
+  Future<void> _saveAlbumFolderMapping(
+    SharedPreferences prefs,
+    Map<String, String> map,
+    String albumId,
+    String folderId,
+  ) async {
+    map[albumId] = folderId;
+    await prefs.setString(_kAlbumFolderMapKey, jsonEncode(map));
   }
 
   Future<void> renameItem({

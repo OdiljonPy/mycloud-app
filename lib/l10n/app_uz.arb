@@ -196,6 +196,15 @@
   "syncStop": "To'xtatish",
   "syncSelectedFiles": "Tanlangan fayllar",
   "syncSelectedFilesSubtitle": "Faqat tanlanganlarni sinxronlashtirish",
+  "syncSelectedCount": "{count} media tanlandi",
+  "@syncSelectedCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "selectSyncFilesTitle": "Sinxronlash uchun fayllarni tanlash",
+  "selectSyncFilesDone": "Tayyor",
+  "selectSyncFilesPermissionDenied": "Galereyaga ruxsat yo'q. Qurilma sozlamalarida ruxsat bering.",
   "syncTotal": "Jami",
   "uploadedLabel": "Yuklandi",
   "uploadPageTitle": "Yuklash",

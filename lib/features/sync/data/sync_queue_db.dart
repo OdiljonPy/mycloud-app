@@ -13,7 +13,7 @@ class SyncQueueDb {
       final path = p.join(dbPath, 'sync_queue.db');
       _db = await openDatabase(
         path,
-        version: 4,
+        version: 5,
         onCreate: (db, version) async {
           await db.execute('''
             CREATE TABLE sync_queue (
@@ -32,12 +32,14 @@ class SyncQueueDb {
               updated_at INTEGER NOT NULL,
               asset_created_at INTEGER,
               bucket_day TEXT,
-              session_uploaded INTEGER NOT NULL DEFAULT 0
+              session_uploaded INTEGER NOT NULL DEFAULT 0,
+              album_id TEXT
             )
           ''');
           await db.execute('CREATE INDEX idx_name_size_status ON sync_queue (file_name, file_size, status)');
           await db.execute('CREATE INDEX idx_fingerprint_status ON sync_queue (sha256, file_size, mime_type, status)');
           await db.execute('CREATE INDEX idx_status ON sync_queue (status)');
+          await db.execute('CREATE INDEX idx_album_status ON sync_queue (album_id, status)');
         },
         onUpgrade: (db, oldVersion, newVersion) async {
           if (oldVersion < 2) {
@@ -66,6 +68,15 @@ class SyncQueueDb {
               debugPrint('[SyncQueueDb] Migrated to v4: added deduplication indexes');
             } catch (e) {
               debugPrint('[SyncQueueDb] Migration v4 skipped: $e');
+            }
+          }
+          if (oldVersion < 5) {
+            try {
+              await db.execute('ALTER TABLE sync_queue ADD COLUMN album_id TEXT');
+              await db.execute('CREATE INDEX IF NOT EXISTS idx_album_status ON sync_queue (album_id, status)');
+              debugPrint('[SyncQueueDb] Migrated to v5: added album_id column');
+            } catch (e) {
+              debugPrint('[SyncQueueDb] Migration v5 skipped (column already exists): $e');
             }
           }
         },
@@ -317,6 +328,37 @@ class SyncQueueDb {
       }
     } catch (e) {
       debugPrint('[SyncQueueDb] resetFailedForRetry failed: $e');
+    }
+  }
+
+  /// Удаляет из очереди pending-задачи, чей album_id не входит в текущий
+  /// выбор альбомов (либо album_id вообще не проставлен — старые записи
+  /// до миграции v5). Вызывается при включении/изменении режима "только
+  /// выбранные альбомы", чтобы уже отсканированные, но ещё не загруженные
+  /// файлы из других папок гарантированно не улетели на сервер.
+  /// done-записи не трогает — история/дедуп остаются целыми.
+  Future<int> purgeNonSelectedPending(Set<String> albumIds) async {
+    try {
+      if (albumIds.isEmpty) {
+        return await _database.delete(
+          'sync_queue',
+          where: 'status = ?',
+          whereArgs: [SyncStatus.pending.name],
+        );
+      }
+      final placeholders = List.filled(albumIds.length, '?').join(',');
+      final count = await _database.delete(
+        'sync_queue',
+        where: 'status = ? AND (album_id IS NULL OR album_id NOT IN ($placeholders))',
+        whereArgs: [SyncStatus.pending.name, ...albumIds],
+      );
+      if (count > 0) {
+        debugPrint('[SyncQueueDb] Purged $count pending tasks outside selected albums');
+      }
+      return count;
+    } catch (e) {
+      debugPrint('[SyncQueueDb] purgeNonSelectedPending failed: $e');
+      return 0;
     }
   }
 

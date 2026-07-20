@@ -582,6 +582,20 @@ class AppLocalizationsRu extends AppLocalizations {
   String get syncSelectedFilesSubtitle => 'Синхронизировать только выбранные';
 
   @override
+  String syncSelectedCount(int count) {
+    return '$count медиа выбрано';
+  }
+
+  @override
+  String get selectSyncFilesTitle => 'Выбор файлов для синхронизации';
+
+  @override
+  String get selectSyncFilesDone => 'Готово';
+
+  @override
+  String get selectSyncFilesPermissionDenied => 'Нет доступа к галерее. Разрешите доступ в настройках устройства.';
+
+  @override
   String get syncTotal => 'Всего';
 
   @override

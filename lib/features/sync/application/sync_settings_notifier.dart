@@ -6,7 +6,7 @@ class SyncSettingsNotifier extends Notifier<SyncSettingsState> {
   static const _keyAutoSync = 'auto_sync_enabled';
   static const _keyWifiOnly = 'auto_sync_wifi_only';
   static const _keySelectedOnly = 'auto_sync_selected_only';
-  static const _keySelectedFiles = 'selected_files';
+  static const _keySelectedFiles = 'selected_albums';
 
   @override
   SyncSettingsState build() {

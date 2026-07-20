@@ -40,4 +40,7 @@ class SyncRepository implements SyncFacade {
 
   @override
   Future<void> initialize() => _service.initialize();
+
+  @override
+  Future<void> purgeNonSelectedAlbums() => _service.purgeNonSelectedAlbums();
 }

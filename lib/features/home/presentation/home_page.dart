@@ -136,10 +136,14 @@ class HomePageState extends State<HomePage> {
           });
         }
 
-        // Sinxronizatsiyani qayta tekshirish
-        AutoSyncService().startAutoSync().catchError((e) {
-          debugPrint('[HomePage] Auto-sync refresh error: $e');
-        });
+        // Sinxronizatsiyani qayta tekshirish — faqat foydalanuvchi
+        // auto-sync'ni yoqqan bo'lsa (o'chirilgan holatda jim boshlanib
+        // ketmasligi kerak)
+        if (await AutoSyncService().isAutoSyncEnabled()) {
+          AutoSyncService().startAutoSync().catchError((e) {
+            debugPrint('[HomePage] Auto-sync refresh error: $e');
+          });
+        }
       } catch (e) {
         if (kDebugMode) debugPrint('[HomePage] _loadData failed: $e');
         if (mounted) setState(() { _userName = name; _isLoading = false; });
@@ -505,7 +509,7 @@ class HomePageState extends State<HomePage> {
               child: SizedBox(
                 width: double.infinity,
                 height: 46,
-                child: FilledButton.icon(
+                child: FilledButton(
                   onPressed: () => Navigator.of(context)
                       .push(slideUpRoute(const SubscriptionPage()))
                       .then((_) {
@@ -517,8 +521,7 @@ class HomePageState extends State<HomePage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  icon: const Icon(Icons.rocket_launch_rounded, size: 18),
-                  label: Text(
+                  child: Text(
                     nextPlan != null
                         ? t.upgradeToPlan(PlanLocalizer.localize(nextPlan.name, t))
                         : hasActive

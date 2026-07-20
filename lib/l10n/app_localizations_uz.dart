@@ -582,6 +582,20 @@ class AppLocalizationsUz extends AppLocalizations {
   String get syncSelectedFilesSubtitle => 'Faqat tanlanganlarni sinxronlashtirish';
 
   @override
+  String syncSelectedCount(int count) {
+    return '$count media tanlandi';
+  }
+
+  @override
+  String get selectSyncFilesTitle => 'Sinxronlash uchun fayllarni tanlash';
+
+  @override
+  String get selectSyncFilesDone => 'Tayyor';
+
+  @override
+  String get selectSyncFilesPermissionDenied => 'Galereyaga ruxsat yo\'q. Qurilma sozlamalarida ruxsat bering.';
+
+  @override
   String get syncTotal => 'Jami';
 
   @override

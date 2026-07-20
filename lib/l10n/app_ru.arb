@@ -269,6 +269,15 @@
   "syncResumeButton": "Продолжить синк",
   "syncSelectedFiles": "Выбранные файлы",
   "syncSelectedFilesSubtitle": "Синхронизировать только выбранные",
+  "syncSelectedCount": "{count} медиа выбрано",
+  "@syncSelectedCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "selectSyncFilesTitle": "Выбор файлов для синхронизации",
+  "selectSyncFilesDone": "Готово",
+  "selectSyncFilesPermissionDenied": "Нет доступа к галерее. Разрешите доступ в настройках устройства.",
   "syncTotal": "Всего",
   "uploadedLabel": "Загружено",
   "uploadPageTitle": "Загрузка",
