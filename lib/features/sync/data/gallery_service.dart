@@ -209,9 +209,11 @@ class GalleryService {
   }
 
   /// POST /content/files/check-duplicate/
-  /// Returns Map<localTaskId, isDuplicate> for deduplication before upload.
+  /// Returns Map<localTaskId, (isDuplicate, linkedFileId)> for deduplication
+  /// before upload. linkedFileId — id уже существующего файла-записи,
+  /// созданной бекендом в указанной folder при is_duplicate=true.
   /// On error returns empty map (safe fallback — upload all).
-  Future<Map<String, bool>> checkDuplicates(
+  Future<Map<String, ({bool isDuplicate, String? linkedFileId})>> checkDuplicates(
     List<SyncTask> tasks, {
     String? folderId,
   }) async {
@@ -229,12 +231,11 @@ class GalleryService {
           'size': task.fileSize,
           'type': task.mimeType,
           'uuid': id,
-          if (folderId != null) 'folder_id': folderId,
         };
       }).toList();
 
       debugPrint('[GalleryService] checkDuplicates REQUEST: ${filesPayload.take(2).toList()}');
-      debugPrint('[DupCheck] Sending ${filesPayload.length} files to check-duplicate');
+      debugPrint('[DupCheck] Sending ${filesPayload.length} files to check-duplicate, folder: $folderId');
       for (final f in filesPayload.take(3)) {
         debugPrint('[DupCheck] file → name: ${f['name']}, size: ${f['size']}, type: ${f['type']}');
       }
@@ -243,32 +244,33 @@ class GalleryService {
         '/content/files/check-duplicate/',
         data: {
           'files': filesPayload,
-          if (folderId != null) 'folder_id': folderId,
+          if (folderId != null) 'folder': folderId,
         },
       );
 
-      // Response: [{"uuid": "uuid-string", "is_duplicate": true/false}]
+      // Response: [{"uuid": "...", "is_duplicate": bool, "linked_file_id": "..."|null}]
       final List<dynamic> result = response.data is List
           ? response.data as List<dynamic>
           : [];
 
       debugPrint('[GalleryService] checkDuplicates raw response: ${result.take(2).toList()}');
 
-      // Map: localTaskId → is_duplicate
-      final Map<String, bool> duplicateMap = {};
+      // Map: localTaskId → (is_duplicate, linked_file_id)
+      final Map<String, ({bool isDuplicate, String? linkedFileId})> duplicateMap = {};
       for (final item in result) {
         if (item is! Map<String, dynamic>) continue;
         final uuid = item['uuid'] as String? ?? '';
         final isDuplicate = item['is_duplicate'] as bool? ?? false;
+        final linkedFileId = item['linked_file_id'] as String?;
         if (uuid.isEmpty) continue;
         if (uuidToTask.containsKey(uuid)) {
           final task = uuidToTask[uuid]!;
-          duplicateMap[task.localId] = isDuplicate;
+          duplicateMap[task.localId] = (isDuplicate: isDuplicate, linkedFileId: linkedFileId);
         }
       }
 
-      final dupCount = duplicateMap.values.where((v) => v).length;
-      final notDupCount = duplicateMap.values.where((v) => !v).length;
+      final dupCount = duplicateMap.values.where((v) => v.isDuplicate).length;
+      final notDupCount = duplicateMap.values.where((v) => !v.isDuplicate).length;
       debugPrint('[GalleryService] checkDuplicates RESULT: '
           '$dupCount duplicates, $notDupCount new files');
       debugPrint('[GalleryService] checkDuplicates REQUEST sample: '

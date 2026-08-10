@@ -125,7 +125,7 @@ class _SharedPageState extends State<SharedPage> {
 
   Future<void> _openVideoViewer(String fileId, String name) async {
     final t = AppLocalizations.of(context)!;
-    final url = await _repo.getPreviewUrl(fileId);
+    final url = await _repo.getStreamUrl(fileId, mimeType: 'video/mp4');
     if (url == null) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.couldNotOpenVideo)));
       return;

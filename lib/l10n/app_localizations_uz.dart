@@ -799,11 +799,11 @@ class AppLocalizationsUz extends AppLocalizations {
   String get noPlans => 'Tariflar mavjud emas';
 
   @override
-  String get confirmPurchaseTitle => 'Tasdiqlash';
+  String get confirmPurchaseTitle => 'To\'lovni tasdiqlang';
 
   @override
-  String confirmPurchaseMessage(String name, String price, String period) {
-    return '«$name» tarifini $price UZS / $period ga ulashni istaysizmi?';
+  String confirmPurchaseMessage(String plan, String price, String period, String card) {
+    return '\"$plan\" tarifi: $price UZS / $period. $card kartasidan yechiladi.';
   }
 
   @override
@@ -845,6 +845,9 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get popularBadge => 'Ommabop';
+
+  @override
+  String get noCardForPaymentMessage => 'To\'lov uchun karta ulang';
 
   @override
   String get cardTypeUzcard => 'Uzcard';

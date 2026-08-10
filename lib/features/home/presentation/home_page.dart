@@ -819,7 +819,8 @@ class HomePageState extends State<HomePage> {
           files: files,
           initialIndex: idx < 0 ? 0 : idx,
           authToken: authToken,
-          onNeedFullUrl: (id) => _homeRepo.getPreviewUrl(id),
+          onNeedFullUrl: (id, mimeType) =>
+              _homeRepo.getStreamUrl(id, mimeType: mimeType),
         ),
       ),
     );

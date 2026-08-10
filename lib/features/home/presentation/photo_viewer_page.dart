@@ -14,7 +14,7 @@ class PhotoViewerPage extends StatefulWidget {
   final List<({String url, String name, String fileId, String mimeType})> files;
   final int initialIndex;
   final String? authToken;
-  final Future<String?> Function(String fileId)? onNeedFullUrl;
+  final Future<String?> Function(String fileId, String mimeType)? onNeedFullUrl;
 
   const PhotoViewerPage({
     super.key,
@@ -94,7 +94,7 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
 
     if (mounted) setState(() => _loading.add(item.fileId));
 
-    final fullUrl = await widget.onNeedFullUrl?.call(item.fileId);
+    final fullUrl = await widget.onNeedFullUrl?.call(item.fileId, item.mimeType);
 
     if (mounted &&
         fullUrl != null &&

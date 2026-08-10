@@ -373,15 +373,6 @@
   "confirmButton": "Подтвердить",
   "plansTitle": "Тарифы",
   "noPlans": "Нет тарифов",
-  "confirmPurchaseTitle": "Подтверждение",
-  "confirmPurchaseMessage": "Подключить тариф «{name}» за {price} UZS / {period}?",
-  "@confirmPurchaseMessage": {
-    "placeholders": {
-      "name": { "type": "String" },
-      "price": { "type": "String" },
-      "period": { "type": "String" }
-    }
-  },
   "updatePlan": "Обновить",
   "freeLabel": "Бесплатно",
   "storageFeature": "{storage} Памяти",
@@ -404,6 +395,17 @@
   "continueAnyway": "Всё равно перейти",
   "staySamePlan": "Остаться на текущем плане",
   "popularBadge": "Популярный",
+  "confirmPurchaseTitle": "Подтвердите оплату",
+  "confirmPurchaseMessage": "Тариф «{plan}»: {price} UZS / {period}. Списание с карты {card}.",
+  "@confirmPurchaseMessage": {
+    "placeholders": {
+      "plan": { "type": "String" },
+      "price": { "type": "String" },
+      "period": { "type": "String" },
+      "card": { "type": "String" }
+    }
+  },
+  "noCardForPaymentMessage": "Привяжите карту для оплаты",
   "cardTypeUzcard": "Uzcard",
   "cardTypeHumo": "Humo",
   "cardTypeVisa": "Visa",

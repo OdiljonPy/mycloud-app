@@ -236,8 +236,8 @@ class AutoSyncService {
         debugPrint('[Sync] Pin attempt (non-critical): $e');
       }
 
-      // Альбомный режим: у каждого выбранного альбома своя папка на
-      // сервере (то же имя, что на телефоне) вместо единой syncFolderUuid.
+      // Папка на сервере на каждый альбом с телефона (то же имя, что в
+      // галерее) — в обоих режимах синка, не только "выбранные альбомы".
       // Имена альбомов нужны только для резолва — не храним их в БД.
       final prefs = await SharedPreferences.getInstance();
       final selectiveOn = prefs.getBool(_kSelectedOnlyKey) ?? false;
@@ -249,18 +249,16 @@ class AutoSyncService {
           prefs.getStringList(_kSelectedAlbumsKey)?.toSet() ?? <String>{};
       _settingsChanged = false;
       final Map<String, String> albumNames = {};
-      if (selectiveOn) {
-        try {
-          final albums = await PhotoManager.getAssetPathList(
-            type: RequestType.common,
-            hasAll: true,
-          );
-          for (final a in albums) {
-            if (!a.isAll) albumNames[a.id] = a.name;
-          }
-        } catch (e) {
-          debugPrint('[Sync] Failed to load album names: $e');
+      try {
+        final albums = await PhotoManager.getAssetPathList(
+          type: RequestType.common,
+          hasAll: true,
+        );
+        for (final a in albums) {
+          if (!a.isAll) albumNames[a.id] = a.name;
         }
+      } catch (e) {
+        debugPrint('[Sync] Failed to load album names: $e');
       }
       final Map<String, String> albumFolderCache = {};
 
@@ -290,13 +288,12 @@ class AutoSyncService {
         // до checkDuplicates — иначе сервер не распознаёт дубли
         final resolvedTasks = await _resolveTaskSizes(tasks);
 
-        // Целевая папка на задачу: в альбомном режиме — своя папка на
-        // альбом, иначе — единая syncFolderUuid (старое поведение).
+        // Целевая папка на задачу — своя папка на альбом (зеркалит галерею)
+        // в обоих режимах синка.
         final Map<int, String> taskFolderIds = {};
         for (final task in resolvedTasks) {
           if (task.id == null) continue;
           taskFolderIds[task.id!] = await _resolveTargetFolderId(
-            selectiveOn: selectiveOn,
             task: task,
             repo: repo,
             fallbackFolderId: syncFolderUuid,
@@ -306,39 +303,27 @@ class AutoSyncService {
           );
         }
 
-        Map<String, bool> duplicateMap = {};
-        if (selectiveOn) {
-          // checkDuplicates бьёт по конкретной папке — с несколькими
-          // альбомами группируем задачи по целевой папке и проверяем
-          // каждую группу отдельно, иначе дубликаты в "чужой" папке
-          // проверялись бы неправильно.
-          final byFolder = <String, List<SyncTask>>{};
-          for (final task in resolvedTasks) {
-            final folderId = task.id != null
-                ? (taskFolderIds[task.id!] ?? syncFolderUuid)
-                : syncFolderUuid;
-            byFolder.putIfAbsent(folderId, () => []).add(task);
-          }
-          for (final entry in byFolder.entries) {
-            try {
-              final partial = await galleryService.checkDuplicates(
-                entry.value,
-                folderId: entry.key,
-              );
-              duplicateMap.addAll(partial);
-            } catch (e) {
-              debugPrint('[Sync] Duplicate check failed for folder ${entry.key} (uploading all): $e');
-            }
-          }
-        } else {
+        // checkDuplicates бьёт по конкретной папке — с несколькими
+        // альбомами (в обоих режимах синка папка теперь всегда per-album)
+        // группируем задачи по целевой папке и проверяем каждую группу
+        // отдельно, иначе дубликаты в "чужой" папке проверялись бы неправильно.
+        Map<String, ({bool isDuplicate, String? linkedFileId})> duplicateMap = {};
+        final byFolder = <String, List<SyncTask>>{};
+        for (final task in resolvedTasks) {
+          final folderId = task.id != null
+              ? (taskFolderIds[task.id!] ?? syncFolderUuid)
+              : syncFolderUuid;
+          byFolder.putIfAbsent(folderId, () => []).add(task);
+        }
+        for (final entry in byFolder.entries) {
           try {
-            duplicateMap = await galleryService.checkDuplicates(
-              resolvedTasks,
-              folderId: syncFolderUuid,
+            final partial = await galleryService.checkDuplicates(
+              entry.value,
+              folderId: entry.key,
             );
+            duplicateMap.addAll(partial);
           } catch (e) {
-            debugPrint('[Sync] Duplicate check failed (uploading all): $e');
-            duplicateMap = {};
+            debugPrint('[Sync] Duplicate check failed for folder ${entry.key} (uploading all): $e');
           }
         }
 
@@ -349,7 +334,8 @@ class AutoSyncService {
           Map<String, int> counts;
 
           // Проверка 1: ответ бекенда
-          final isServerDuplicate = duplicateMap[task.localId] ?? false;
+          final serverDupInfo = duplicateMap[task.localId];
+          final isServerDuplicate = serverDupInfo?.isDuplicate ?? false;
 
           // Проверка 2: локальная DB — файл с таким именем уже done
           final isLocalDuplicate = await _db.isDoneByNameAndSize(
@@ -359,8 +345,16 @@ class AutoSyncService {
 
           if (isDuplicate) {
             final reason = isServerDuplicate ? 'server' : 'local_db';
-            await _db.markDoneWithSession(task.id!, 'duplicate_skipped_$reason');
-            debugPrint('[Sync] SKIP duplicate ($reason): ${task.fileName}');
+            // При server-дубликате бекенд создал новую file-запись
+            // (pointer, не клон байтов) в целевой папке — сохраняем её id
+            // как server_uuid, чтобы таск был связан с реальным файлом.
+            final linkedFileId = serverDupInfo?.linkedFileId;
+            final doneId = (isServerDuplicate && linkedFileId != null)
+                ? linkedFileId
+                : 'duplicate_skipped_$reason';
+            await _db.markDoneWithSession(task.id!, doneId);
+            debugPrint('[Sync] SKIP duplicate ($reason): ${task.fileName}'
+                '${linkedFileId != null ? ' -> linked $linkedFileId' : ''}');
             counts = await _db.getStatusCounts();
             _emit(_currentProgress.copyWith(
               pending: counts['pending'] ?? 0,
@@ -527,11 +521,10 @@ class AutoSyncService {
     }
   }
 
-  /// Возвращает id папки на сервере для задачи. В обычном режиме — всегда
-  /// [fallbackFolderId]. В альбомном — папка, соответствующая альбому
-  /// задачи (создаётся/резолвится лениво и кэшируется на сессию синка).
+  /// Возвращает id папки на сервере для задачи — папка, соответствующая
+  /// альбому задачи (создаётся/резолвится лениво и кэшируется на сессию
+  /// синка), чтобы структура на сервере зеркалила галерею на телефоне.
   Future<String> _resolveTargetFolderId({
-    required bool selectiveOn,
     required SyncTask task,
     required HomeRepository repo,
     required String fallbackFolderId,
@@ -539,11 +532,10 @@ class AutoSyncService {
     required Map<String, String> albumFolderCache,
     required List<Map<String, dynamic>> pinnedFolders,
   }) async {
-    if (!selectiveOn) return fallbackFolderId;
     final albumId = task.albumId;
-    // Задачи без albumId — легаси-записи до миграции v5, в альбомном
-    // режиме их не должно быть в очереди (purgeNonSelectedAlbums их
-    // чистит), но на всякий случай не роняем sync, а шлём в дефолтную папку.
+    // Задачи без albumId — легаси-записи до миграции v5, их не должно
+    // быть в очереди, но на всякий случай не роняем sync, а шлём в
+    // дефолтную папку.
     if (albumId == null) return fallbackFolderId;
 
     final cached = albumFolderCache[albumId];

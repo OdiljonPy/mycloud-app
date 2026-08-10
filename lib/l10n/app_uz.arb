@@ -339,15 +339,6 @@
   "confirmButton": "Tasdiqlash",
   "plansTitle": "Tariflar",
   "noPlans": "Tariflar mavjud emas",
-  "confirmPurchaseTitle": "Tasdiqlash",
-  "confirmPurchaseMessage": "«{name}» tarifini {price} UZS / {period} ga ulashni istaysizmi?",
-  "@confirmPurchaseMessage": {
-    "placeholders": {
-      "name": { "type": "String" },
-      "price": { "type": "String" },
-      "period": { "type": "String" }
-    }
-  },
   "updatePlan": "Ulash",
   "freeLabel": "Bepul",
   "storageFeature": "{storage} Xotira",
@@ -370,6 +361,17 @@
   "continueAnyway": "Baribir o'tish",
   "staySamePlan": "Joriy tarifda qolish",
   "popularBadge": "Ommabop",
+  "confirmPurchaseTitle": "To'lovni tasdiqlang",
+  "confirmPurchaseMessage": "\"{plan}\" tarifi: {price} UZS / {period}. {card} kartasidan yechiladi.",
+  "@confirmPurchaseMessage": {
+    "placeholders": {
+      "plan": { "type": "String" },
+      "price": { "type": "String" },
+      "period": { "type": "String" },
+      "card": { "type": "String" }
+    }
+  },
+  "noCardForPaymentMessage": "To'lov uchun karta ulang",
   "cardTypeUzcard": "Uzcard",
   "cardTypeHumo": "Humo",
   "cardTypeVisa": "Visa",

@@ -123,23 +123,40 @@ class _SubscriptionViewState extends State<_SubscriptionView> {
     });
   }
 
-  void _onSwitchPressed(CurrentSubscription? subscription) {
+  void _onSwitchPressed(CurrentSubscription? subscription, List<CardToken> cards) {
     final plan = _plans.firstWhere(
       (p) => p.id == _selectedPlanId,
       orElse: () => _plans.first,
     );
+
+    final card = _primaryCard(cards);
+    if (card == null) {
+      _showNoCardMessage();
+      return;
+    }
+
     final isDowngrade = subscription != null &&
         subscription.planId != null &&
         plan.storage < subscription.storageLimit;
 
     if (isDowngrade && _usedStorageBytes > plan.storage) {
-      _showDowngradeWarning(plan);
+      _showDowngradeWarning(plan, card);
     } else {
-      context.read<PaymentBloc>().add(PurchasePlanEvent(plan.id));
+      _showPurchaseConfirm(plan, card);
     }
   }
 
-  void _showDowngradeWarning(Plan plan) {
+  void _showNoCardMessage() {
+    final l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.noCardForPaymentMessage),
+        action: SnackBarAction(label: l10n.addCard, onPressed: _openAddCard),
+      ),
+    );
+  }
+
+  void _showDowngradeWarning(Plan plan, CardToken card) {
     final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
@@ -160,9 +177,40 @@ class _SubscriptionViewState extends State<_SubscriptionView> {
           FilledButton(
             onPressed: () {
               Navigator.pop(context);
-              context.read<PaymentBloc>().add(PurchasePlanEvent(plan.id));
+              _showPurchaseConfirm(plan, card);
             },
             child: Text(l10n.continueAnyway),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPurchaseConfirm(Plan plan, CardToken card) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.confirmPurchaseTitle),
+        content: Text(
+          l10n.confirmPurchaseMessage(
+            PlanLocalizer.localize(plan.name, l10n),
+            _formatPrice(plan.price),
+            _periodLabel(plan.billingPeriod, l10n),
+            card.maskedCardNumber,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              context.read<PaymentBloc>().add(PurchasePlanEvent(plan.id));
+            },
+            child: Text(l10n.confirmButton),
           ),
         ],
       ),
@@ -309,7 +357,7 @@ class _SubscriptionViewState extends State<_SubscriptionView> {
                     onPressed: (!busy &&
                             _selectedPlanId != null &&
                             _selectedPlanId != subscription?.planId)
-                        ? () => _onSwitchPressed(subscription)
+                        ? () => _onSwitchPressed(subscription, cards)
                         : null,
                     style: FilledButton.styleFrom(
                       backgroundColor: _accent,

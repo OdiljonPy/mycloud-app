@@ -799,11 +799,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noPlans => 'No plans available';
 
   @override
-  String get confirmPurchaseTitle => 'Confirm';
+  String get confirmPurchaseTitle => 'Confirm payment';
 
   @override
-  String confirmPurchaseMessage(String name, String price, String period) {
-    return 'Subscribe to «$name» for $price UZS / $period?';
+  String confirmPurchaseMessage(String plan, String price, String period, String card) {
+    return 'Plan \"$plan\": $price UZS / $period. Charged to card $card.';
   }
 
   @override
@@ -845,6 +845,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get popularBadge => 'Popular';
+
+  @override
+  String get noCardForPaymentMessage => 'Link a card to make a payment';
 
   @override
   String get cardTypeUzcard => 'Uzcard';

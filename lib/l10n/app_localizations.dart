@@ -1600,14 +1600,14 @@ abstract class AppLocalizations {
   /// No description provided for @confirmPurchaseTitle.
   ///
   /// In en, this message translates to:
-  /// **'Confirm'**
+  /// **'Confirm payment'**
   String get confirmPurchaseTitle;
 
   /// No description provided for @confirmPurchaseMessage.
   ///
   /// In en, this message translates to:
-  /// **'Subscribe to «{name}» for {price} UZS / {period}?'**
-  String confirmPurchaseMessage(String name, String price, String period);
+  /// **'Plan \"{plan}\": {price} UZS / {period}. Charged to card {card}.'**
+  String confirmPurchaseMessage(String plan, String price, String period, String card);
 
   /// No description provided for @updatePlan.
   ///
@@ -1680,6 +1680,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Popular'**
   String get popularBadge;
+
+  /// No description provided for @noCardForPaymentMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Link a card to make a payment'**
+  String get noCardForPaymentMessage;
 
   /// No description provided for @cardTypeUzcard.
   ///

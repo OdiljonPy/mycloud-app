@@ -548,6 +548,34 @@ class HomeRepository {
     return null;
   }
 
+  /// Returns a playable stream URL for a file, preferring HLS for videos.
+  ///
+  /// Tries `/hls/master.m3u8` first (adaptive quality) when [mimeType]
+  /// is a video type; on any failure (HLS not transcoded yet → 404, or
+  /// non-video) falls back to the existing [getPreviewUrl] flow unchanged.
+  Future<String?> getStreamUrl(String fileId, {required String mimeType}) async {
+    if (fileId.isEmpty) return null;
+    if (!mimeType.toLowerCase().startsWith('video/')) {
+      return getPreviewUrl(fileId);
+    }
+
+    try {
+      final token = await SecureStorage.getAccessToken();
+      final path = '/content/files/$fileId/hls/master.m3u8';
+      final response = await _dio.get(
+        path,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200) {
+        return _normalizeApiUrl(path);
+      }
+    } catch (_) {
+      // HLS not ready/available for this file — fall back below.
+    }
+
+    return getPreviewUrl(fileId);
+  }
+
   String _normalizeApiUrl(String raw) {
     if (raw.isEmpty) return raw;
     final uri = Uri.tryParse(raw);

@@ -365,15 +365,6 @@
   "confirmButton": "Confirm",
   "plansTitle": "Plans",
   "noPlans": "No plans available",
-  "confirmPurchaseTitle": "Confirm",
-  "confirmPurchaseMessage": "Subscribe to «{name}» for {price} UZS / {period}?",
-  "@confirmPurchaseMessage": {
-    "placeholders": {
-      "name": { "type": "String" },
-      "price": { "type": "String" },
-      "period": { "type": "String" }
-    }
-  },
   "updatePlan": "Subscribe",
   "freeLabel": "Free",
   "storageFeature": "{storage} Storage",
@@ -396,6 +387,17 @@
   "continueAnyway": "Switch anyway",
   "staySamePlan": "Stay on current plan",
   "popularBadge": "Popular",
+  "confirmPurchaseTitle": "Confirm payment",
+  "confirmPurchaseMessage": "Plan \"{plan}\": {price} UZS / {period}. Charged to card {card}.",
+  "@confirmPurchaseMessage": {
+    "placeholders": {
+      "plan": { "type": "String" },
+      "price": { "type": "String" },
+      "period": { "type": "String" },
+      "card": { "type": "String" }
+    }
+  },
+  "noCardForPaymentMessage": "Link a card to make a payment",
   "cardTypeUzcard": "Uzcard",
   "cardTypeHumo": "Humo",
   "cardTypeVisa": "Visa",

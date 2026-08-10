@@ -85,7 +85,11 @@ final ThemeData _darkTheme = ThemeData(
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  AppConfig.initialize(Environment.prod);
+  AppConfig.initialize(
+    const String.fromEnvironment('ENV') == 'local'
+        ? Environment.dev
+        : Environment.prod,
+  );
   await initializeDateFormatting();
   runApp(const ProviderScope(child: CloudApp()));
 }

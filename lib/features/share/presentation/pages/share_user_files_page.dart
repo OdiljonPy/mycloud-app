@@ -86,7 +86,8 @@ class _ShareUserFilesPageState extends State<ShareUserFilesPage> {
           files: files,
           initialIndex: idx < 0 ? 0 : idx,
           authToken: _authToken,
-          onNeedFullUrl: (id) => _homeRepo.getPreviewUrl(id),
+          onNeedFullUrl: (id, mimeType) =>
+              _homeRepo.getStreamUrl(id, mimeType: mimeType),
         ),
       ),
     );

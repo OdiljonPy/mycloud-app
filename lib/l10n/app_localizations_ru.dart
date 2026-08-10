@@ -799,11 +799,11 @@ class AppLocalizationsRu extends AppLocalizations {
   String get noPlans => 'Нет тарифов';
 
   @override
-  String get confirmPurchaseTitle => 'Подтверждение';
+  String get confirmPurchaseTitle => 'Подтвердите оплату';
 
   @override
-  String confirmPurchaseMessage(String name, String price, String period) {
-    return 'Подключить тариф «$name» за $price UZS / $period?';
+  String confirmPurchaseMessage(String plan, String price, String period, String card) {
+    return 'Тариф «$plan»: $price UZS / $period. Списание с карты $card.';
   }
 
   @override
@@ -845,6 +845,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get popularBadge => 'Популярный';
+
+  @override
+  String get noCardForPaymentMessage => 'Привяжите карту для оплаты';
 
   @override
   String get cardTypeUzcard => 'Uzcard';

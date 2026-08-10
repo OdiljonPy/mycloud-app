@@ -231,7 +231,8 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                 .toList(),
             initialIndex: idx < 0 ? 0 : idx,
             authToken: _authToken,
-            onNeedFullUrl: (fileId) => _repo.getPreviewUrl(fileId),
+            onNeedFullUrl: (fileId, mimeType) =>
+                _repo.getStreamUrl(fileId, mimeType: mimeType),
           ),
         ),
       );
