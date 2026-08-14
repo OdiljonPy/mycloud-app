@@ -132,8 +132,10 @@ class _MainPageState extends State<MainPage> {
                 index: 1,
                 current: _currentIndex,
                 onTap: (i) {
+                  // Тап по «Папки» всегда возвращает в корень папок,
+                  // а не оставляет внутри открытой папки.
                   if (i == 1) {
-                    _filesKey.currentState?.reloadContent();
+                    _filesKey.currentState?.goToRoot();
                   }
                   setState(() => _currentIndex = i);
                 },

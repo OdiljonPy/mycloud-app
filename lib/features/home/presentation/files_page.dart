@@ -494,6 +494,19 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
 
   void reloadContent() => _loadContent();
 
+  /// Тап по «Папки» в нижнем меню: всегда возврат в корень (из папки или
+  /// из избранного), а не залипание внутри открытой папки.
+  void goToRoot() {
+    setState(() {
+      _showFavourites = false;
+      _breadcrumb.clear();
+      _folderPage = 0;
+      _activeFilter = _FilterType.all;
+    });
+    widget.onFolderChanged?.call(null);
+    _loadContent();
+  }
+
   bool handleBackNavigation() {
     if (_showFavourites) {
       bool needsReload = false;
@@ -2315,8 +2328,8 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
             ),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              crossAxisSpacing: 2,
-              mainAxisSpacing: 2,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
               childAspectRatio: 1.0,
             ),
           ));
@@ -3393,20 +3406,11 @@ class _FileGridCard extends StatelessWidget {
       onLongPress: onSelectTap,
       child: Container(
         decoration: BoxDecoration(
-          color: isSelected
-              ? Colors.blue.withValues(alpha: 0.08)
-              : Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(14),
           border: isSelected
-              ? Border.all(color: Colors.blue, width: 2)
+              ? Border.all(color: Colors.blue, width: 2.5)
               : null,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -3419,10 +3423,9 @@ class _FileGridCard extends StatelessWidget {
                     mimeType: file.mimeType,
                     thumbnailPath: file.thumbnailPath,
                     cacheKey: file.id,
-                    memCacheWidth: 300,
-                    memCacheHeight: 300,
-                    borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(16)),
+                    memCacheWidth: 400,
+                    memCacheHeight: 400,
+                    borderRadius: BorderRadius.circular(14),
                     heroTag: isMedia && hasPreview
                         ? 'file_hero_${file.id}'
                         : null,
@@ -3449,68 +3452,59 @@ class _FileGridCard extends StatelessWidget {
                             color: Colors.white, size: 14),
                       ),
                     ),
+                  // Избранное — иконкой на затемнённом круге поверх картинки
                   if (!isSelectionMode)
                     Positioned(
                       top: 4,
                       right: 4,
                       child: GestureDetector(
                         onTap: onFavouriteTap,
-                        child: Icon(
-                          file.isFavourite
-                              ? Icons.star
-                              : Icons.star_border,
-                          color: file.isFavourite
-                              ? Colors.amber
-                              : Colors.grey,
-                          size: 20,
+                        child: _overlayCircle(
+                          Icon(
+                            file.isFavourite
+                                ? Icons.star
+                                : Icons.star_border,
+                            color: file.isFavourite
+                                ? Colors.amber
+                                : Colors.white,
+                            size: 18,
+                          ),
                         ),
                       ),
                     ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 6, 4, 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
+                  // Меню — снизу справа
+                  if (!isSelectionMode)
+                    Positioned(
+                      bottom: 4,
+                      right: 4,
+                      child: GestureDetector(
+                        onTap: onMenuTap,
+                        child: _overlayCircle(
+                          const Icon(Icons.more_horiz,
+                              color: Colors.white, size: 18),
+                        ),
+                      ),
+                    ),
+                  // Имя показываем ТОЛЬКО для документов (не фото/видео),
+                  // чтобы их можно было различить; медиа — чистая картинка.
+                  if (!isMedia)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 5),
+                        color: Colors.black.withValues(alpha: 0.45),
+                        child: Text(
                           file.name,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 13,
-                            color:
-                            Theme.of(context).colorScheme.onSurface,
-                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500),
                         ),
-                        Text(
-                          file.formattedSize,
-                          style: TextStyle(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.5),
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (!isSelectionMode)
-                    SizedBox(
-                      width: 28,
-                      height: 28,
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        iconSize: 20,
-                        icon: const Icon(Icons.more_vert,
-                            color: Colors.grey),
-                        onPressed: onMenuTap,
                       ),
                     ),
                 ],
@@ -3521,6 +3515,16 @@ class _FileGridCard extends StatelessWidget {
       ),
     ));
   }
+
+  Widget _overlayCircle(Widget child) => Container(
+        width: 26,
+        height: 26,
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.4),
+          shape: BoxShape.circle,
+        ),
+        child: Center(child: child),
+      );
 }
 
 // ── Info Bottom Sheet ─────────────────────────────────────────────────────────
