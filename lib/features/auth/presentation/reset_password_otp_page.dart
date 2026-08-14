@@ -40,6 +40,43 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
 
   String get _otpCode => _controllers.map((c) => c.text).join();
 
+  void _onDigitChanged(String val, int index) {
+    final digits = val.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (digits.length > 1) {
+      // Вставка из буфера / автозаполнение — раскладываем по всем полям с начала.
+      final chars = digits.split('');
+      for (int j = 0; j < 6; j++) {
+        _controllers[j].text = j < chars.length ? chars[j] : '';
+      }
+      final nextEmpty = chars.length.clamp(0, 6);
+      if (nextEmpty < 6) {
+        _focusNodes[nextEmpty].requestFocus();
+      } else {
+        FocusScope.of(context).unfocus();
+      }
+    } else {
+      _controllers[index].text = digits;
+      if (digits.isNotEmpty && index < 5) {
+        _focusNodes[index + 1].requestFocus();
+      }
+      if (digits.isEmpty && index > 0) {
+        _focusNodes[index - 1].requestFocus();
+      }
+    }
+
+    setState(() {});
+    if (_otpCode.length == 6) _verify();
+  }
+
+  void _onBackspace(int index) {
+    if (_controllers[index].text.isEmpty && index > 0) {
+      _controllers[index - 1].clear();
+      _focusNodes[index - 1].requestFocus();
+      setState(() {});
+    }
+  }
+
   Future<void> _verify() async {
     if (_isLoading) return;
     if (_otpCode.length < 6) {
@@ -194,42 +231,43 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
                   (i) => SizedBox(
                     width: 46,
                     height: 56,
-                    child: TextField(
-                      controller: _controllers[i],
-                      focusNode: _focusNodes[i],
-                      textAlign: TextAlign.center,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        LengthLimitingTextInputFormatter(1),
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: accentColor,
-                      ),
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: inputFillColor,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: accentColor, width: 2),
-                        ),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      onChanged: (val) {
-                        if (val.isNotEmpty && i < 5) {
-                          _focusNodes[i + 1].requestFocus();
+                    child: Focus(
+                      onKeyEvent: (node, event) {
+                        if (event is KeyDownEvent &&
+                            event.logicalKey == LogicalKeyboardKey.backspace) {
+                          _onBackspace(i);
                         }
-                        if (val.isEmpty && i > 0) {
-                          _focusNodes[i - 1].requestFocus();
-                        }
-                        if (_otpCode.length == 6) _verify();
+                        return KeyEventResult.ignored;
                       },
+                      child: TextField(
+                        controller: _controllers[i],
+                        focusNode: _focusNodes[i],
+                        textAlign: TextAlign.center,
+                        keyboardType: TextInputType.number,
+                        autofillHints: const [AutofillHints.oneTimeCode],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: accentColor,
+                        ),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: inputFillColor,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: accentColor, width: 2),
+                          ),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        onChanged: (val) => _onDigitChanged(val, i),
+                      ),
                     ),
                   ),
                 ),

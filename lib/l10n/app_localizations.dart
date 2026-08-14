@@ -1567,6 +1567,18 @@ abstract class AppLocalizations {
   /// **'Invalid month'**
   String get invalidMonth;
 
+  /// No description provided for @cardExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Card has expired'**
+  String get cardExpired;
+
+  /// No description provided for @checkCardData.
+  ///
+  /// In en, this message translates to:
+  /// **'You entered invalid data, please check'**
+  String get checkCardData;
+
   /// No description provided for @validThruLabel.
   ///
   /// In en, this message translates to:

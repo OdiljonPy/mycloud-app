@@ -782,6 +782,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invalidMonth => 'Invalid month';
 
   @override
+  String get cardExpired => 'Card has expired';
+
+  @override
+  String get checkCardData => 'You entered invalid data, please check';
+
+  @override
   String get validThruLabel => 'VALID THRU';
 
   @override

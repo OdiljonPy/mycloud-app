@@ -782,6 +782,12 @@ class AppLocalizationsUz extends AppLocalizations {
   String get invalidMonth => 'Noto\'g\'ri oy';
 
   @override
+  String get cardExpired => 'Karta muddati tugagan';
+
+  @override
+  String get checkCardData => 'Siz noto\'g\'ri ma\'lumot kiritdingiz, tekshirib ko\'ring';
+
+  @override
   String get validThruLabel => 'AMAL QILISH MUDDATI';
 
   @override

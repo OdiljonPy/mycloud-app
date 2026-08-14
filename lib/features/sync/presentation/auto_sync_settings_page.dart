@@ -68,13 +68,12 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
 
   // ─── Settings toggles ─────────────────────────────────────────────────────
 
+  // Настройка влияет только на автозапуск при холодном старте / логине /
+  // обновлении главной (см. app_initializer.dart, auth_repository.dart,
+  // home_page.dart) — на текущий/ручной синк (кнопки ниже) не влияет и
+  // ничего не запускает и не останавливает сама по себе.
   Future<void> _setAutoSync(bool value) async {
     await ref.read(syncSettingsProvider.notifier).setAutoSync(value);
-    if (value) {
-      _startSync();
-    } else {
-      await _stopSync();
-    }
   }
 
   Future<void> _setWifiOnly(bool value) async {
@@ -121,10 +120,10 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
     // всё равно догрузится в фоне.
     await ref.read(syncRepositoryProvider).purgeNonSelectedAlbums();
 
-    // Синк уже идёт — сразу подхватываем новый фильтр без перезахода.
-    if (ref.read(syncSettingsProvider).autoSyncEnabled) {
-      ref.read(syncRepositoryProvider).startAutoSync();
-    }
+    // Подхватываем новый фильтр независимо от тумблера "Sync Enable" —
+    // startAutoSync() сам безопасно no-op'нется, если синк уже идёт
+    // (см. guard isRunning/isScanning в AutoSyncService).
+    ref.read(syncRepositoryProvider).startAutoSync();
   }
 
   // ─── Build ────────────────────────────────────────────────────────────────

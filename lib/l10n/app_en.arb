@@ -357,6 +357,8 @@
   "enterExpiryDate": "Enter expiry date",
   "expiryDateFormat": "Format: MM/YY",
   "invalidMonth": "Invalid month",
+  "cardExpired": "Card has expired",
+  "checkCardData": "You entered invalid data, please check",
   "validThruLabel": "VALID THRU",
   "verifyCardTitle": "Card verification",
   "enterSmsCode": "Enter SMS code",

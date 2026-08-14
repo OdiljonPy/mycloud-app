@@ -22,6 +22,9 @@ class _AddCardPageState extends State<AddCardPage> {
   final _cardCtrl = TextEditingController();
   final _expireCtrl = TextEditingController();
 
+  bool _cardTouched = false;
+  bool _expireTouched = false;
+
   @override
   void dispose() {
     _cardCtrl.dispose();
@@ -31,6 +34,23 @@ class _AddCardPageState extends State<AddCardPage> {
 
   String get _rawCardNumber => _cardCtrl.text.replaceAll(' ', '');
   String get _rawExpireDate => _expireCtrl.text.replaceAll('/', '');
+
+  bool get _isCardNumberValid => _rawCardNumber.length == 16;
+
+  bool get _isExpireValid {
+    if (_rawExpireDate.length != 4) return false;
+    final month = int.tryParse(_rawExpireDate.substring(0, 2));
+    final year = int.tryParse(_rawExpireDate.substring(2, 4));
+    if (month == null || month < 1 || month > 12) return false;
+    if (year == null) return false;
+    final fullYear = 2000 + year;
+    final now = DateTime.now();
+    if (fullYear < now.year) return false;
+    if (fullYear == now.year && month < now.month) return false;
+    return true;
+  }
+
+  bool get _isFormValid => _isCardNumberValid && _isExpireValid;
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
@@ -43,6 +63,8 @@ class _AddCardPageState extends State<AddCardPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.addCard),
@@ -102,15 +124,28 @@ class _AddCardPageState extends State<AddCardPage> {
                         hintText: '0000 0000 0000 0000',
                         prefixIcon: const Icon(Icons.credit_card),
                         border: const OutlineInputBorder(),
+                        errorBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: errorColor),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: errorColor, width: 1.5),
+                        ),
                         counterText: '',
                       ),
-                      onChanged: (_) => setState(() {}),
+                      onChanged: (_) => setState(() => _cardTouched = true),
                       validator: (v) {
                         if (v == null || v.isEmpty) return l10n.enterCardNumber;
                         if (_rawCardNumber.length != 16) return l10n.cardNumber16Digits;
                         return null;
                       },
                     ).animate(delay: 150.ms).fadeIn(duration: 300.ms).slideX(begin: 0.05, curve: Curves.easeOut),
+                    if (_cardTouched && !_isCardNumberValid) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        l10n.checkCardData,
+                        style: TextStyle(color: errorColor, fontSize: 12),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _expireCtrl,
@@ -125,9 +160,15 @@ class _AddCardPageState extends State<AddCardPage> {
                         hintText: 'MM/YY',
                         prefixIcon: const Icon(Icons.calendar_today),
                         border: const OutlineInputBorder(),
+                        errorBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: errorColor),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: errorColor, width: 1.5),
+                        ),
                         counterText: '',
                       ),
-                      onChanged: (_) => setState(() {}),
+                      onChanged: (_) => setState(() => _expireTouched = true),
                       validator: (v) {
                         if (v == null || v.isEmpty) return l10n.enterExpiryDate;
                         if (_rawExpireDate.length != 4) return l10n.expiryDateFormat;
@@ -135,12 +176,20 @@ class _AddCardPageState extends State<AddCardPage> {
                         if (month == null || month < 1 || month > 12) {
                           return l10n.invalidMonth;
                         }
+                        if (!_isExpireValid) return l10n.cardExpired;
                         return null;
                       },
                     ).animate(delay: 250.ms).fadeIn(duration: 300.ms).slideX(begin: 0.05, curve: Curves.easeOut),
+                    if (_expireTouched && !_isExpireValid) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        l10n.checkCardData,
+                        style: TextStyle(color: errorColor, fontSize: 12),
+                      ),
+                    ],
                     const SizedBox(height: 32),
                     FilledButton(
-                      onPressed: isLoading ? null : _submit,
+                      onPressed: (isLoading || !_isFormValid) ? null : _submit,
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(

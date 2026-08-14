@@ -782,6 +782,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get invalidMonth => 'Неверный месяц';
 
   @override
+  String get cardExpired => 'Срок действия карты истёк';
+
+  @override
+  String get checkCardData => 'Вы неверно ввели данные, пожалуйста проверьте';
+
+  @override
   String get validThruLabel => 'ДЕЙСТВУЕТ ДО';
 
   @override

@@ -331,6 +331,8 @@
   "enterExpiryDate": "Amal qilish muddatini kiriting",
   "expiryDateFormat": "Format: MM/YY",
   "invalidMonth": "Noto'g'ri oy",
+  "cardExpired": "Karta muddati tugagan",
+  "checkCardData": "Siz noto'g'ri ma'lumot kiritdingiz, tekshirib ko'ring",
   "validThruLabel": "AMAL QILISH MUDDATI",
   "verifyCardTitle": "Kartani tasdiqlash",
   "enterSmsCode": "SMS kodni kiriting",

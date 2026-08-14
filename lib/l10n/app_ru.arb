@@ -365,6 +365,8 @@
   "enterExpiryDate": "Введите срок действия",
   "expiryDateFormat": "Формат: MM/YY",
   "invalidMonth": "Неверный месяц",
+  "cardExpired": "Срок действия карты истёк",
+  "checkCardData": "Вы неверно ввели данные, пожалуйста проверьте",
   "validThruLabel": "ДЕЙСТВУЕТ ДО",
   "verifyCardTitle": "Подтверждение карты",
   "enterSmsCode": "Введите SMS-код",

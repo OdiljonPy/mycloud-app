@@ -174,10 +174,17 @@ class AutoSyncService {
         _emit(_currentProgress.copyWith(scannedCount: _scannedCount, isScanning: true, sessionUploaded: _sessionUploadedCount));
       },
     );
-    final newItems = await scanner.scanAndEnqueue();
-    debugPrint('[AutoSync] Rescan: $newItems new items enqueued');
+    try {
+      final newItems = await scanner.scanAndEnqueue();
+      debugPrint('[AutoSync] Rescan: $newItems new items enqueued');
+      await prefs.setInt(_kWatermarkKey, DateTime.now().millisecondsSinceEpoch);
+    } finally {
+      // Обязательно сбрасываем даже при исключении внутри scanAndEnqueue —
+      // иначе _isScanning зависает в true навсегда и guard в startAutoSync()
+      // молча блокирует все последующие синки (и авто, и ручные).
+      _isScanning = false;
+    }
 
-    await prefs.setInt(_kWatermarkKey, DateTime.now().millisecondsSinceEpoch);
     final counts = await _db.getStatusCounts();
     _emit(_currentProgress.copyWith(
       pending: counts['pending'] ?? 0,
@@ -191,7 +198,6 @@ class AutoSyncService {
       currentFileName: _currentFileName,
       totalInBatch: _totalInBatch,
     ));
-    _isScanning = false;
   }
 
   Future<void> startSync() async {
