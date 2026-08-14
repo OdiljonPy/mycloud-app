@@ -39,7 +39,6 @@ class CacheManager {
     final completer = Completer<void>();
     _opQueue.add(completer);
     if (_opRunning) {
-      // Wait for our turn
       final idx = _opQueue.indexOf(completer);
       if (idx > 0) {
         await _opQueue[idx - 1].future;
@@ -61,7 +60,6 @@ class CacheManager {
   Future<void> init() async {
     if (_initialized) return;
 
-    // Guard against concurrent init() calls
     if (_initCompleter != null) {
       await _initCompleter!.future;
       return;
@@ -142,7 +140,6 @@ class CacheManager {
           return null;
         }
 
-        // Read: use compute() only for files above threshold
         final fileSize = file.lengthSync();
         Uint8List data;
         if (fileSize > _isolateThreshold) {
@@ -151,7 +148,6 @@ class CacheManager {
           data = file.readAsBytesSync();
         }
 
-        // Update last_accessed
         await _metaDb!.update(
           'cache_metadata',
           {'last_accessed': DateTime.now().millisecondsSinceEpoch},
@@ -159,7 +155,6 @@ class CacheManager {
           whereArgs: [key],
         );
 
-        // Promote to memory cache
         _putMemory(key, data);
         return data;
       } catch (e) {
@@ -255,7 +250,6 @@ class CacheManager {
     final diskPath = p.join(_diskDir!.path, safeKey);
 
     try {
-      // Write: use compute() only for data above threshold
       if (data.length > _isolateThreshold) {
         await compute(_writeFileBytes, _WriteArgs(diskPath, data));
       } else {
@@ -276,7 +270,6 @@ class CacheManager {
     } on FileSystemException catch (e) {
       // Disk full or permission error — log and skip, don't crash
       debugPrint('[CacheManager] Disk write failed (disk full?): $e');
-      // Attempt emergency cleanup to free space
       await _autoCleanup();
     } catch (e) {
       debugPrint('[CacheManager] _putDisk($key) failed: $e');
@@ -288,7 +281,6 @@ class CacheManager {
   bool _cleanupRunning = false;
 
   Future<void> _autoCleanup() async {
-    // Guard: prevent overlapping cleanups
     if (_cleanupRunning || _metaDb == null || !_initialized) return;
     _cleanupRunning = true;
 

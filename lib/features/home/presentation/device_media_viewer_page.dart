@@ -55,7 +55,6 @@ class _DeviceMediaViewerPageState extends State<DeviceMediaViewerPage> {
 
   int get _itemCount => widget.files?.length ?? widget.assets?.length ?? 0;
 
-  // Lazy load file path for AssetEntity
   Future<void> _loadFilePath(int index) async {
     if (widget.assets == null) return;
     if (index < 0 || index >= widget.assets!.length) return;
@@ -128,7 +127,6 @@ class _DeviceMediaViewerPageState extends State<DeviceMediaViewerPage> {
         onPageChanged: (index) {
           setState(() => _currentIndex = index);
 
-          // Preload adjacent pages
           if (widget.assets != null) {
             _loadFilePath(index);
             if (index > 0) _loadFilePath(index - 1);
@@ -141,7 +139,6 @@ class _DeviceMediaViewerPageState extends State<DeviceMediaViewerPage> {
   }
 
   Widget _buildPage(int index) {
-    // For AssetEntity-based loading
     if (widget.assets != null) {
       final asset = widget.assets![index];
       final filePath = _filePaths[index];
@@ -198,7 +195,6 @@ class _DeviceMediaViewerPageState extends State<DeviceMediaViewerPage> {
       );
     }
 
-    // For direct file list
     final item = widget.files![index];
     final isVideo = item.mimeType.toLowerCase().startsWith('video/');
 
@@ -246,7 +242,6 @@ class _DeviceMediaViewerPageState extends State<DeviceMediaViewerPage> {
   }
 }
 
-// Device Video Player Widget
 class _DeviceVideoPlayerWidget extends StatefulWidget {
   final String videoPath;
 

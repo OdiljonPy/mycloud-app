@@ -93,7 +93,6 @@ class _SharedByMeView extends StatelessWidget {
               child: ListView.separated(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
-                cacheExtent: 700,
                 itemCount: state.users.length,
                 addAutomaticKeepAlives: false,
                 separatorBuilder: (_, __) => const SizedBox(height: 8),

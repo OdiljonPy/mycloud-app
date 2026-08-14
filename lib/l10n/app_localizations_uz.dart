@@ -666,6 +666,15 @@ class AppLocalizationsUz extends AppLocalizations {
   String get available => 'Mavjud';
 
   @override
+  String get planUsedLabel => 'Foydalanilgan';
+
+  @override
+  String get subscriptionStartsAt => 'Boshlanish sanasi';
+
+  @override
+  String get subscriptionEndsAt => 'Tugash sanasi';
+
+  @override
   String get billingMonthly => 'Oylik';
 
   @override
@@ -845,6 +854,12 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get popularBadge => 'Ommabop';
+
+  @override
+  String get planPeriodMonthly => '/oy';
+
+  @override
+  String get planPeriodYearly => '/yil';
 
   @override
   String get cardTypeUzcard => 'Uzcard';
@@ -1058,4 +1073,76 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get enterOtpCodeTitle => 'Tasdiqlash kodini kiriting';
+
+  @override
+  String get notifications => 'Bildirishnomalar';
+
+  @override
+  String get noNotificationsYet => 'Hozircha bildirishnomalar yo\'q';
+
+  @override
+  String get markAllAsRead => 'Barchasini o\'qilgan deb belgilash';
+
+  @override
+  String get markAsRead => 'O\'qilgan deb belgilash';
+
+  @override
+  String get deleteNotification => 'Bildirishnomani o\'chirish';
+
+  @override
+  String get notificationDeleteConfirmMessage => 'Bu bildirishnomani o\'chirasizmi? Bu amalni qaytarib bo\'lmaydi.';
+
+  @override
+  String get failedToLoadNotifications => 'Bildirishnomalarni yuklab bo\'lmadi';
+
+  @override
+  String get allNotificationsMarkedRead => 'Barcha bildirishnomalar o\'qilgan deb belgilandi';
+
+  @override
+  String get notifTypeSubscriptionExpiryWarning => 'Obuna muddati tugayapti';
+
+  @override
+  String get notifTypeSubscriptionExpired => 'Obuna muddati tugadi';
+
+  @override
+  String get notifTypeSubscriptionRenewed => 'Obuna yangilandi';
+
+  @override
+  String get notifTypeSubscriptionDowngraded => 'Obuna pasaytirildi';
+
+  @override
+  String get notifTypePaymentSuccess => 'To\'lov muvaffaqiyatli o\'tdi';
+
+  @override
+  String get notifTypePaymentFailed => 'To\'lov amalga oshmadi';
+
+  @override
+  String get notifTypeCardDeclined => 'Karta rad etildi';
+
+  @override
+  String get notifTypeFileShared => 'Sizga fayl ulashildi';
+
+  @override
+  String get notifTypeFileShareRevoked => 'Faylga kirish huquqi bekor qilindi';
+
+  @override
+  String get notifTypeShareRequestReceived => 'Yangi kirish so\'rovi';
+
+  @override
+  String get notifTypeShareRequestApproved => 'Kirish so\'rovi tasdiqlandi';
+
+  @override
+  String get notifTypeShareRequestRejected => 'Kirish so\'rovi rad etildi';
+
+  @override
+  String get notifTypeSystemAnnouncement => 'Tizim xabari';
+
+  @override
+  String get notifTypeStorageWarning => 'Xotira deyarli to\'lgan';
+
+  @override
+  String get notifTypeStorageFull => 'Xotira to\'ldi';
+
+  @override
+  String get notifTypeUnknown => 'Yangi bildirishnoma';
 }

@@ -1351,6 +1351,24 @@ abstract class AppLocalizations {
   /// **'Available'**
   String get available;
 
+  /// No description provided for @planUsedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Used'**
+  String get planUsedLabel;
+
+  /// No description provided for @subscriptionStartsAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Start date'**
+  String get subscriptionStartsAt;
+
+  /// No description provided for @subscriptionEndsAt.
+  ///
+  /// In en, this message translates to:
+  /// **'End date'**
+  String get subscriptionEndsAt;
+
   /// No description provided for @billingMonthly.
   ///
   /// In en, this message translates to:
@@ -1680,6 +1698,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Popular'**
   String get popularBadge;
+
+  /// No description provided for @planPeriodMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'/mo'**
+  String get planPeriodMonthly;
+
+  /// No description provided for @planPeriodYearly.
+  ///
+  /// In en, this message translates to:
+  /// **'/yr'**
+  String get planPeriodYearly;
 
   /// No description provided for @cardTypeUzcard.
   ///
@@ -2082,6 +2112,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter OTP Code'**
   String get enterOtpCodeTitle;
+
+  /// No description provided for @notifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notifications;
+
+  /// No description provided for @noNotificationsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications yet'**
+  String get noNotificationsYet;
+
+  /// No description provided for @markAllAsRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all as read'**
+  String get markAllAsRead;
+
+  /// No description provided for @markAsRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as read'**
+  String get markAsRead;
+
+  /// No description provided for @deleteNotification.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete notification'**
+  String get deleteNotification;
+
+  /// No description provided for @notificationDeleteConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this notification? This action is irreversible.'**
+  String get notificationDeleteConfirmMessage;
+
+  /// No description provided for @failedToLoadNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load notifications'**
+  String get failedToLoadNotifications;
+
+  /// No description provided for @allNotificationsMarkedRead.
+  ///
+  /// In en, this message translates to:
+  /// **'All notifications marked as read'**
+  String get allNotificationsMarkedRead;
+
+  /// No description provided for @notifTypeSubscriptionExpiryWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription expiring soon'**
+  String get notifTypeSubscriptionExpiryWarning;
+
+  /// No description provided for @notifTypeSubscriptionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription expired'**
+  String get notifTypeSubscriptionExpired;
+
+  /// No description provided for @notifTypeSubscriptionRenewed.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription renewed'**
+  String get notifTypeSubscriptionRenewed;
+
+  /// No description provided for @notifTypeSubscriptionDowngraded.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription downgraded'**
+  String get notifTypeSubscriptionDowngraded;
+
+  /// No description provided for @notifTypePaymentSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment successful'**
+  String get notifTypePaymentSuccess;
+
+  /// No description provided for @notifTypePaymentFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment failed'**
+  String get notifTypePaymentFailed;
+
+  /// No description provided for @notifTypeCardDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'Card declined'**
+  String get notifTypeCardDeclined;
+
+  /// No description provided for @notifTypeFileShared.
+  ///
+  /// In en, this message translates to:
+  /// **'A file was shared with you'**
+  String get notifTypeFileShared;
+
+  /// No description provided for @notifTypeFileShareRevoked.
+  ///
+  /// In en, this message translates to:
+  /// **'File access revoked'**
+  String get notifTypeFileShareRevoked;
+
+  /// No description provided for @notifTypeShareRequestReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'New access request'**
+  String get notifTypeShareRequestReceived;
+
+  /// No description provided for @notifTypeShareRequestApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Access request approved'**
+  String get notifTypeShareRequestApproved;
+
+  /// No description provided for @notifTypeShareRequestRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Access request rejected'**
+  String get notifTypeShareRequestRejected;
+
+  /// No description provided for @notifTypeSystemAnnouncement.
+  ///
+  /// In en, this message translates to:
+  /// **'System announcement'**
+  String get notifTypeSystemAnnouncement;
+
+  /// No description provided for @notifTypeStorageWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage running low'**
+  String get notifTypeStorageWarning;
+
+  /// No description provided for @notifTypeStorageFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage full'**
+  String get notifTypeStorageFull;
+
+  /// No description provided for @notifTypeUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'New notification'**
+  String get notifTypeUnknown;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

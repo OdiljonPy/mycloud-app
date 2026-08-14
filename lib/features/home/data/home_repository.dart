@@ -156,7 +156,6 @@ class HomeRepository {
         return folder;
       }
     }
-    // Not found on server — create it (server sets is_sync: true)
     debugPrint('[HomeRepo] No sync folder found, creating...');
     try {
       final response = await _dio.post(
@@ -263,7 +262,6 @@ class HomeRepository {
   }
 
   Future<void> deleteItem({required String type, required String id, bool isSystem = false}) async {
-    // Guard: system folders cannot be deleted
     if (type == 'folder' && isSystem) {
       throw const AppException(message: 'Cannot delete system folder');
     }
@@ -518,20 +516,16 @@ class HomeRepository {
           url = data;
         }
 
-        // URL готов — возвращаем
         if (url != null && url.isNotEmpty) return _normalizeApiUrl(url);
 
-        // Ещё генерируется — ждём и повторяем
         if (status == 'processing' || status == 'pending') {
           if (attempt < maxAttempts - 1) {
             await Future.delayed(delay);
             continue;
           }
-          // Превью так и не готово — стримим оригинал через /download/
           return _normalizeApiUrl('/content/files/$fileId/download/');
         }
 
-        // Превью не требуется — отдаём прямую ссылку на скачивание
         if (status == 'not_required' || status == 'completed') {
           return _normalizeApiUrl('/content/files/$fileId/download/');
         }

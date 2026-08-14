@@ -206,7 +206,6 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
   Future<void> _openFileViewer(FileModel file) async {
     final mime = file.mimeType.toLowerCase();
     if (MediaTypeHelper.isImage(mime) || MediaTypeHelper.isVideo(mime)) {
-      // Get all media files (images AND videos) together
       final allMediaFiles = _displayFiles
           .where((f) =>
               MediaTypeHelper.isImage(f.mimeType) ||
@@ -558,7 +557,6 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         children: [
-          // Root: user
           GestureDetector(
             onTap: _goToRoot,
             child: Container(
@@ -592,7 +590,6 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
               ),
             ),
           ),
-          // Breadcrumb items
           for (int i = 0; i < _breadcrumb.length; i++) ...[
             Icon(Icons.chevron_right, size: 18,
                 color: isDark ? Colors.white38 : Colors.grey),
@@ -670,7 +667,6 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Header row
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Row(
@@ -793,7 +789,6 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
         ),
         child: Row(
           children: [
-            // Thumbnail or icon
             MediaThumbnail(
               mimeType: file.mimeType,
               thumbnailPath: previewUrl,
@@ -1054,7 +1049,6 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                   child: CustomScrollView(
                     controller: _scrollController,
                     physics: const AlwaysScrollableScrollPhysics(),
-                    cacheExtent: 700,
                     slivers: [
                       SliverToBoxAdapter(child: _buildBreadcrumb()),
                       if (_isLoading)

@@ -15,6 +15,7 @@ import '../../sync/presentation/auto_sync_settings_page.dart';
 import '../../sync/auto_sync_service.dart';
 import '../../sync/data/gallery_service.dart';
 import '../data/home_repository.dart';
+import '../../notifications/presentation/widgets/notification_bell_button.dart';
 import 'photo_viewer_page.dart';
 import '../../../main.dart';
 import '../../../shared/widgets/shimmer_placeholders.dart';
@@ -61,12 +62,19 @@ class HomePageState extends State<HomePage> {
   bool _hasMoreGalleryFiles = true;
   bool _isLoadingMore = false;
   final ScrollController _scrollController = ScrollController();
+  String? _authToken;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _loadAuthToken();
     _scrollController.addListener(_onScroll);
+  }
+
+  Future<void> _loadAuthToken() async {
+    final token = await SecureStorage.getAccessToken();
+    if (mounted) setState(() => _authToken = token);
   }
 
   void _onScroll() {
@@ -153,7 +161,6 @@ class HomePageState extends State<HomePage> {
     }
   }
 
-  // Load backend gallery files with pagination
   Future<void> _loadBackendGalleryFiles() async {
     // A load-more (scroll pagination) is already in flight — resetting and
     // clearing the list now would race with its in-progress addAll() and
@@ -163,16 +170,13 @@ class HomePageState extends State<HomePage> {
     final token = await SecureStorage.getAccessToken();
     if (token == null || token.isEmpty) return;
 
-    // Reset pagination state
     _currentPage = 1;
     _hasMoreGalleryFiles = true;
     _backendGalleryFiles.clear();
 
-    // Load first page
     await _loadMoreBackendGalleryFiles();
   }
 
-  // Load more backend gallery files (pagination)
   Future<void> _loadMoreBackendGalleryFiles() async {
     if (_isLoadingMore || !_hasMoreGalleryFiles) {
       return;
@@ -296,6 +300,7 @@ class HomePageState extends State<HomePage> {
             ],
           ),
           actions: [
+            const NotificationBellButton(),
             IconButton(
               icon: Icon(Icons.refresh_rounded, color: cs.onSurface),
               onPressed: _loadData,
@@ -384,7 +389,6 @@ class HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Column(
@@ -407,7 +411,6 @@ class HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(height: 12),
-            // Storage stats card
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Container(
@@ -452,7 +455,6 @@ class HomePageState extends State<HomePage> {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    // Progress bar green→orange
                     ClipRRect(
                       borderRadius: BorderRadius.circular(6),
                       child: Stack(
@@ -503,7 +505,6 @@ class HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            // Upgrade button
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
               child: SizedBox(
@@ -573,10 +574,8 @@ class HomePageState extends State<HomePage> {
     );
   }
 
-  // State variable for layout toggle
   bool _isGridView = true;
 
-  // Group files by date
   Map<String, List<GalleryFile>> _groupFilesByDate() {
     final t = AppLocalizations.of(context)!;
     final Map<String, List<GalleryFile>> grouped = {};
@@ -623,12 +622,10 @@ class HomePageState extends State<HomePage> {
   Widget _buildRecentFilesSection(ColorScheme cs, AppLocalizations t) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Show nothing if no media files from backend gallery
     if (_backendGalleryFiles.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    // Group files by date
     final groupedFiles = _groupFilesByDate();
 
     return Padding(
@@ -662,7 +659,6 @@ class HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 12),
 
-          // Show grouped files by date
           ...groupedFiles.entries.map((entry) {
             final dateLabel = entry.key;
             final files = entry.value;
@@ -670,7 +666,6 @@ class HomePageState extends State<HomePage> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Date header
                 Padding(
                   padding: const EdgeInsets.only(top: 8, bottom: 12),
                   child: Text(
@@ -683,7 +678,6 @@ class HomePageState extends State<HomePage> {
                   ),
                 ),
 
-                // Grid or List view for this date group
                 _isGridView
                     ? GridView.builder(
                         shrinkWrap: true,
@@ -702,6 +696,7 @@ class HomePageState extends State<HomePage> {
                             index: globalIndex,
                             file: file,
                             isDark: isDark,
+                            authToken: _authToken,
                             onTap: () => _openBackendGallery(globalIndex),
                           );
                         },
@@ -717,6 +712,7 @@ class HomePageState extends State<HomePage> {
                           return _BackendGalleryItemList(
                             file: file,
                             isDark: isDark,
+                            authToken: _authToken,
                             onTap: () => _openBackendGallery(globalIndex),
                           );
                         },
@@ -726,7 +722,6 @@ class HomePageState extends State<HomePage> {
             );
           }),
 
-          // Load more indicator
           if (_isLoadingMore)
             Center(
               child: Padding(
@@ -742,7 +737,6 @@ class HomePageState extends State<HomePage> {
     );
   }
 
-  // Open gallery viewer with backend media files
   Future<void> _openBackendGallery(int initialIndex) async {
     if (!mounted) return;
 
@@ -791,7 +785,6 @@ class HomePageState extends State<HomePage> {
       final mime = item['mime_type']?.toString() ?? '';
       final nameRaw = item['name']?.toString() ?? '';
 
-      // Decode base64 values
       String decodedMime = mime;
       String decodedName = nameRaw;
       try {
@@ -939,12 +932,14 @@ class _BackendGalleryItemGrid extends StatelessWidget {
   final int index;
   final GalleryFile file;
   final bool isDark;
+  final String? authToken;
   final VoidCallback onTap;
 
   const _BackendGalleryItemGrid({
     required this.index,
     required this.file,
     required this.isDark,
+    required this.authToken,
     required this.onTap,
   });
 
@@ -960,6 +955,8 @@ class _BackendGalleryItemGrid extends StatelessWidget {
         thumbnailPath: normalizedUrl,
         cacheKey: file.id,
         borderRadius: BorderRadius.circular(12),
+        httpHeaders:
+            authToken != null ? {'Authorization': 'Bearer $authToken'} : null,
         fallbackIcon: Icons.image_not_supported_rounded,
         fallbackIconColor: isDark ? Colors.grey[600]! : Colors.grey[400]!,
         fallbackBackgroundColor: isDark ? Colors.grey[900] : Colors.grey[200],
@@ -1000,11 +997,13 @@ class _BackendGalleryItemGrid extends StatelessWidget {
 class _BackendGalleryItemList extends StatelessWidget {
   final GalleryFile file;
   final bool isDark;
+  final String? authToken;
   final VoidCallback onTap;
 
   const _BackendGalleryItemList({
     required this.file,
     required this.isDark,
+    required this.authToken,
     required this.onTap,
   });
 
@@ -1065,6 +1064,8 @@ class _BackendGalleryItemList extends StatelessWidget {
               memCacheWidth: 180,
               memCacheHeight: 180,
               borderRadius: BorderRadius.circular(8),
+              httpHeaders:
+                  authToken != null ? {'Authorization': 'Bearer $authToken'} : null,
               fallbackIcon: Icons.image_not_supported_rounded,
               fallbackIconColor: isDark ? Colors.grey[600]! : Colors.grey[400]!,
               fallbackBackgroundColor: isDark ? Colors.grey[800] : Colors.grey[300],

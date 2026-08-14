@@ -68,7 +68,6 @@ class FavouritesProvider extends ChangeNotifier {
   Future<void> toggleFavourite(FileModel file) async {
     final bool wasFav = _favouriteIds.contains(file.id);
 
-    // Optimistic update
     if (wasFav) {
       _favouriteIds.remove(file.id);
       _favouriteFiles.removeWhere((f) => f.id == file.id);
@@ -86,7 +85,6 @@ class FavouritesProvider extends ChangeNotifier {
         await _repo.addToFavourites(file.id);
       }
     } catch (e) {
-      // Revert optimistic update on failure
       if (wasFav) {
         _favouriteIds.add(file.id);
         _favouriteFiles.add(file.copyWith(isFavourite: true));

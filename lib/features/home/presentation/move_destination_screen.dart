@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 import 'package:cloud_app/features/home/data/home_repository.dart';
 import 'package:cloud_app/features/home/data/models/folder_model.dart';
-import 'package:cloud_app/core/errors/app_exception.dart';
+import 'package:cloud_app/core/utils/error_localizer.dart';
 
 class MoveDestinationScreen extends StatefulWidget {
   final List<String> selectedFiles;
@@ -63,7 +63,7 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e is AppException ? e.message : e.toString();
+        _error = ErrorLocalizer.forException(e, AppLocalizations.of(context)!);
         _isLoading = false;
       });
     }
@@ -121,7 +121,7 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e is AppException ? e.message : e.toString()),
+          content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
           backgroundColor: Colors.red,
         ),
       );

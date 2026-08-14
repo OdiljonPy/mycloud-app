@@ -131,7 +131,6 @@ class TusSyncUploader {
         },
       );
 
-      // Extract the upload URL after completion
       uploadUrl = client.uploadUrl?.toString();
 
       if (uploadUrl == null || uploadUrl.isEmpty) {
@@ -139,7 +138,6 @@ class TusSyncUploader {
             'Upload completed but no URL returned for ${task.fileName}');
       }
 
-      // Extract UUID — last path segment of the upload URL
       final uri = Uri.parse(uploadUrl);
       final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
       if (segments.isEmpty) {

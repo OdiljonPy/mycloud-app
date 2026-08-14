@@ -165,7 +165,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
               const SizedBox(height: 40),
 
-              // Password
               Text(
                 AppLocalizations.of(context)!.newPassword,
                 style: TextStyle(
@@ -233,7 +232,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
               const SizedBox(height: 16),
 
-              // Confirm Password
               Text(
                 AppLocalizations.of(context)!.confirmPassword,
                 style: TextStyle(

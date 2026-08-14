@@ -55,7 +55,6 @@ class _TusDiskStore extends TusStore {
 }
 
 class UploadRepository {
-  // Задержка перед возобновлением после восстановления сети
   static int resumeDelaySeconds = 3;
 
   static const _knownMediaExtensions = {'cr2', 'nef', 'arw', 'ts', 'mts'};
@@ -147,7 +146,6 @@ class UploadRepository {
         // Сеть пропала — ждём connectivity и повторяем
         onStatusChange?.call('paused');
 
-        // Ждём пока сеть вернётся
         await _waitForNetwork();
 
         onStatusChange?.call('resumed');
@@ -160,7 +158,6 @@ class UploadRepository {
     connectivitySub.cancel();
   }
 
-  // Ожидает восстановления сети
   Future<void> _waitForNetwork() async {
     final completer = Completer<void>();
     StreamSubscription? sub;

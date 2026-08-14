@@ -53,7 +53,6 @@ class _ShareUserFilesPageState extends State<ShareUserFilesPage> {
       List<Map<String, dynamic>> allItems,
       String fileId,
       ) async {
-    // Get all media files (images AND videos) together
     final mediaItems = allItems
         .where((item) {
           final mime = _mimeOf(item);
@@ -268,7 +267,6 @@ class _ShareUserFilesPageState extends State<ShareUserFilesPage> {
 
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      cacheExtent: 700,
       itemCount: rawItems.length,
       addAutomaticKeepAlives: false,
       separatorBuilder: (_, __) => const SizedBox(height: 8),

@@ -128,11 +128,18 @@ class _CenteredPlayBadge extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final side = constraints.biggest.shortestSide;
-          final badgeSize = side.isFinite ? (side * 0.4).clamp(20.0, 44.0) : 32.0;
+          final badgeSize = side.isFinite ? (side * 0.28).clamp(16.0, 32.0) : 24.0;
           return Container(
             width: badgeSize,
             height: badgeSize,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.22),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.6),
+                width: 1,
+              ),
+            ),
             child: Icon(
               Icons.play_arrow_rounded,
               color: Colors.white.withValues(alpha: 0.92),

@@ -28,7 +28,7 @@ class AppConfig {
         instance = const AppConfig(
           environment: Environment.prod,
           baseUrl: 'https://api.bulutcha.com/api/v1/',
-          tusUrl: 'https://minio1.bulutcha.com/files/',
+          tusUrl: 'https://api.bulutcha.com/files/',
         );
         break;
     }

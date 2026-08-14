@@ -20,7 +20,6 @@ class DownloadRepository {
         throw const AppException(message: 'No auth token');
       }
 
-      // Определяем папку для сохранения
       Directory? dir;
       if (Platform.isAndroid) {
         dir = Directory('/storage/emulated/0/Download');

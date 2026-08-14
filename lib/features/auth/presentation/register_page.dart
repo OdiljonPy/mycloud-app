@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../data/auth_repository.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/error_localizer.dart';
 import '../../../core/utils/uzbek_phone_formatter.dart';
 import '../../../l10n/app_localizations.dart';
 import 'otp_page.dart';
@@ -100,9 +101,11 @@ class _RegisterPageState extends State<RegisterPage> {
         );
       }
     } on AppException catch (e) {
-      setState(() => _error = e.message);
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      setState(() => _error = ErrorLocalizer.forException(e, l10n));
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -163,7 +166,6 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               const SizedBox(height: 32),
 
-              // Full Name
               _buildField(
                 label: 'Full Name',
                 hint: 'John Doe',
@@ -176,7 +178,6 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               const SizedBox(height: 16),
 
-              // Phone Number
               _buildField(
                 label: 'Phone Number',
                 hint: '+998 XX XXX XX XX',
@@ -199,7 +200,6 @@ class _RegisterPageState extends State<RegisterPage> {
               ],
               const SizedBox(height: 16),
 
-              // Password
               _buildField(
                 label: 'Password',
                 hint: 'Enter your password',
@@ -232,7 +232,6 @@ class _RegisterPageState extends State<RegisterPage> {
               ],
               const SizedBox(height: 16),
 
-              // Confirm Password
               _buildField(
                 label: 'Confirm Password',
                 hint: AppLocalizations.of(context)!.repeatPasswordHint,

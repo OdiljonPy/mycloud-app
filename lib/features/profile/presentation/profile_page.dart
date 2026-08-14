@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:intl/intl.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/errors/app_exception.dart';
@@ -15,6 +17,8 @@ import '../../auth/presentation/login_page.dart';
 import '../data/profile_repository.dart';
 import '../../../main.dart';
 import '../../share/presentation/share_requests_page.dart';
+import '../../notifications/notifications_providers.dart';
+import '../../notifications/presentation/notifications_page.dart';
 import '../../payment/data/repository/payment_repository.dart';
 import '../../payment/data/models/payment_models.dart';
 import '../../payment/presentation/pages/subscription_page.dart';
@@ -120,6 +124,29 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
 
   String _formatBytes(dynamic bytes) =>
       formatBytes(bytes, AppLocalizations.of(context)!);
+
+  String _formatDate(String? raw) {
+    if (raw == null) return '—';
+    try {
+      final dt = DateTime.parse(raw).toLocal();
+      final locale = Localizations.localeOf(context).toString();
+      return DateFormat('d MMM yyyy, HH:mm', locale).format(dt);
+    } catch (_) {
+      return raw;
+    }
+  }
+
+  String _billingPeriodLabel(String? period, AppLocalizations t) {
+    switch (period?.toLowerCase()) {
+      case 'monthly':
+        return t.billingMonthly;
+      case 'yearly':
+      case 'annual':
+        return t.billingYearly;
+      default:
+        return period ?? '';
+    }
+  }
 
   Future<void> _deleteAccount() async {
     try {
@@ -620,6 +647,8 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
                       const SizedBox(height: 16),
                       _buildLanguage(),
                       const SizedBox(height: 16),
+                      _buildNotifications(),
+                      const SizedBox(height: 16),
                       _buildShareRequests(),
                       const SizedBox(height: 16),
                       _buildTheme(),
@@ -639,7 +668,6 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
     );
   }
 
-  // Header
   Widget _buildHeader() {
     return SizedBox(
       height: 170,
@@ -718,7 +746,6 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
     );
   }
 
-  // Name & phone
   Widget _buildNamePhone() {
     return Column(
       children: [
@@ -737,7 +764,6 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
     );
   }
 
-  // Edit section
   Widget _buildEditSection() {
     final t = AppLocalizations.of(context)!;
     return _buildSectionCard(
@@ -769,7 +795,6 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
     );
   }
 
-  // Language
   Widget _buildLanguage() {
     final t = AppLocalizations.of(context)!;
     return _buildSectionCard(
@@ -932,7 +957,7 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
+            padding: EdgeInsets.fromLTRB(12, 10, 12, sub != null ? 4 : 14),
             child: SizedBox(
               width: double.infinity,
               height: 46,
@@ -960,6 +985,166 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
                 ),
               ),
             ),
+          ),
+          if (sub != null) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 16, 12, 0),
+              child: Divider(color: borderColor, height: 1),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          t.currentPlan,
+                          style: TextStyle(
+                            color: textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          t.activeSubscriptionDetails,
+                          style: TextStyle(color: textSecondary, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A73E8).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      _billingPeriodLabel(sub.billingPeriod, t),
+                      style: const TextStyle(
+                        color: Color(0xFF1A73E8),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 14),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildPlanInfoCell(
+                          t.planName,
+                          sub.planName != null
+                              ? PlanLocalizer.localize(sub.planName!, t)
+                              : '—',
+                          textPrimary,
+                          textSecondary,
+                          borderColor,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _buildPlanInfoCell(
+                          t.storageLimitLabel,
+                          _formatBytes(sub.storageLimit),
+                          textPrimary,
+                          textSecondary,
+                          borderColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildPlanInfoCell(
+                          t.planUsedLabel,
+                          _formatBytes(sub.usedStorage),
+                          textPrimary,
+                          textSecondary,
+                          borderColor,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _buildPlanInfoCell(
+                          t.available,
+                          _formatBytes(sub.availableStorage),
+                          textPrimary,
+                          textSecondary,
+                          borderColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildPlanInfoCell(
+                          t.subscriptionStartsAt,
+                          _formatDate(sub.startsAt),
+                          textPrimary,
+                          textSecondary,
+                          borderColor,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _buildPlanInfoCell(
+                          t.subscriptionEndsAt,
+                          _formatDate(sub.endsAt),
+                          textPrimary,
+                          textSecondary,
+                          borderColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlanInfoCell(String label, String value, Color textPrimary,
+      Color textSecondary, Color borderColor) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TextStyle(fontSize: 11, color: textSecondary)),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: textPrimary,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -1000,7 +1185,85 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
     );
   }
 
-  // Share Requests
+  Widget _buildNotifications() {
+    final t = AppLocalizations.of(context)!;
+    return Consumer(
+      builder: (context, ref, _) {
+        final unreadAsync = ref.watch(unreadCountProvider);
+        final count = unreadAsync.when(
+          data: (c) => c,
+          loading: () => 0,
+          error: (_, __) => 0,
+        );
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: InkWell(
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NotificationsPage()),
+              );
+              ref.invalidate(unreadCountProvider);
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding:
+              const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.notifications_outlined,
+                        color: Colors.orange, size: 18),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      t.notifications,
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  if (count > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        count > 99 ? '99+' : '$count',
+                        style: const TextStyle(
+                            color: Colors.white, fontSize: 12),
+                      ),
+                    ),
+                  const SizedBox(width: 8),
+                  Icon(Icons.chevron_right,
+                      color: Colors.grey.shade400, size: 20),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildShareRequests() {
     final t = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -1066,7 +1329,6 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
     );
   }
 
-  // Theme
   Widget _buildTheme() {
     final t = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -1131,7 +1393,6 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
     );
   }
 
-  // Logout
   Widget _buildLogout() {
     final t = AppLocalizations.of(context)!;
     return SizedBox(
@@ -1231,7 +1492,6 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
     );
   }
 
-  // Helpers
   Widget _buildSectionCard({required Widget child, String? title}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(

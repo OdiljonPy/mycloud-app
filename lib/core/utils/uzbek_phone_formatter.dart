@@ -75,7 +75,6 @@ class UzbekPhoneFormatter extends TextInputFormatter {
         }
       }
     }
-    // Если не нашли — ставим в конец
     if (newCursor == 0) newCursor = formatted.length;
 
     return TextEditingValue(

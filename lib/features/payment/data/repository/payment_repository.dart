@@ -22,7 +22,6 @@ class PaymentRepository {
     return data.toString();
   }
 
-  // GET /payment/cards/
   Future<List<CardToken>> getCards() async {
     try {
       final r = await _dio.get('/payment/cards/');
@@ -38,7 +37,6 @@ class PaymentRepository {
     }
   }
 
-  // POST /payment/cards/
   Future<CardToken> addCard({
     required String cardNumber,
     required String expireDate,
@@ -57,7 +55,6 @@ class PaymentRepository {
     }
   }
 
-  // DELETE /payment/cards/{card_id}/
   Future<void> deleteCard(int cardId) async {
     try {
       await _dio.delete('/payment/cards/$cardId/');
@@ -69,7 +66,6 @@ class PaymentRepository {
     }
   }
 
-  // POST /payment/cards/{card_id}/set-default/
   Future<CardToken> setDefaultCard(int cardId) async {
     try {
       final r = await _dio.post('/payment/cards/$cardId/set-default/');
@@ -82,7 +78,6 @@ class PaymentRepository {
     }
   }
 
-  // POST /payment/cards/{card_id}/verify/
   Future<CardToken> verifyCard({
     required int cardId,
     required String smsCode,
@@ -101,7 +96,6 @@ class PaymentRepository {
     }
   }
 
-  // POST /payment/subscriptions/purchase/
   Future<PurchasePlanResponse> purchasePlan(int planId) async {
     try {
       final r = await _dio.post(
@@ -124,7 +118,6 @@ class PaymentRepository {
 
   static void clearPlansCache() => _cachedPlans = null;
 
-  // GET /storage/plan/
   Future<List<Plan>> getPlans({bool forceRefresh = false}) async {
     if (!forceRefresh && _cachedPlans != null) return _cachedPlans!;
     try {
@@ -142,7 +135,6 @@ class PaymentRepository {
     }
   }
 
-  // GET /storage/subscription/current/
   Future<CurrentSubscription?> getCurrentSubscription() async {
     try {
       final r = await _dio.get('/storage/subscription/current/');

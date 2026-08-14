@@ -666,6 +666,15 @@ class AppLocalizationsRu extends AppLocalizations {
   String get available => 'Доступно';
 
   @override
+  String get planUsedLabel => 'Использовано';
+
+  @override
+  String get subscriptionStartsAt => 'Дата начала';
+
+  @override
+  String get subscriptionEndsAt => 'Дата окончания';
+
+  @override
   String get billingMonthly => 'Ежемесячно';
 
   @override
@@ -845,6 +854,12 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get popularBadge => 'Популярный';
+
+  @override
+  String get planPeriodMonthly => '/мес';
+
+  @override
+  String get planPeriodYearly => '/год';
 
   @override
   String get cardTypeUzcard => 'Uzcard';
@@ -1058,4 +1073,76 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get enterOtpCodeTitle => 'Введите код подтверждения';
+
+  @override
+  String get notifications => 'Уведомления';
+
+  @override
+  String get noNotificationsYet => 'Пока нет уведомлений';
+
+  @override
+  String get markAllAsRead => 'Отметить все прочитанными';
+
+  @override
+  String get markAsRead => 'Отметить прочитанным';
+
+  @override
+  String get deleteNotification => 'Удалить уведомление';
+
+  @override
+  String get notificationDeleteConfirmMessage => 'Удалить это уведомление? Это действие необратимо.';
+
+  @override
+  String get failedToLoadNotifications => 'Не удалось загрузить уведомления';
+
+  @override
+  String get allNotificationsMarkedRead => 'Все уведомления отмечены прочитанными';
+
+  @override
+  String get notifTypeSubscriptionExpiryWarning => 'Подписка скоро истекает';
+
+  @override
+  String get notifTypeSubscriptionExpired => 'Подписка истекла';
+
+  @override
+  String get notifTypeSubscriptionRenewed => 'Подписка продлена';
+
+  @override
+  String get notifTypeSubscriptionDowngraded => 'Подписка понижена';
+
+  @override
+  String get notifTypePaymentSuccess => 'Платёж прошёл успешно';
+
+  @override
+  String get notifTypePaymentFailed => 'Платёж не прошёл';
+
+  @override
+  String get notifTypeCardDeclined => 'Карта отклонена';
+
+  @override
+  String get notifTypeFileShared => 'Вам предоставили доступ к файлу';
+
+  @override
+  String get notifTypeFileShareRevoked => 'Доступ к файлу отозван';
+
+  @override
+  String get notifTypeShareRequestReceived => 'Новый запрос на доступ';
+
+  @override
+  String get notifTypeShareRequestApproved => 'Запрос на доступ одобрен';
+
+  @override
+  String get notifTypeShareRequestRejected => 'Запрос на доступ отклонён';
+
+  @override
+  String get notifTypeSystemAnnouncement => 'Системное уведомление';
+
+  @override
+  String get notifTypeStorageWarning => 'Мало свободного места';
+
+  @override
+  String get notifTypeStorageFull => 'Хранилище заполнено';
+
+  @override
+  String get notifTypeUnknown => 'Новое уведомление';
 }

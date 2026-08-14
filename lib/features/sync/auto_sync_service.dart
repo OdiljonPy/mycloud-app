@@ -109,7 +109,6 @@ class AutoSyncService {
     final newItems = await scanner.scanAndEnqueue();
     debugPrint('[AutoSync] Scanned: $newItems new items enqueued');
 
-    // Обновляем watermark = now после каждого scan
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     await prefs.setInt(_kWatermarkKey, nowMs);
     debugPrint('[AutoSync] Watermark updated: ${DateTime.fromMillisecondsSinceEpoch(nowMs)}');
@@ -178,7 +177,6 @@ class AutoSyncService {
     final newItems = await scanner.scanAndEnqueue();
     debugPrint('[AutoSync] Rescan: $newItems new items enqueued');
 
-    // Обновляем watermark после скана
     await prefs.setInt(_kWatermarkKey, DateTime.now().millisecondsSinceEpoch);
     final counts = await _db.getStatusCounts();
     _emit(_currentProgress.copyWith(
@@ -380,7 +378,6 @@ class AutoSyncService {
           // filePath резолвится здесь — не во время scan
           String resolvedPath = task.filePath;
           if (resolvedPath.isEmpty) {
-            // Резолвим через photo_manager по localId
             try {
               final asset = await AssetEntity.fromId(task.localId);
               final originFile = await asset?.originFile;

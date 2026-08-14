@@ -396,7 +396,6 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
         }
         return f;
       }).toList();
-      // Sort: sync folder always first
       markedFolders.sort((a, b) => a.isSync ? -1 : (b.isSync ? 1 : 0));
 
       if (!mounted) return;
@@ -541,13 +540,11 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
   Future<void> _pickAndUploadFiles() async {
     final ImagePicker picker = ImagePicker();
 
-    // Pick multiple images/videos from gallery
     final List<XFile> selectedFiles = await picker.pickMultipleMedia();
 
     if (selectedFiles.isEmpty) return;
     if (!mounted) return;
 
-    // Convert XFile to PlatformFile
     final List<PlatformFile> files = [];
     for (final xFile in selectedFiles) {
       final file = File(xFile.path);
@@ -1525,7 +1522,6 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
                   child: CustomScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     controller: _scrollController,
-                    cacheExtent: 700,
                     slivers: [
                       _buildAppBar(),
                       SliverToBoxAdapter(child: _buildBreadcrumb()),
@@ -2379,7 +2375,6 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
           return GestureDetector(
             onTap: () => _openFolder(folder),
             onLongPress: () {
-              // Prevent unpin for sync folder
               if (folder.isSync) return;
               if (!context.mounted) return;
               showDialog(
@@ -2459,7 +2454,6 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
   List<MapEntry<String, List<FileModel>>> _groupFilesByDate(List<FileModel> files) {
     final Map<String, List<FileModel>> groups = {};
     for (final file in files) {
-      // Используем capturedAt (дата съёмки) если есть, иначе createdAt
       final date = file.capturedAt ?? file.createdAt;
       final key = [
         date.year.toString().padLeft(4, '0'),
@@ -2485,15 +2479,12 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
     final files = _displayFiles;
     // Favourites has no pagination of its own — never show/trigger it here.
     final hasNextPage = _hasNextPage && !_showFavourites;
-    // Index-based pagination: show loading indicator as last item
     final itemCount = files.length + (hasNextPage ? 1 : 0);
 
     return SliverList(
       delegate: SliverChildBuilderDelegate(
         (context, i) {
-          // Loading indicator at the end
           if (i == files.length) {
-            // Trigger loading more when reaching the last item
             if (hasNextPage && !_isLoadingMore) {
               Future.microtask(() => _loadMoreContent());
             }

@@ -88,7 +88,6 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
     // No fileId — thumbnail url is used as-is, nothing to fetch
     if (item.fileId.isEmpty) return;
 
-    // Already loaded or in progress
     if (_fullUrls.containsKey(item.fileId)) return;
     if (_loading.contains(item.fileId)) return;
 
@@ -115,7 +114,6 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
 
     if (mounted) {
       setState(() {
-        // Only store if we got a real URL back
         if (fullUrl != null && fullUrl.isNotEmpty) {
           _fullUrls[item.fileId] = fullUrl;
         }
@@ -175,18 +173,15 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
       );
     }
 
-    // If we have neither full URL nor thumbnail — show spinner
     if (fullUrl == null && item.url.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(color: Colors.white),
       );
     }
 
-    // Use full URL if ready, otherwise fall back to thumbnail
     final displayUrl = hasFullUrl ? fullUrl! : item.url;
     final isFetchingFull = _loading.contains(item.fileId);
 
-    // If it's a video, show video player
     if (isVideo && hasFullUrl) {
       final player = _VideoPlayerWidget(
         videoUrl: displayUrl,
@@ -215,7 +210,6 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Main image — shows thumbnail first, then full seamlessly
             CachedNetworkImage(
               imageUrl: displayUrl,
               cacheKey: cacheKey,
@@ -247,8 +241,6 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
                   .round(),
             ),
 
-            // Small loading indicator in corner while fetching full resolution
-            // (only shown when thumbnail is visible and full URL is loading)
             if (isFetchingFull && item.url.isNotEmpty)
               Positioned(
                 right: 12,
@@ -292,7 +284,6 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
   }
 }
 
-// Video Player Widget
 class _VideoPlayerWidget extends StatefulWidget {
   final String videoUrl;
   final String? authToken;

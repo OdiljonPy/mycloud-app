@@ -1,43 +1,45 @@
 import 'package:flutter/material.dart';
 
-/// Premium визуальный стиль карточки плана: градиент + иконка.
+/// Иконка + цвета icon-бейджа карточки плана по имени.
 /// Ключи — те же raw-имена с бэкенда (RU), что и в [PlanLocalizer].
 class PlanStyle {
-  final List<Color> gradient;
   final IconData icon;
+  final Color iconBgColor;
+  final Color iconColor;
 
-  const PlanStyle(this.gradient, this.icon);
+  const PlanStyle(this.icon, this.iconBgColor, this.iconColor);
 
   static const _fallback = PlanStyle(
-    [Color(0xFF2A2A2E), Color(0xFF48484E)],
     Icons.workspace_premium_rounded,
+    Color(0xFFF1F5F9),
+    Color(0xFF64748B),
   );
 
   static const Map<String, PlanStyle> _styles = {
-    // Про — золото/корона
     'Про': PlanStyle(
-      [Color(0xFF3D2F0A), Color(0xFF9C7A22)],
       Icons.workspace_premium_rounded,
+      Color(0xFFFEF3E2),
+      Color(0xFFB45309),
     ),
-    // Семья (Oila) — фиолет/люди
     'Семья': PlanStyle(
-      [Color(0xFF2E1F45), Color(0xFF6B4FA0)],
       Icons.groups_rounded,
+      Color(0xFFF3EEFD),
+      Color(0xFF7C3AED),
     ),
-    // Плюс — синий/молния
     'Плюс': PlanStyle(
-      [Color(0xFF122845), Color(0xFF2A5DA8)],
       Icons.bolt_rounded,
+      Color(0xFFE6F1FB),
+      Color(0xFF0066FF),
     ),
-    // Старт — зелёный/звезда
     'Старт': PlanStyle(
-      [Color(0xFF13321F), Color(0xFF2E7D4F)],
       Icons.star_rounded,
+      Color(0xFFE7F7EF),
+      Color(0xFF0F9D58),
     ),
-    // Бесплатно — серый/коробка
     'Бесплатно': PlanStyle(
-      [Color(0xFF2A2A2E), Color(0xFF4A4A50)],
       Icons.inventory_2_rounded,
+      Color(0xFFF1F5F9),
+      Color(0xFF64748B),
     ),
   };
 

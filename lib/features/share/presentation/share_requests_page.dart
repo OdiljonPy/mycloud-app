@@ -154,9 +154,7 @@ class _ShareRequestsViewState extends State<_ShareRequestsView> {
             },
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              cacheExtent: 700,
               slivers: [
-                // Header
                 SliverToBoxAdapter(
                   child: Container(
                     margin: const EdgeInsets.all(16),
@@ -226,7 +224,6 @@ class _ShareRequestsViewState extends State<_ShareRequestsView> {
                   ),
                 ),
 
-                // Requests list
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   sliver: SliverList(
@@ -246,7 +243,6 @@ class _ShareRequestsViewState extends State<_ShareRequestsView> {
                   ),
                 ),
 
-                // Detail loading
                 if (_loadingDetail)
                   const SliverToBoxAdapter(
                     child: Padding(
@@ -475,7 +471,6 @@ class _DetailPanelState extends State<_DetailPanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -501,7 +496,6 @@ class _DetailPanelState extends State<_DetailPanel> {
           ),
           Divider(height: 1, color: cs.onSurface.withValues(alpha: 0.08)),
 
-          // Link name + owner
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -586,7 +580,6 @@ class _DetailPanelState extends State<_DetailPanel> {
             ),
           ),
 
-          // Share link
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Column(
@@ -644,7 +637,6 @@ class _DetailPanelState extends State<_DetailPanel> {
             ),
           ),
 
-          // Permission requests
           if (widget.detail.permissions.isNotEmpty) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -680,7 +672,6 @@ class _DetailPanelState extends State<_DetailPanel> {
               ),
             ),
 
-            // Filter tabs
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               child: SingleChildScrollView(
@@ -722,7 +713,6 @@ class _DetailPanelState extends State<_DetailPanel> {
               ),
             ),
 
-            // Permission cards
             ..._filteredPerms.map(
                   (perm) => _PermissionCard(
                 permission: perm,

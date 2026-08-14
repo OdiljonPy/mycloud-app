@@ -404,7 +404,6 @@ class _SharedPageState extends State<SharedPage> {
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: users.length,
-        cacheExtent: 700,
         addAutomaticKeepAlives: false,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (_, i) => _buildByMeUserCard(users[i], t),
@@ -452,7 +451,6 @@ class _SharedPageState extends State<SharedPage> {
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: shares.length,
-        cacheExtent: 700,
         addAutomaticKeepAlives: false,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (_, i) => _buildByMeItemCard(shares[i], t),
@@ -531,7 +529,6 @@ class _SharedPageState extends State<SharedPage> {
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: _users.length,
-        cacheExtent: 700,
         addAutomaticKeepAlives: false,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (_, i) => _buildUserCard(_users[i], t),
@@ -577,7 +574,6 @@ class _SharedPageState extends State<SharedPage> {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: _items.length,
-      cacheExtent: 700,
       addAutomaticKeepAlives: false,
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (_, i) {

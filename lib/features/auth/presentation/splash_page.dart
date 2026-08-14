@@ -427,7 +427,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
         child: SafeArea(
           child: Column(
             children: [
-              // Skip button
               Align(
                 alignment: Alignment.topRight,
                 child: TextButton(
@@ -442,7 +441,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
               ),
 
-              // PageView
               Expanded(
                 child: PageView.builder(
                   controller: _ctrl,
@@ -452,12 +450,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
               ),
 
-              // Dots + Next button
               Padding(
                 padding: const EdgeInsets.fromLTRB(28, 0, 28, 40),
                 child: Row(
                   children: [
-                    // Dots
                     Row(
                       children: List.generate(_slides.length, (i) {
                         return AnimatedContainer(

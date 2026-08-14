@@ -86,7 +86,6 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
       final newKey = await _authRepo.resendPasswordOtp(
           phoneNumber: widget.phoneNumber);
       setState(() => _otpKey = newKey);
-      // Clear OTP fields
       for (final c in _controllers) {
         c.clear();
       }
@@ -188,7 +187,6 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
 
               const SizedBox(height: 40),
 
-              // OTP fields
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(

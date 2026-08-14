@@ -111,7 +111,6 @@ class _LoginPageState extends State<LoginPage> {
             children: [
               const SizedBox(height: 60),
 
-              // Logo
               Container(
                 width: 64,
                 height: 64,
@@ -158,7 +157,6 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 48),
 
-              // Phone field
               Text(
                 AppLocalizations.of(context)!.phoneNumberLabel,
                 style: TextStyle(
@@ -230,7 +228,6 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 16),
 
-              // Password field
               Text(
                 AppLocalizations.of(context)!.passwordLabel,
                 style: TextStyle(
@@ -305,7 +302,6 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 8),
 
-              // Forgot Password link
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
@@ -330,7 +326,6 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
 
-              // Error
               if (_error != null) ...[
                 const SizedBox(height: 12),
                 Container(
@@ -366,12 +361,13 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 32),
 
-              // Sign In button
               SizedBox(
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _login,
+                  onPressed: (_isLoading || !_isPhoneValid || !_isPasswordValid)
+                      ? null
+                      : _login,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: accentColor,
                     disabledBackgroundColor: accentColor.withValues(alpha: 0.5),
@@ -403,7 +399,6 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 40),
 
-              // Register link
               Center(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,

@@ -177,7 +177,7 @@ class _CardNumberFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
       TextEditingValue oldValue, TextEditingValue newValue) {
-    final digits = newValue.text.replaceAll(' ', '');
+    final digits = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
     if (digits.length > 16) return oldValue;
 
     final buffer = StringBuffer();
@@ -185,11 +185,34 @@ class _CardNumberFormatter extends TextInputFormatter {
       if (i > 0 && i % 4 == 0) buffer.write(' ');
       buffer.write(digits[i]);
     }
-
     final formatted = buffer.toString();
+
+    // Курсор: считаем цифры до курсора в новом тексте и восстанавливаем
+    // эквивалентную позицию в отформатированной строке.
+    final digitsBeforeCursor = newValue.text
+        .substring(0, newValue.selection.end.clamp(0, newValue.text.length))
+        .replaceAll(RegExp(r'[^\d]'), '')
+        .length;
+
+    int newCursor = formatted.length;
+    if (digitsBeforeCursor == 0) {
+      newCursor = 0;
+    } else {
+      int digitsSeen = 0;
+      for (int i = 0; i < formatted.length; i++) {
+        if (RegExp(r'\d').hasMatch(formatted[i])) {
+          digitsSeen++;
+          if (digitsSeen == digitsBeforeCursor) {
+            newCursor = i + 1;
+            break;
+          }
+        }
+      }
+    }
+
     return TextEditingValue(
       text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
+      selection: TextSelection.collapsed(offset: newCursor),
     );
   }
 }

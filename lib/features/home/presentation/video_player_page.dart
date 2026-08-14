@@ -208,7 +208,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       child: VideoPlayer(_controller),
                     ),
                   ),
-                  // Play / Pause overlay
                   AnimatedOpacity(
                     opacity: _showControls ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 300),
@@ -239,7 +238,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       ),
                     ),
                   ),
-                  // Bottom controls: progress + volume
                   Positioned(
                     left: 16,
                     right: 16,
@@ -265,7 +263,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                             ),
                             Row(
                               children: [
-                                // Time position
                                 Text(
                                   _formatDuration(_controller.value.position),
                                   style: const TextStyle(
@@ -274,7 +271,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                   ),
                                 ),
                                 const Spacer(),
-                                // Mute/unmute button
                                 GestureDetector(
                                   onTap: _toggleMute,
                                   child: Icon(
@@ -288,7 +284,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                   ),
                                 ),
                                 const SizedBox(width: 4),
-                                // Volume slider
                                 SizedBox(
                                   width: 80,
                                   child: SliderTheme(
@@ -315,7 +310,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                // Time duration
                                 Text(
                                   _formatDuration(_controller.value.duration),
                                   style: const TextStyle(

@@ -74,9 +74,7 @@ class _SubscriptionViewState extends State<_SubscriptionView> {
       formatBytes(bytes, AppLocalizations.of(context)!);
 
   String _formatPrice(String raw) {
-    final parts = raw.split('.');
-    final intPart = parts[0];
-    final decPart = parts.length > 1 ? parts[1] : '00';
+    final intPart = raw.split('.')[0];
     final buffer = StringBuffer();
     int count = 0;
     for (int i = intPart.length - 1; i >= 0; i--) {
@@ -84,24 +82,10 @@ class _SubscriptionViewState extends State<_SubscriptionView> {
       buffer.write(intPart[i]);
       count++;
     }
-    return '${buffer.toString().split('').reversed.join()}.$decPart';
+    return buffer.toString().split('').reversed.join();
   }
 
-  String _periodLabel(String period, AppLocalizations l10n) {
-    switch (period.toLowerCase()) {
-      case 'free':
-        return l10n.freeLabel;
-      case 'monthly':
-        return l10n.billingMonthly;
-      case 'yearly':
-      case 'annual':
-        return l10n.billingYearly;
-      default:
-        return period.isNotEmpty
-            ? period[0].toUpperCase() + period.substring(1)
-            : period;
-    }
-  }
+  bool _isFreePlan(Plan plan) => double.tryParse(plan.price) == 0;
 
   CardToken? _primaryCard(List<CardToken> cards) {
     if (cards.isEmpty) return null;
@@ -229,6 +213,8 @@ class _SubscriptionViewState extends State<_SubscriptionView> {
           final cards = _paymentData?.cards ?? [];
           final subscription = _paymentData?.subscription;
           final busy = state is PaymentLoading;
+          final paidPlans = _plans.where((p) => !_isFreePlan(p)).toList();
+          final freePlans = _plans.where(_isFreePlan).toList();
 
           return RefreshIndicator(
             onRefresh: () async {
@@ -290,17 +276,28 @@ class _SubscriptionViewState extends State<_SubscriptionView> {
                     ),
                   )
                 else
-                  ...List.generate(_plans.length, (i) {
-                    final plan = _plans[i];
-                    return _PlanListTile(
-                      plan: plan,
-                      isCurrent: plan.id == subscription?.planId,
-                      isSelected: plan.id == _selectedPlanId,
-                      priceFormatted: _formatPrice(plan.price),
-                      periodLabel: _periodLabel(plan.billingPeriod, l10n),
-                      onTap: () => setState(() => _selectedPlanId = plan.id),
-                    ).animate(delay: (i * 40).ms).fadeIn(duration: 250.ms);
-                  }),
+                  ...[
+                    ...List.generate(paidPlans.length, (i) {
+                      final plan = paidPlans[i];
+                      return _PlanListTile(
+                        plan: plan,
+                        isCurrent: plan.id == subscription?.planId,
+                        isSelected: plan.id == _selectedPlanId,
+                        priceFormatted: _formatPrice(plan.price),
+                        onTap: () => setState(() => _selectedPlanId = plan.id),
+                      ).animate(delay: (i * 40).ms).fadeIn(duration: 250.ms);
+                    }),
+                    ...freePlans.map(
+                      (plan) => _PlanListTile(
+                        plan: plan,
+                        isCurrent: plan.id == subscription?.planId,
+                        isSelected: plan.id == _selectedPlanId,
+                        priceFormatted: _formatPrice(plan.price),
+                        isFreeCompact: true,
+                        onTap: () => setState(() => _selectedPlanId = plan.id),
+                      ),
+                    ),
+                  ],
                 const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,
@@ -400,18 +397,29 @@ class _PlanListTile extends StatelessWidget {
   final bool isCurrent;
   final bool isSelected;
   final String priceFormatted;
-  final String periodLabel;
+  final bool isFreeCompact;
   final VoidCallback onTap;
 
   static const _green = Color(0xFF22C55E);
   static const _accent = Color(0xFF1A73E8);
+  static const _cardBg = Color(0xFFFFFFFF);
+  static const _borderNormal = Color(0xFFE5E7EB);
+  static const _borderTarget = Color(0xFF0066FF);
+  static const _borderFree = Color(0xFFCBD5E1);
+  static const _textPrimary = Color(0xFF0F172A);
+  static const _textSecondary = Color(0xFF64748B);
+  static const _darkCardBg = Color(0xFF161B22);
+  static const _darkBorderNormal = Color(0xFF30363D);
+  static const _darkTextPrimary = Color(0xFFE6EDF3);
+  static const _darkTextSecondary = Color(0xFF8B949E);
+  static const _targetPlanBytes = 214748364800; // 200 GB
 
   const _PlanListTile({
     required this.plan,
     required this.isCurrent,
     required this.isSelected,
     required this.priceFormatted,
-    required this.periodLabel,
+    this.isFreeCompact = false,
     required this.onTap,
   });
 
@@ -428,106 +436,196 @@ class _PlanListTile extends StatelessWidget {
     return '$bytes ${l10n.unitBytes}';
   }
 
+  String _periodSuffix(AppLocalizations l10n) {
+    final period = plan.billingPeriod.toLowerCase();
+    final isYearly = period == 'yearly' || period == 'annual';
+    return isYearly ? l10n.planPeriodYearly : l10n.planPeriodMonthly;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isFree = plan.price == '0' ||
-        plan.price == '0.00' ||
-        plan.price.startsWith('0.');
-    final borderColor = isCurrent
-        ? _green
-        : (isSelected ? _accent : Colors.white.withValues(alpha: 0.08));
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isFree = double.tryParse(plan.price) == 0;
+    final isTarget =
+        !isFreeCompact && (plan.isPopular || plan.storage == _targetPlanBytes);
     final style = PlanStyle.forName(plan.name);
+    final textPrimary = isDark ? _darkTextPrimary : _textPrimary;
+    final textSecondary = isDark ? _darkTextSecondary : _textSecondary;
+
+    final Color background;
+    final Color borderColor;
+    final double borderWidth;
+    final List<BoxShadow>? boxShadow;
+
+    if (isFreeCompact) {
+      background = Colors.transparent;
+      final baseBorderColor = isDark ? _darkBorderNormal : _borderFree;
+      borderColor = isCurrent ? _green : (isSelected ? _accent : baseBorderColor);
+      borderWidth = (isCurrent || isSelected) ? 2.0 : 1.0;
+      boxShadow = null;
+    } else {
+      background = isDark ? _darkCardBg : _cardBg;
+      final baseBorderColor =
+          isTarget ? _borderTarget : (isDark ? _darkBorderNormal : _borderNormal);
+      final baseBorderWidth = isTarget ? 1.5 : 0.5;
+      borderColor = isCurrent ? _green : (isSelected ? _accent : baseBorderColor);
+      borderWidth = (isCurrent || isSelected) ? 2.0 : baseBorderWidth;
+      boxShadow = isDark
+          ? null
+          : (isTarget
+              ? const [
+                  BoxShadow(
+                      color: Color(0x0A000000),
+                      blurRadius: 2,
+                      offset: Offset(0, 1)),
+                  BoxShadow(
+                      color: Color(0x1A0066FF),
+                      blurRadius: 20,
+                      offset: Offset(0, 4)),
+                ]
+              : const [
+                  BoxShadow(
+                      color: Color(0x0A000000),
+                      blurRadius: 2,
+                      offset: Offset(0, 1)),
+                  BoxShadow(
+                      color: Color(0x0A000000),
+                      blurRadius: 12,
+                      offset: Offset(0, 4)),
+                ]);
+    }
+
+    final card = Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: isFreeCompact
+          ? const EdgeInsets.symmetric(horizontal: 16, vertical: 10)
+          : const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: background,
+        border: Border.all(
+          color: borderColor,
+          width: borderWidth,
+        ),
+        boxShadow: boxShadow,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? style.iconColor.withValues(alpha: 0.18)
+                  : style.iconBgColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(style.icon, color: style.iconColor, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  PlanLocalizer.localize(plan.name, l10n),
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: textPrimary),
+                ),
+                const SizedBox(height: 4),
+                Text(_formatStorage(plan.storage, l10n),
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: textPrimary)),
+                const SizedBox(height: 2),
+                isFree
+                    ? Text(
+                        l10n.freeLabel,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: textPrimary),
+                      )
+                    : RichText(
+                        text: TextSpan(
+                          style: const TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w600),
+                          children: [
+                            TextSpan(
+                              text: '$priceFormatted UZS',
+                              style: TextStyle(color: textPrimary),
+                            ),
+                            TextSpan(
+                              text: _periodSuffix(l10n),
+                              style: TextStyle(color: textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+              ],
+            ),
+          ),
+          if (isCurrent)
+            const Icon(Icons.check_circle, color: _green)
+          else
+            Icon(
+              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+              color: isSelected ? _accent : textSecondary,
+            ),
+        ],
+      ),
+    );
+
+    final showPopularBadge = isTarget && !isCurrent;
+    final content = showPopularBadge
+        ? Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                card,
+                Positioned(
+                  top: -12,
+                  left: 16,
+                  child: _PopularBadge(text: l10n.popularBadge),
+                ),
+              ],
+            ),
+          )
+        : card;
 
     return GestureDetector(
       onTap: isCurrent ? null : onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            colors: style.gradient,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          border: Border.all(
-            color: borderColor,
-            width: (isCurrent || isSelected) ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(style.icon, color: Colors.white, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        PlanLocalizer.localize(plan.name, l10n),
-                        style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white),
-                      ),
-                      if (plan.isPopular && !isCurrent) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            l10n.popularBadge,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(_formatStorage(plan.storage, l10n),
-                      style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.white.withValues(alpha: 0.7))),
-                  const SizedBox(height: 2),
-                  Text(
-                    isFree
-                        ? l10n.freeLabel
-                        : '$priceFormatted UZS / $periodLabel',
-                    style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
-            if (isCurrent)
-              const Icon(Icons.check_circle, color: _green)
-            else
-              Icon(
-                isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-                color: isSelected ? _accent : Colors.white.withValues(alpha: 0.6),
-              ),
-          ],
-        ),
+      child: content,
+    );
+  }
+}
+
+class _PopularBadge extends StatelessWidget {
+  final String text;
+
+  const _PopularBadge({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0066FF),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x330066FF), blurRadius: 8, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+            color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
       ),
     );
   }

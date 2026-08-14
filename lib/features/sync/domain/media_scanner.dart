@@ -104,7 +104,6 @@ class MediaScanner {
           await Future.delayed(Duration.zero);
           for (final asset in assets) {
             try {
-              // Delta filter: пропускаем если ассет старее watermark
               final assetCreatedMs = asset.createDateTime.millisecondsSinceEpoch;
               if (filterFromMs != null && assetCreatedMs < filterFromMs!) continue;
 
@@ -112,7 +111,6 @@ class MediaScanner {
               final name = asset.title ?? '${asset.id}.${asset.type == AssetType.video ? 'mp4' : 'jpg'}';
               final mimeType = _mimeForAsset(asset);
 
-              // bucket_day для группировки
               final bucketDay = '${asset.createDateTime.year.toString().padLeft(4, '0')}'
                   '-${asset.createDateTime.month.toString().padLeft(2, '0')}'
                   '-${asset.createDateTime.day.toString().padLeft(2, '0')}';
@@ -135,7 +133,6 @@ class MediaScanner {
                 }
               }
 
-              // Skip if already in local DB
               if (await db.exists(asset.id)) continue;
 
               // Дополнительно: проверка по имени+размеру для случая после logout
@@ -144,7 +141,6 @@ class MediaScanner {
                 if (alreadyDone) continue;
               }
 
-              // Key для server-side dedup
               final key = '$name|$realSize';
 
               // Check if already uploaded to server (cold start dedup)
@@ -166,7 +162,6 @@ class MediaScanner {
                 continue;
               }
 
-              // Enqueue as pending
               await db.insertOrIgnore(SyncTask(
                 localId: asset.id,
                 filePath: resolvedPath,

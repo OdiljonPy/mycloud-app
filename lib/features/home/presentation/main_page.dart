@@ -7,6 +7,7 @@ import 'home_page.dart';
 import 'files_page.dart';
 import 'shared_page.dart';
 import '../../../core/storage/secure_storage.dart';
+import '../../auth/data/auth_repository.dart';
 import '../../auth/presentation/login_page.dart';
 import '../../profile/presentation/profile_page.dart';
 
@@ -34,14 +35,12 @@ class _MainPageState extends State<MainPage> {
         canPop: false,
         onPopInvokedWithResult: (didPop, result) {
           if (didPop) return;
-          // Non-Home tab
           if (_currentIndex != 0) {
             if (_currentIndex == 1) {
               if (_filesKey.currentState?.handleBackNavigation() ?? false) {
                 return; // FilesPage handled the back press (e.g., navigated up a directory)
               }
             }
-            // Switch to Home
             setState(() => _currentIndex = 0);
             return;
           }
@@ -87,6 +86,9 @@ class _MainPageState extends State<MainPage> {
   }
 
   Future<void> _logout() async {
+    // Отписываем push-устройство, пока access token ещё валиден — сам
+    // запрос требует аутентификации.
+    await AuthRepository.unregisterCurrentDevice();
     await SecureStorage.clearTokens();
     await syncOnLogoutCallback();
     if (mounted) {

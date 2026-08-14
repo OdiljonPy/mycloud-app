@@ -176,7 +176,6 @@ class _OtpPageState extends State<OtpPage> {
 
               const SizedBox(height: 40),
 
-              // OTP fields
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(

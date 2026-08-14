@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/storage/secure_storage.dart';
-import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/error_localizer.dart';
 import '../data/upload_repository.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -196,11 +196,12 @@ class _UploadPageState extends State<UploadPage> {
         );
       } catch (e) {
         if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
           setState(() {
             item.status = item.cancelRequested
                 ? _FileStatus.cancelled
                 : _FileStatus.error;
-            item.error = e is AppException ? e.message : e.toString();
+            item.error = ErrorLocalizer.forException(e, l10n);
           });
         }
       }

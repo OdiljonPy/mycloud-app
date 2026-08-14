@@ -13,7 +13,6 @@ String _deterministicUuid(String fileName, int fileSize, String mimeType) {
   final input = '$fileName|$fileSize|$mimeType';
   final bytes = utf8.encode(input);
   final hash = sha256.convert(bytes).toString();
-  // Форматируем первые 32 символа хеша в UUID формат
   final h = hash.replaceAll('-', '');
   return '${h.substring(0, 8)}-${h.substring(8, 12)}-'
       '4${h.substring(13, 16)}-'
@@ -218,7 +217,6 @@ class GalleryService {
     if (tasks.isEmpty) return {};
 
     try {
-      // Build request: generate fresh UUID per file for tracking
       final uuidToTask = <String, SyncTask>{};
       final filesPayload = tasks.map((task) {
         final id = _deterministicUuid(task.fileName, task.fileSize, task.mimeType);

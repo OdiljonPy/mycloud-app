@@ -55,7 +55,6 @@ class _ShareDialogState extends State<ShareDialog> {
   bool _isSending = false;
   _ShareMode _mode = _ShareMode.byPhone;
 
-  // После генерации ссылки
   String? _generatedLink;
 
   @override
@@ -405,7 +404,6 @@ class _ShareDialogState extends State<ShareDialog> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Link name field
         TextField(
           controller: _linkNameController,
           style: TextStyle(color: textColor, fontSize: 16),
@@ -431,7 +429,6 @@ class _ShareDialogState extends State<ShareDialog> {
           ),
         ),
 
-        // Generated link block
         if (_generatedLink != null) ...[
           const SizedBox(height: 12),
           Container(

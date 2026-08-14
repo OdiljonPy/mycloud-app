@@ -666,6 +666,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get available => 'Available';
 
   @override
+  String get planUsedLabel => 'Used';
+
+  @override
+  String get subscriptionStartsAt => 'Start date';
+
+  @override
+  String get subscriptionEndsAt => 'End date';
+
+  @override
   String get billingMonthly => 'Monthly';
 
   @override
@@ -845,6 +854,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get popularBadge => 'Popular';
+
+  @override
+  String get planPeriodMonthly => '/mo';
+
+  @override
+  String get planPeriodYearly => '/yr';
 
   @override
   String get cardTypeUzcard => 'Uzcard';
@@ -1058,4 +1073,76 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get enterOtpCodeTitle => 'Enter OTP Code';
+
+  @override
+  String get notifications => 'Notifications';
+
+  @override
+  String get noNotificationsYet => 'No notifications yet';
+
+  @override
+  String get markAllAsRead => 'Mark all as read';
+
+  @override
+  String get markAsRead => 'Mark as read';
+
+  @override
+  String get deleteNotification => 'Delete notification';
+
+  @override
+  String get notificationDeleteConfirmMessage => 'Delete this notification? This action is irreversible.';
+
+  @override
+  String get failedToLoadNotifications => 'Failed to load notifications';
+
+  @override
+  String get allNotificationsMarkedRead => 'All notifications marked as read';
+
+  @override
+  String get notifTypeSubscriptionExpiryWarning => 'Subscription expiring soon';
+
+  @override
+  String get notifTypeSubscriptionExpired => 'Subscription expired';
+
+  @override
+  String get notifTypeSubscriptionRenewed => 'Subscription renewed';
+
+  @override
+  String get notifTypeSubscriptionDowngraded => 'Subscription downgraded';
+
+  @override
+  String get notifTypePaymentSuccess => 'Payment successful';
+
+  @override
+  String get notifTypePaymentFailed => 'Payment failed';
+
+  @override
+  String get notifTypeCardDeclined => 'Card declined';
+
+  @override
+  String get notifTypeFileShared => 'A file was shared with you';
+
+  @override
+  String get notifTypeFileShareRevoked => 'File access revoked';
+
+  @override
+  String get notifTypeShareRequestReceived => 'New access request';
+
+  @override
+  String get notifTypeShareRequestApproved => 'Access request approved';
+
+  @override
+  String get notifTypeShareRequestRejected => 'Access request rejected';
+
+  @override
+  String get notifTypeSystemAnnouncement => 'System announcement';
+
+  @override
+  String get notifTypeStorageWarning => 'Storage running low';
+
+  @override
+  String get notifTypeStorageFull => 'Storage full';
+
+  @override
+  String get notifTypeUnknown => 'New notification';
 }

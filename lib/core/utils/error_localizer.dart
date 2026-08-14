@@ -17,6 +17,7 @@ class ErrorLocalizer {
   // exists" or "file not found" would otherwise get the wrong ("user...")
   // wording.
   static final Map<String, String Function(AppLocalizations)> _mappings = {
+    'invalid phone_number or password': (l10n) => l10n.errorInvalidCredentials,
     'still valid': (l10n) => l10n.errorOtpStillValid,
     'invalid code': (l10n) => l10n.errorInvalidCode,
     'wrong code': (l10n) => l10n.errorInvalidCode,
