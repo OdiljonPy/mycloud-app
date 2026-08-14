@@ -17,6 +17,7 @@ class SyncTask {
   final int? assetCreatedAt;
   final String? bucketDay;
   final int sessionUploaded;
+  final String? albumId;
 
   const SyncTask({
     this.id,
@@ -35,6 +36,7 @@ class SyncTask {
     this.assetCreatedAt,
     this.bucketDay,
     this.sessionUploaded = 0,
+    this.albumId,
   });
 
   SyncTask copyWith({
@@ -54,6 +56,7 @@ class SyncTask {
     int? sessionUploaded,
     int? createdAt,
     int? updatedAt,
+    String? albumId,
   }) {
     return SyncTask(
       id: id ?? this.id,
@@ -72,6 +75,7 @@ class SyncTask {
       assetCreatedAt: assetCreatedAt ?? this.assetCreatedAt,
       bucketDay: bucketDay ?? this.bucketDay,
       sessionUploaded: sessionUploaded ?? this.sessionUploaded,
+      albumId: albumId ?? this.albumId,
     );
   }
 
@@ -93,6 +97,7 @@ class SyncTask {
       'asset_created_at': assetCreatedAt,
       'bucket_day': bucketDay,
       'session_uploaded': sessionUploaded,
+      'album_id': albumId,
     };
   }
 
@@ -117,6 +122,7 @@ class SyncTask {
       assetCreatedAt: map['asset_created_at'] as int?,
       bucketDay: map['bucket_day'] as String?,
       sessionUploaded: map['session_uploaded'] as int? ?? 0,
+      albumId: map['album_id'] as String?,
     );
   }
 }

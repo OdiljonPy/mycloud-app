@@ -280,8 +280,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get reviewAccessRequest => 'Рассмотреть запрос доступа';
 
   @override
-  String get reviewAccessRequestSubtitle =>
-      'Выберите, следует ли предоставить доступ этому пользователю.';
+  String get reviewAccessRequestSubtitle => 'Выберите, следует ли предоставить доступ этому пользователю.';
 
   @override
   String get reject => 'Отклонить';
@@ -299,8 +298,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get noShareRequests => 'Нет запросов на доступ';
 
   @override
-  String get noShareRequestsSubtitle =>
-      'Поделитесь файлами по ссылке и они появятся здесь';
+  String get noShareRequestsSubtitle => 'Поделитесь файлами по ссылке и они появятся здесь';
 
   @override
   String get personalData => 'ЛИЧНЫЕ ДАННЫЕ';
@@ -369,8 +367,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get logoutConfirm => 'Выход';
 
   @override
-  String get logoutConfirmMessage =>
-      'Вы уверены, что хотите выйти из аккаунта?';
+  String get logoutConfirmMessage => 'Вы уверены, что хотите выйти из аккаунта?';
 
   @override
   String get refresh => 'Обновить';
@@ -410,24 +407,48 @@ class AppLocalizationsRu extends AppLocalizations {
   String get addedToFavourites => 'Добавлено в избранное';
 
   @override
+  String get favouriteUpdateFailed => 'Не удалось обновить избранное';
+
+  @override
+  String get unitBytes => 'байт';
+
+  @override
+  String get unitKb => 'КБ';
+
+  @override
+  String get unitMb => 'МБ';
+
+  @override
+  String get unitGb => 'ГБ';
+
+  @override
+  String get unitTb => 'ТБ';
+
+  @override
+  String storageUsedOfLimit(String used, String limit) {
+    return '$used использовано из $limit';
+  }
+
+  @override
   String get couldNotOpenImage => 'Не удалось открыть изображение';
 
   @override
   String get couldNotOpenVideo => 'Не удалось открыть видео';
 
   @override
+  String get videoFormatNotSupported => 'Формат видео не поддерживается для просмотра';
+
+  @override
   String get noSharedWithMe => 'Никто не делился файлами';
 
   @override
-  String get noSharedWithMeSubtitle =>
-      'Когда кто-то поделится файлом — они появятся здесь';
+  String get noSharedWithMeSubtitle => 'Когда кто-то поделится файлом — они появятся здесь';
 
   @override
   String get noSharedByMe => 'Вы ещё ни с кем не делились';
 
   @override
-  String get noSharedByMeSubtitle =>
-      'Нажмите кнопку шаринга чтобы поделиться файлами';
+  String get noSharedByMeSubtitle => 'Нажмите кнопку шаринга чтобы поделиться файлами';
 
   @override
   String get noSharedItems => 'Нет расшаренных элементов';
@@ -516,15 +537,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get syncResetButton => 'Сбросить очередь';
 
   @override
-  String get syncFolderReadOnly =>
-      'Это папка синхронизации. Файлы здесь управляются автоматически.';
+  String get syncFolderReadOnly => 'Это папка синхронизации. Файлы здесь управляются автоматически.';
 
   @override
   String get syncResetConfirmTitle => 'Сбросить очередь?';
 
   @override
-  String get syncResetConfirmMessage =>
-      'Все записи будут удалены. После этого приложение заново просканирует галерею.';
+  String get syncResetConfirmMessage => 'Все записи будут удалены. После этого приложение заново просканирует галерею.';
 
   @override
   String get syncResetConfirmButton => 'Сбросить';
@@ -561,6 +580,20 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get syncSelectedFilesSubtitle => 'Синхронизировать только выбранные';
+
+  @override
+  String syncSelectedCount(int count) {
+    return '$count медиа выбрано';
+  }
+
+  @override
+  String get selectSyncFilesTitle => 'Выбор файлов для синхронизации';
+
+  @override
+  String get selectSyncFilesDone => 'Готово';
+
+  @override
+  String get selectSyncFilesPermissionDenied => 'Нет доступа к галерее. Разрешите доступ в настройках устройства.';
 
   @override
   String get syncTotal => 'Всего';
@@ -615,6 +648,507 @@ class AppLocalizationsRu extends AppLocalizations {
   String get deleteAccountConfirm => 'Удалить аккаунт';
 
   @override
-  String get deleteAccountConfirmMessage =>
-      'Вы уверены, что хотите удалить аккаунт? Это действие необратимо.';
+  String get deleteAccountConfirmMessage => 'Вы уверены, что хотите удалить аккаунт? Это действие необратимо.';
+
+  @override
+  String get storageSubtitle => 'Отслеживайте использование хранилища и управляйте тарифом.';
+
+  @override
+  String get activeSubscriptionDetails => 'Детали вашей активной подписки';
+
+  @override
+  String get planName => 'Название тарифа';
+
+  @override
+  String get storageLimitLabel => 'Лимит хранилища';
+
+  @override
+  String get available => 'Доступно';
+
+  @override
+  String get planUsedLabel => 'Использовано';
+
+  @override
+  String get subscriptionStartsAt => 'Дата начала';
+
+  @override
+  String get subscriptionEndsAt => 'Дата окончания';
+
+  @override
+  String get billingMonthly => 'Ежемесячно';
+
+  @override
+  String get billingYearly => 'Ежегодно';
+
+  @override
+  String upgradeToPlan(String name) {
+    return 'Улучшить до $name';
+  }
+
+  @override
+  String get filesAlreadyInFolder => 'Файлы уже находятся в этой папке';
+
+  @override
+  String get folderEmpty => 'Папка пуста';
+
+  @override
+  String get accessRevoked => 'Доступ отозван';
+
+  @override
+  String get userNotFound => 'Пользователь не найден';
+
+  @override
+  String get paymentAndSubscription => 'Подписка и оплата';
+
+  @override
+  String get cardDeleted => 'Карта удалена';
+
+  @override
+  String get cardSetAsDefault => 'Карта установлена по умолчанию';
+
+  @override
+  String get myCards => 'Мои карты';
+
+  @override
+  String get addCard => 'Добавить карту';
+
+  @override
+  String get noCardsLinked => 'Карты не привязаны';
+
+  @override
+  String get noSubscription => 'Без подписки';
+
+  @override
+  String get currentPlan => 'Текущий тариф';
+
+  @override
+  String get changePlan => 'Изменить тариф';
+
+  @override
+  String get choosePlan => 'Выбрать тариф';
+
+  @override
+  String storageUsed(String used) {
+    return '$used использовано';
+  }
+
+  @override
+  String subscriptionUntil(String date) {
+    return 'До: $date';
+  }
+
+  @override
+  String get cardStatusActive => 'Активна';
+
+  @override
+  String get cardStatusPending => 'Ожидает подтверждения';
+
+  @override
+  String get cardStatusBlocked => 'Заблокирована';
+
+  @override
+  String get cardDefaultLabel => 'По умолчанию';
+
+  @override
+  String get setAsDefault => 'По умолчанию';
+
+  @override
+  String get deleteCardTitle => 'Удалить карту?';
+
+  @override
+  String deleteCardMessage(String number) {
+    return 'Карта $number будет удалена.';
+  }
+
+  @override
+  String get cardNumberLabel => 'Номер карты';
+
+  @override
+  String get enterCardNumber => 'Введите номер карты';
+
+  @override
+  String get cardNumber16Digits => 'Номер карты — 16 цифр';
+
+  @override
+  String get expiryDate => 'Срок действия';
+
+  @override
+  String get enterExpiryDate => 'Введите срок действия';
+
+  @override
+  String get expiryDateFormat => 'Формат: MM/YY';
+
+  @override
+  String get invalidMonth => 'Неверный месяц';
+
+  @override
+  String get cardExpired => 'Срок действия карты истёк';
+
+  @override
+  String get checkCardData => 'Вы неверно ввели данные, пожалуйста проверьте';
+
+  @override
+  String get validThruLabel => 'ДЕЙСТВУЕТ ДО';
+
+  @override
+  String get verifyCardTitle => 'Подтверждение карты';
+
+  @override
+  String get enterSmsCode => 'Введите SMS-код';
+
+  @override
+  String smsCodeSentFor(String number) {
+    return 'Код отправлен для подтверждения карты\n$number';
+  }
+
+  @override
+  String get cardAddedSuccess => 'Карта успешно добавлена';
+
+  @override
+  String get confirmButton => 'Подтвердить';
+
+  @override
+  String get plansTitle => 'Тарифы';
+
+  @override
+  String get noPlans => 'Нет тарифов';
+
+  @override
+  String get confirmPurchaseTitle => 'Подтверждение';
+
+  @override
+  String confirmPurchaseMessage(String name, String price, String period) {
+    return 'Подключить тариф «$name» за $price UZS / $period?';
+  }
+
+  @override
+  String get updatePlan => 'Обновить';
+
+  @override
+  String get freeLabel => 'Бесплатно';
+
+  @override
+  String storageFeature(String storage) {
+    return '$storage Памяти';
+  }
+
+  @override
+  String get dataPreservedNote => 'Ваши данные сохранятся при обновлении тарифа.';
+
+  @override
+  String get unknownError => 'Неизвестная ошибка';
+
+  @override
+  String get switchPlanButton => 'Перейти на этот план';
+
+  @override
+  String get addCardPrompt => 'Добавьте карту для оплаты';
+
+  @override
+  String get downgradeWarningTitle => 'Подтвердите переход на другой тариф';
+
+  @override
+  String downgradeWarningMessage(String used, String plan, String limit) {
+    return 'Сейчас используется $used из доступных. На плане «$plan» доступно $limit. После перехода синхронизация новых файлов остановится, пока хранилище не будет в пределах лимита. Существующие файлы не будут удалены.';
+  }
+
+  @override
+  String get continueAnyway => 'Всё равно перейти';
+
+  @override
+  String get staySamePlan => 'Остаться на текущем плане';
+
+  @override
+  String get popularBadge => 'Популярный';
+
+  @override
+  String get planPeriodMonthly => '/мес';
+
+  @override
+  String get planPeriodYearly => '/год';
+
+  @override
+  String get cardTypeUzcard => 'Uzcard';
+
+  @override
+  String get cardTypeHumo => 'Humo';
+
+  @override
+  String get cardTypeVisa => 'Visa';
+
+  @override
+  String get cardTypeMastercard => 'Mastercard';
+
+  @override
+  String get cardTypeUnknown => 'Карта';
+
+  @override
+  String get errorInvalidCredentials => 'Неверный номер телефона или пароль';
+
+  @override
+  String get errorUserNotFound => 'Пользователь не найден';
+
+  @override
+  String get errorInvalidCode => 'Неверный код подтверждения';
+
+  @override
+  String get errorSessionExpired => 'Сессия истекла, попробуйте снова';
+
+  @override
+  String get errorSessionExpiredRelogin => 'Сессия истекла. Войдите заново';
+
+  @override
+  String get errorUserAlreadyExists => 'Пользователь с таким номером уже существует';
+
+  @override
+  String get genericErrorFallback => 'Произошла ошибка, попробуйте позже';
+
+  @override
+  String get planNameFree => 'Бесплатно';
+
+  @override
+  String get planNameStart => 'Старт';
+
+  @override
+  String get planNamePlus => 'Плюс';
+
+  @override
+  String get planNameFamily => 'Семья';
+
+  @override
+  String get planNamePro => 'Про';
+
+  @override
+  String get clearDoneButton => 'Очистить';
+
+  @override
+  String get allUploadedStatus => 'Всё загружено!';
+
+  @override
+  String get noNetworkWaiting => 'Нет сети — ожидание...';
+
+  @override
+  String uploadingProgress(int current, int total) {
+    return 'Загрузка $current из $total...';
+  }
+
+  @override
+  String get tapToSelectFiles => 'Нажмите чтобы выбрать';
+
+  @override
+  String get photosAndVideosOnly => 'Только фото и видео';
+
+  @override
+  String uploadingCountBadge(int count) {
+    return '$count загружается';
+  }
+
+  @override
+  String pausedCountBadge(int count) {
+    return '$count на паузе';
+  }
+
+  @override
+  String doneCountBadge(int count) {
+    return '$count готово';
+  }
+
+  @override
+  String get addFilesButton => 'Добавить';
+
+  @override
+  String get waitingForNetworkShort => 'Ожидание сети...';
+
+  @override
+  String get uploadingEllipsis => 'Загрузка...';
+
+  @override
+  String get selectPhotosVideos => 'Выбрать фото / видео';
+
+  @override
+  String get uploadMoreButton => 'Загрузить ещё';
+
+  @override
+  String get addMoreButton => 'Добавить ещё';
+
+  @override
+  String get pausedWillResumeAuto => 'Нет сети — возобновится автоматически';
+
+  @override
+  String shareButtonWithCount(int count) {
+    return 'Поделиться ($count)';
+  }
+
+  @override
+  String filesAndFoldersCount(int files, int folders) {
+    return '$files файлов, $folders папок';
+  }
+
+  @override
+  String get chooseFolderTitle => 'Выберите папку';
+
+  @override
+  String get homeFolderLabel => 'Главная';
+
+  @override
+  String get invalidPhoneNumber => 'Неверный номер телефона';
+
+  @override
+  String get repeatPasswordHint => 'Повторите пароль';
+
+  @override
+  String get removedFromFavourites => 'Убрано из избранного';
+
+  @override
+  String get alreadyInFavourites => 'Выбранные файлы уже в избранном';
+
+  @override
+  String get cannotMoveIntoItself => 'Нельзя переместить папку внутрь самой себя';
+
+  @override
+  String get forgotPasswordTitle => 'Забыли пароль?';
+
+  @override
+  String get forgotPasswordSubtitle => 'Введите номер телефона, и мы отправим код для сброса пароля.';
+
+  @override
+  String get phoneNumberLabel => 'Номер телефона';
+
+  @override
+  String get sendOtpCodeButton => 'Отправить код';
+
+  @override
+  String get verifyOtpCodeTitle => 'Подтвердите код';
+
+  @override
+  String get otpSentToPrefix => 'Мы отправили 6-значный код на ';
+
+  @override
+  String get enterCompleteOtpCode => 'Введите полный 6-значный код';
+
+  @override
+  String get verifyButton => 'Подтвердить';
+
+  @override
+  String get resendCodeButton => 'Отправить код повторно';
+
+  @override
+  String get otpCodeResentMessage => 'Код отправлен повторно';
+
+  @override
+  String get setNewPasswordTitle => 'Задайте новый пароль';
+
+  @override
+  String get setNewPasswordSubtitle => 'Придумайте надёжный пароль не менее 8 символов.';
+
+  @override
+  String get enterNewPasswordHint => 'Введите новый пароль';
+
+  @override
+  String get confirmNewPasswordHint => 'Подтвердите новый пароль';
+
+  @override
+  String get resetPasswordButton => 'Сбросить пароль';
+
+  @override
+  String get passwordResetSuccessMessage => 'Пароль успешно изменён!';
+
+  @override
+  String get errorOtpStillValid => 'Предыдущий код ещё действителен. Подождите перед запросом нового.';
+
+  @override
+  String get loginWelcomeTitle => 'С возвращением в\nBulutcha';
+
+  @override
+  String get loginSubtitle => 'Войдите, чтобы получить доступ к своим файлам.';
+
+  @override
+  String get passwordLabel => 'Пароль';
+
+  @override
+  String get enterYourPasswordHint => 'Введите пароль';
+
+  @override
+  String get signInButton => 'Войти';
+
+  @override
+  String get noAccountPrompt => 'Нет аккаунта? ';
+
+  @override
+  String get registerLink => 'Регистрация';
+
+  @override
+  String get enterOtpCodeTitle => 'Введите код подтверждения';
+
+  @override
+  String get notifications => 'Уведомления';
+
+  @override
+  String get noNotificationsYet => 'Пока нет уведомлений';
+
+  @override
+  String get markAllAsRead => 'Отметить все прочитанными';
+
+  @override
+  String get markAsRead => 'Отметить прочитанным';
+
+  @override
+  String get deleteNotification => 'Удалить уведомление';
+
+  @override
+  String get notificationDeleteConfirmMessage => 'Удалить это уведомление? Это действие необратимо.';
+
+  @override
+  String get failedToLoadNotifications => 'Не удалось загрузить уведомления';
+
+  @override
+  String get allNotificationsMarkedRead => 'Все уведомления отмечены прочитанными';
+
+  @override
+  String get notifTypeSubscriptionExpiryWarning => 'Подписка скоро истекает';
+
+  @override
+  String get notifTypeSubscriptionExpired => 'Подписка истекла';
+
+  @override
+  String get notifTypeSubscriptionRenewed => 'Подписка продлена';
+
+  @override
+  String get notifTypeSubscriptionDowngraded => 'Подписка понижена';
+
+  @override
+  String get notifTypePaymentSuccess => 'Платёж прошёл успешно';
+
+  @override
+  String get notifTypePaymentFailed => 'Платёж не прошёл';
+
+  @override
+  String get notifTypeCardDeclined => 'Карта отклонена';
+
+  @override
+  String get notifTypeFileShared => 'Вам предоставили доступ к файлу';
+
+  @override
+  String get notifTypeFileShareRevoked => 'Доступ к файлу отозван';
+
+  @override
+  String get notifTypeShareRequestReceived => 'Новый запрос на доступ';
+
+  @override
+  String get notifTypeShareRequestApproved => 'Запрос на доступ одобрен';
+
+  @override
+  String get notifTypeShareRequestRejected => 'Запрос на доступ отклонён';
+
+  @override
+  String get notifTypeSystemAnnouncement => 'Системное уведомление';
+
+  @override
+  String get notifTypeStorageWarning => 'Мало свободного места';
+
+  @override
+  String get notifTypeStorageFull => 'Хранилище заполнено';
+
+  @override
+  String get notifTypeUnknown => 'Новое уведомление';
 }

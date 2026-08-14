@@ -148,8 +148,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get noFavourites => 'Sevimli fayllar yo\'q';
 
   @override
-  String get noFavouritesSubtitle =>
-      'Qo\'shish uchun fayl ustidagi yulduzni bosing';
+  String get noFavouritesSubtitle => 'Qo\'shish uchun fayl ustidagi yulduzni bosing';
 
   @override
   String get filter => 'Filtr';
@@ -281,8 +280,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get reviewAccessRequest => 'Ruxsat so\'rovini ko\'rib chiqish';
 
   @override
-  String get reviewAccessRequestSubtitle =>
-      'Bu foydalanuvchi ulashilgan kontentga kirish huquqiga ega bo\'lishi kerakmi?';
+  String get reviewAccessRequestSubtitle => 'Bu foydalanuvchi ulashilgan kontentga kirish huquqiga ega bo\'lishi kerakmi?';
 
   @override
   String get reject => 'Rad etish';
@@ -300,8 +298,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get noShareRequests => 'Ulashish so\'rovlari yo\'q';
 
   @override
-  String get noShareRequestsSubtitle =>
-      'Fayllarni havola orqali ulashing va ular bu yerda paydo bo\'ladi';
+  String get noShareRequestsSubtitle => 'Fayllarni havola orqali ulashing va ular bu yerda paydo bo\'ladi';
 
   @override
   String get personalData => 'SHAXSIY MA\'LUMOTLAR';
@@ -410,24 +407,48 @@ class AppLocalizationsUz extends AppLocalizations {
   String get addedToFavourites => 'Sevimlilarga qo\'shildi';
 
   @override
+  String get favouriteUpdateFailed => 'Sevimlilarni yangilab bo\'lmadi';
+
+  @override
+  String get unitBytes => 'bayt';
+
+  @override
+  String get unitKb => 'KB';
+
+  @override
+  String get unitMb => 'MB';
+
+  @override
+  String get unitGb => 'GB';
+
+  @override
+  String get unitTb => 'TB';
+
+  @override
+  String storageUsedOfLimit(String used, String limit) {
+    return '$limit dan $used ishlatilgan';
+  }
+
+  @override
   String get couldNotOpenImage => 'Rasmni ochib bo\'lmadi';
 
   @override
   String get couldNotOpenVideo => 'Videoni ochib bo\'lmadi';
 
   @override
+  String get videoFormatNotSupported => 'Bu video format ko\'rish uchun qo\'llab-quvvatlanmaydi';
+
+  @override
   String get noSharedWithMe => 'Hech kim fayl ulashmagan';
 
   @override
-  String get noSharedWithMeSubtitle =>
-      'Kimdir fayl ulashsa — bu yerda ko\'rinadi';
+  String get noSharedWithMeSubtitle => 'Kimdir fayl ulashsa — bu yerda ko\'rinadi';
 
   @override
   String get noSharedByMe => 'Siz hali hech kim bilan ulashmadingiz';
 
   @override
-  String get noSharedByMeSubtitle =>
-      'Fayllarni ulashish uchun ulashish tugmasini bosing';
+  String get noSharedByMeSubtitle => 'Fayllarni ulashish uchun ulashish tugmasini bosing';
 
   @override
   String get noSharedItems => 'Ulashilgan elementlar yo\'q';
@@ -484,7 +505,7 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String syncStatusUploading(int uploaded, int total) {
-    return '$uploaded/$total yuklandi';
+    return '$total tadan $uploaded yuklandi';
   }
 
   @override
@@ -493,7 +514,7 @@ class AppLocalizationsUz extends AppLocalizations {
   }
 
   @override
-  String get syncStatusComplete => 'Sinxronizatsiya tugallandi';
+  String get syncStatusComplete => 'Sinxronizatsiya tugadi';
 
   @override
   String syncStatusErrors(int count) {
@@ -501,36 +522,34 @@ class AppLocalizationsUz extends AppLocalizations {
   }
 
   @override
-  String get syncSettingsTitle => 'Avto-sinxronizatsiya';
+  String get syncSettingsTitle => 'Avtomatik sinxronizatsiya';
 
   @override
-  String get syncEnableToggle => 'Avto-sinxronizatsiyani yoqish';
+  String get syncEnableToggle => 'Avtomatik sinxronizatsiyani yoqish';
 
   @override
   String get syncWifiOnly => 'Faqat Wi-Fi orqali';
 
   @override
-  String get syncNowButton => 'Hozir sinxronlash';
+  String get syncNowButton => 'Hozir sinxronlashtirish';
 
   @override
   String get syncResetButton => 'Navbatni tozalash';
 
   @override
-  String get syncFolderReadOnly =>
-      'Bu sizning Sinxronizatsiya papkangiz. Bu yerdagi fayllar avtomatik boshqariladi.';
+  String get syncFolderReadOnly => 'Bu sinxronizatsiya papkasi. Fayllar avtomatik boshqariladi.';
 
   @override
   String get syncResetConfirmTitle => 'Navbatni tozalash?';
 
   @override
-  String get syncResetConfirmMessage =>
-      'Barcha yozuvlar o\'chiriladi. Keyin ilova galereyani qayta skanerlaydi.';
+  String get syncResetConfirmMessage => 'Barcha yozuvlar o\'chiriladi. Ilova galereyani qaytadan skanerlaydi.';
 
   @override
   String get syncResetConfirmButton => 'Tozalash';
 
   @override
-  String get syncAutoUpload => 'Foto va videolarni avtomatik yuklash';
+  String get syncAutoUpload => 'Rasmlar va videolarni avtomatik yuklash';
 
   @override
   String get syncNoMobileData => 'Mobil internet orqali sinxronlamaslik';
@@ -560,8 +579,21 @@ class AppLocalizationsUz extends AppLocalizations {
   String get syncSelectedFiles => 'Tanlangan fayllar';
 
   @override
-  String get syncSelectedFilesSubtitle =>
-      'Faqat tanlanganlarni sinxronlashtirish';
+  String get syncSelectedFilesSubtitle => 'Faqat tanlanganlarni sinxronlashtirish';
+
+  @override
+  String syncSelectedCount(int count) {
+    return '$count media tanlandi';
+  }
+
+  @override
+  String get selectSyncFilesTitle => 'Sinxronlash uchun fayllarni tanlash';
+
+  @override
+  String get selectSyncFilesDone => 'Tayyor';
+
+  @override
+  String get selectSyncFilesPermissionDenied => 'Galereyaga ruxsat yo\'q. Qurilma sozlamalarida ruxsat bering.';
 
   @override
   String get syncTotal => 'Jami';
@@ -616,6 +648,507 @@ class AppLocalizationsUz extends AppLocalizations {
   String get deleteAccountConfirm => 'Hisobni o\'chirish';
 
   @override
-  String get deleteAccountConfirmMessage =>
-      'Hisobingizni o\'chirishni xohlaysizmi? Bu amalni qaytarib bo\'lmaydi.';
+  String get deleteAccountConfirmMessage => 'Hisobingizni o\'chirishni xohlaysizmi? Bu amalni qaytarib bo\'lmaydi.';
+
+  @override
+  String get storageSubtitle => 'Xotira foydalanishini kuzating va tarifingizni boshqaring.';
+
+  @override
+  String get activeSubscriptionDetails => 'Faol obuna tafsilotlari';
+
+  @override
+  String get planName => 'Tarif nomi';
+
+  @override
+  String get storageLimitLabel => 'Xotira limiti';
+
+  @override
+  String get available => 'Mavjud';
+
+  @override
+  String get planUsedLabel => 'Foydalanilgan';
+
+  @override
+  String get subscriptionStartsAt => 'Boshlanish sanasi';
+
+  @override
+  String get subscriptionEndsAt => 'Tugash sanasi';
+
+  @override
+  String get billingMonthly => 'Oylik';
+
+  @override
+  String get billingYearly => 'Yillik';
+
+  @override
+  String upgradeToPlan(String name) {
+    return '$name ga o\'tish';
+  }
+
+  @override
+  String get filesAlreadyInFolder => 'Fayllar allaqachon shu papkada';
+
+  @override
+  String get folderEmpty => 'Papka bo\'sh';
+
+  @override
+  String get accessRevoked => 'Ruxsat bekor qilindi';
+
+  @override
+  String get userNotFound => 'Foydalanuvchi topilmadi';
+
+  @override
+  String get paymentAndSubscription => 'To\'lov va obuna';
+
+  @override
+  String get cardDeleted => 'Karta o\'chirildi';
+
+  @override
+  String get cardSetAsDefault => 'Karta standart qilib belgilandi';
+
+  @override
+  String get myCards => 'Mening kartalarim';
+
+  @override
+  String get addCard => 'Karta qo\'shish';
+
+  @override
+  String get noCardsLinked => 'Kartalar biriktirilmagan';
+
+  @override
+  String get noSubscription => 'Obuna yo\'q';
+
+  @override
+  String get currentPlan => 'Joriy tarif';
+
+  @override
+  String get changePlan => 'Tarifni o\'zgartirish';
+
+  @override
+  String get choosePlan => 'Tarif tanlash';
+
+  @override
+  String storageUsed(String used) {
+    return '$used ishlatilgan';
+  }
+
+  @override
+  String subscriptionUntil(String date) {
+    return 'Gacha: $date';
+  }
+
+  @override
+  String get cardStatusActive => 'Faol';
+
+  @override
+  String get cardStatusPending => 'Tasdiqlanishi kutilmoqda';
+
+  @override
+  String get cardStatusBlocked => 'Bloklangan';
+
+  @override
+  String get cardDefaultLabel => 'Standart';
+
+  @override
+  String get setAsDefault => 'Standart qilish';
+
+  @override
+  String get deleteCardTitle => 'Kartani o\'chirish?';
+
+  @override
+  String deleteCardMessage(String number) {
+    return '$number kartasi o\'chiriladi.';
+  }
+
+  @override
+  String get cardNumberLabel => 'Karta raqami';
+
+  @override
+  String get enterCardNumber => 'Karta raqamini kiriting';
+
+  @override
+  String get cardNumber16Digits => 'Karta raqami — 16 ta raqam';
+
+  @override
+  String get expiryDate => 'Amal qilish muddati';
+
+  @override
+  String get enterExpiryDate => 'Amal qilish muddatini kiriting';
+
+  @override
+  String get expiryDateFormat => 'Format: MM/YY';
+
+  @override
+  String get invalidMonth => 'Noto\'g\'ri oy';
+
+  @override
+  String get cardExpired => 'Karta muddati tugagan';
+
+  @override
+  String get checkCardData => 'Siz noto\'g\'ri ma\'lumot kiritdingiz, tekshirib ko\'ring';
+
+  @override
+  String get validThruLabel => 'AMAL QILISH MUDDATI';
+
+  @override
+  String get verifyCardTitle => 'Kartani tasdiqlash';
+
+  @override
+  String get enterSmsCode => 'SMS kodni kiriting';
+
+  @override
+  String smsCodeSentFor(String number) {
+    return '$number kartasini tasdiqlash uchun kod yuborildi';
+  }
+
+  @override
+  String get cardAddedSuccess => 'Karta muvaffaqiyatli qo\'shildi';
+
+  @override
+  String get confirmButton => 'Tasdiqlash';
+
+  @override
+  String get plansTitle => 'Tariflar';
+
+  @override
+  String get noPlans => 'Tariflar mavjud emas';
+
+  @override
+  String get confirmPurchaseTitle => 'Tasdiqlash';
+
+  @override
+  String confirmPurchaseMessage(String name, String price, String period) {
+    return '«$name» tarifini $price UZS / $period ga ulashni istaysizmi?';
+  }
+
+  @override
+  String get updatePlan => 'Ulash';
+
+  @override
+  String get freeLabel => 'Bepul';
+
+  @override
+  String storageFeature(String storage) {
+    return '$storage Xotira';
+  }
+
+  @override
+  String get dataPreservedNote => 'Tarif yangilanishida ma\'lumotlaringiz saqlanib qoladi.';
+
+  @override
+  String get unknownError => 'Noma\'lum xato';
+
+  @override
+  String get switchPlanButton => 'Ushbu tarifga o\'tish';
+
+  @override
+  String get addCardPrompt => 'To\'lov uchun karta qo\'shing';
+
+  @override
+  String get downgradeWarningTitle => 'Tarifni almashtirishni tasdiqlang';
+
+  @override
+  String downgradeWarningMessage(String used, String plan, String limit) {
+    return 'Hozir $used ishlatilmoqda. «$plan» tarifida $limit mavjud. O\'tishdan so\'ng, xotira limit doirasiga tushmaguncha yangi fayllar sinxronizatsiyasi to\'xtaydi. Mavjud fayllar o\'chirilmaydi.';
+  }
+
+  @override
+  String get continueAnyway => 'Baribir o\'tish';
+
+  @override
+  String get staySamePlan => 'Joriy tarifda qolish';
+
+  @override
+  String get popularBadge => 'Ommabop';
+
+  @override
+  String get planPeriodMonthly => '/oy';
+
+  @override
+  String get planPeriodYearly => '/yil';
+
+  @override
+  String get cardTypeUzcard => 'Uzcard';
+
+  @override
+  String get cardTypeHumo => 'Humo';
+
+  @override
+  String get cardTypeVisa => 'Visa';
+
+  @override
+  String get cardTypeMastercard => 'Mastercard';
+
+  @override
+  String get cardTypeUnknown => 'Karta';
+
+  @override
+  String get errorInvalidCredentials => 'Telefon raqami yoki parol noto\'g\'ri';
+
+  @override
+  String get errorUserNotFound => 'Foydalanuvchi topilmadi';
+
+  @override
+  String get errorInvalidCode => 'Tasdiqlash kodi noto\'g\'ri';
+
+  @override
+  String get errorSessionExpired => 'Sessiya muddati tugadi, qaytadan urinib ko\'ring';
+
+  @override
+  String get errorSessionExpiredRelogin => 'Sessiya muddati tugadi. Qaytadan kiring';
+
+  @override
+  String get errorUserAlreadyExists => 'Bu telefon raqami bilan foydalanuvchi allaqachon mavjud';
+
+  @override
+  String get genericErrorFallback => 'Xatolik yuz berdi, keyinroq urinib ko\'ring';
+
+  @override
+  String get planNameFree => 'Bepul';
+
+  @override
+  String get planNameStart => 'Start';
+
+  @override
+  String get planNamePlus => 'Plus';
+
+  @override
+  String get planNameFamily => 'Oila';
+
+  @override
+  String get planNamePro => 'Pro';
+
+  @override
+  String get clearDoneButton => 'Tozalash';
+
+  @override
+  String get allUploadedStatus => 'Barchasi yuklandi!';
+
+  @override
+  String get noNetworkWaiting => 'Tarmoq yo\'q — kutilmoqda...';
+
+  @override
+  String uploadingProgress(int current, int total) {
+    return '$current/$total yuklanmoqda...';
+  }
+
+  @override
+  String get tapToSelectFiles => 'Tanlash uchun bosing';
+
+  @override
+  String get photosAndVideosOnly => 'Faqat foto va videolar';
+
+  @override
+  String uploadingCountBadge(int count) {
+    return '$count ta yuklanmoqda';
+  }
+
+  @override
+  String pausedCountBadge(int count) {
+    return '$count ta pauzada';
+  }
+
+  @override
+  String doneCountBadge(int count) {
+    return '$count ta tayyor';
+  }
+
+  @override
+  String get addFilesButton => 'Qo\'shish';
+
+  @override
+  String get waitingForNetworkShort => 'Tarmoq kutilmoqda...';
+
+  @override
+  String get uploadingEllipsis => 'Yuklanmoqda...';
+
+  @override
+  String get selectPhotosVideos => 'Foto / video tanlash';
+
+  @override
+  String get uploadMoreButton => 'Yana yuklash';
+
+  @override
+  String get addMoreButton => 'Yana qo\'shish';
+
+  @override
+  String get pausedWillResumeAuto => 'Tarmoq yo\'q — avtomatik davom etadi';
+
+  @override
+  String shareButtonWithCount(int count) {
+    return 'Ulashish ($count)';
+  }
+
+  @override
+  String filesAndFoldersCount(int files, int folders) {
+    return '$files fayl, $folders papka';
+  }
+
+  @override
+  String get chooseFolderTitle => 'Papkani tanlang';
+
+  @override
+  String get homeFolderLabel => 'Bosh sahifa';
+
+  @override
+  String get invalidPhoneNumber => 'Telefon raqami noto\'g\'ri';
+
+  @override
+  String get repeatPasswordHint => 'Parolni takrorlang';
+
+  @override
+  String get removedFromFavourites => 'Sevimlilardan olib tashlandi';
+
+  @override
+  String get alreadyInFavourites => 'Tanlangan fayllar allaqachon sevimlilarda';
+
+  @override
+  String get cannotMoveIntoItself => 'Papkani o\'zining ichiga ko\'chirib bo\'lmaydi';
+
+  @override
+  String get forgotPasswordTitle => 'Parolni unutdingizmi?';
+
+  @override
+  String get forgotPasswordSubtitle => 'Telefon raqamingizni kiriting, biz parolni tiklash uchun kod yuboramiz.';
+
+  @override
+  String get phoneNumberLabel => 'Telefon raqami';
+
+  @override
+  String get sendOtpCodeButton => 'Kodni yuborish';
+
+  @override
+  String get verifyOtpCodeTitle => 'Tasdiqlash kodini kiriting';
+
+  @override
+  String get otpSentToPrefix => 'Biz 6 xonali kodni yubordik: ';
+
+  @override
+  String get enterCompleteOtpCode => '6 xonali kodni to\'liq kiriting';
+
+  @override
+  String get verifyButton => 'Tasdiqlash';
+
+  @override
+  String get resendCodeButton => 'Kodni qayta yuborish';
+
+  @override
+  String get otpCodeResentMessage => 'Kod qayta yuborildi';
+
+  @override
+  String get setNewPasswordTitle => 'Yangi parol o\'rnating';
+
+  @override
+  String get setNewPasswordSubtitle => 'Kamida 8 belgidan iborat kuchli parol yarating.';
+
+  @override
+  String get enterNewPasswordHint => 'Yangi parolni kiriting';
+
+  @override
+  String get confirmNewPasswordHint => 'Yangi parolni tasdiqlang';
+
+  @override
+  String get resetPasswordButton => 'Parolni tiklash';
+
+  @override
+  String get passwordResetSuccessMessage => 'Parol muvaffaqiyatli o\'zgartirildi!';
+
+  @override
+  String get errorOtpStillValid => 'Oldingi tasdiqlash kodi hali amal qiladi. Yangisini so\'rashdan oldin kuting.';
+
+  @override
+  String get loginWelcomeTitle => 'Xush kelibsiz\nBulutcha';
+
+  @override
+  String get loginSubtitle => 'Fayllaringizga kirish uchun tizimga kiring.';
+
+  @override
+  String get passwordLabel => 'Parol';
+
+  @override
+  String get enterYourPasswordHint => 'Parolni kiriting';
+
+  @override
+  String get signInButton => 'Kirish';
+
+  @override
+  String get noAccountPrompt => 'Akkountingiz yo\'qmi? ';
+
+  @override
+  String get registerLink => 'Ro\'yxatdan o\'tish';
+
+  @override
+  String get enterOtpCodeTitle => 'Tasdiqlash kodini kiriting';
+
+  @override
+  String get notifications => 'Bildirishnomalar';
+
+  @override
+  String get noNotificationsYet => 'Hozircha bildirishnomalar yo\'q';
+
+  @override
+  String get markAllAsRead => 'Barchasini o\'qilgan deb belgilash';
+
+  @override
+  String get markAsRead => 'O\'qilgan deb belgilash';
+
+  @override
+  String get deleteNotification => 'Bildirishnomani o\'chirish';
+
+  @override
+  String get notificationDeleteConfirmMessage => 'Bu bildirishnomani o\'chirasizmi? Bu amalni qaytarib bo\'lmaydi.';
+
+  @override
+  String get failedToLoadNotifications => 'Bildirishnomalarni yuklab bo\'lmadi';
+
+  @override
+  String get allNotificationsMarkedRead => 'Barcha bildirishnomalar o\'qilgan deb belgilandi';
+
+  @override
+  String get notifTypeSubscriptionExpiryWarning => 'Obuna muddati tugayapti';
+
+  @override
+  String get notifTypeSubscriptionExpired => 'Obuna muddati tugadi';
+
+  @override
+  String get notifTypeSubscriptionRenewed => 'Obuna yangilandi';
+
+  @override
+  String get notifTypeSubscriptionDowngraded => 'Obuna pasaytirildi';
+
+  @override
+  String get notifTypePaymentSuccess => 'To\'lov muvaffaqiyatli o\'tdi';
+
+  @override
+  String get notifTypePaymentFailed => 'To\'lov amalga oshmadi';
+
+  @override
+  String get notifTypeCardDeclined => 'Karta rad etildi';
+
+  @override
+  String get notifTypeFileShared => 'Sizga fayl ulashildi';
+
+  @override
+  String get notifTypeFileShareRevoked => 'Faylga kirish huquqi bekor qilindi';
+
+  @override
+  String get notifTypeShareRequestReceived => 'Yangi kirish so\'rovi';
+
+  @override
+  String get notifTypeShareRequestApproved => 'Kirish so\'rovi tasdiqlandi';
+
+  @override
+  String get notifTypeShareRequestRejected => 'Kirish so\'rovi rad etildi';
+
+  @override
+  String get notifTypeSystemAnnouncement => 'Tizim xabari';
+
+  @override
+  String get notifTypeStorageWarning => 'Xotira deyarli to\'lgan';
+
+  @override
+  String get notifTypeStorageFull => 'Xotira to\'ldi';
+
+  @override
+  String get notifTypeUnknown => 'Yangi bildirishnoma';
 }

@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:cloud_app/l10n/app_localizations.dart';
 import '../../../core/config/app_config.dart';
+import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/error_localizer.dart';
+import '../data/download_repository.dart';
 
 class VideoPlayerPage extends StatefulWidget {
   final String videoUrl;
   final String fileName;
   final String? authToken;
+  final String? fileId;
 
   const VideoPlayerPage({
     super.key,
     required this.videoUrl,
     required this.fileName,
     this.authToken,
+    this.fileId,
   });
 
   @override
@@ -22,10 +28,34 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   late VideoPlayerController _controller;
   bool _isInitialized = false;
   bool _hasError = false;
-  String _errorMessage = '';
   bool _showControls = true;
   bool _isMuted = false;
+  bool _isDownloading = false;
   double _volume = 1.0;
+  final _downloadRepo = DownloadRepository();
+
+  Future<void> _download() async {
+    final fileId = widget.fileId;
+    if (fileId == null || fileId.isEmpty || _isDownloading) return;
+    setState(() => _isDownloading = true);
+    try {
+      await _downloadRepo.downloadFile(fileId: fileId, fileName: widget.fileName);
+      if (!mounted) return;
+      final t = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.fileSaved(widget.fileName))),
+      );
+    } on AppException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
+            backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _isDownloading = false);
+    }
+  }
 
   @override
   void initState() {
@@ -44,10 +74,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           })
           .catchError((e) {
             if (mounted) {
-              setState(() {
-                _hasError = true;
-                _errorMessage = e.toString();
-              });
+              setState(() => _hasError = true);
             }
           });
     _controller.addListener(_onVideoUpdate);
@@ -112,6 +139,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           child: AnimatedOpacity(
             opacity: _showControls ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
             child: AppBar(
               backgroundColor: Colors.black45,
               foregroundColor: Colors.white,
@@ -140,11 +168,30 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 children: [
                   const Icon(Icons.error_outline, color: Colors.grey, size: 64),
                   const SizedBox(height: 12),
-                  Text(
-                    'Error: $_errorMessage',
-                    style: const TextStyle(color: Colors.grey),
-                    textAlign: TextAlign.center,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Text(
+                      AppLocalizations.of(context)!.videoFormatNotSupported,
+                      style: const TextStyle(color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
+                  if (widget.fileId != null && widget.fileId!.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    TextButton.icon(
+                      onPressed: _isDownloading ? null : _download,
+                      icon: _isDownloading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.download_rounded, color: Colors.white),
+                      label: Text(AppLocalizations.of(context)!.download,
+                          style: const TextStyle(color: Colors.white)),
+                    ),
+                  ],
                 ],
               ),
             )
@@ -161,10 +208,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       child: VideoPlayer(_controller),
                     ),
                   ),
-                  // Play / Pause overlay
                   AnimatedOpacity(
                     opacity: _showControls ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOut,
                     child: IgnorePointer(
                       ignoring: !_showControls,
                       child: GestureDetector(
@@ -191,7 +238,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       ),
                     ),
                   ),
-                  // Bottom controls: progress + volume
                   Positioned(
                     left: 16,
                     right: 16,
@@ -201,6 +247,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       child: AnimatedOpacity(
                         opacity: _showControls ? 1.0 : 0.0,
                         duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOut,
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -216,7 +263,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                             ),
                             Row(
                               children: [
-                                // Time position
                                 Text(
                                   _formatDuration(_controller.value.position),
                                   style: const TextStyle(
@@ -225,7 +271,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                   ),
                                 ),
                                 const Spacer(),
-                                // Mute/unmute button
                                 GestureDetector(
                                   onTap: _toggleMute,
                                   child: Icon(
@@ -239,7 +284,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                   ),
                                 ),
                                 const SizedBox(width: 4),
-                                // Volume slider
                                 SizedBox(
                                   width: 80,
                                   child: SliderTheme(
@@ -266,7 +310,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                // Time duration
                                 Text(
                                   _formatDuration(_controller.value.duration),
                                   style: const TextStyle(

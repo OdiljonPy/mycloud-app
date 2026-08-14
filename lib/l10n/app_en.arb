@@ -158,8 +158,22 @@
     }
   },
   "addedToFavourites": "Added to favourites",
+  "favouriteUpdateFailed": "Failed to update favourites",
+  "unitBytes": "bytes",
+  "unitKb": "KB",
+  "unitMb": "MB",
+  "unitGb": "GB",
+  "unitTb": "TB",
+  "storageUsedOfLimit": "{used} used of {limit}",
+  "@storageUsedOfLimit": {
+    "placeholders": {
+      "used": { "type": "String" },
+      "limit": { "type": "String" }
+    }
+  },
   "couldNotOpenImage": "Could not open image",
   "couldNotOpenVideo": "Could not open video",
+  "videoFormatNotSupported": "This video format is not supported for playback",
   "noSharedWithMe": "No one has shared files",
   "noSharedWithMeSubtitle": "When someone shares a file — it will appear here",
   "noSharedByMe": "You haven't shared with anyone yet",
@@ -247,6 +261,15 @@
   "syncResumeButton": "Resume Sync",
   "syncSelectedFiles": "Selected files",
   "syncSelectedFilesSubtitle": "Sync only selected",
+  "syncSelectedCount": "{count} media selected",
+  "@syncSelectedCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "selectSyncFilesTitle": "Select files to sync",
+  "selectSyncFilesDone": "Done",
+  "selectSyncFilesPermissionDenied": "No access to gallery. Allow access in system settings.",
   "syncTotal": "Total",
   "uploadedLabel": "Uploaded",
   "uploadPageTitle": "Upload",
@@ -277,5 +300,222 @@
   },
   "deleteAccount": "Delete account",
   "deleteAccountConfirm": "Delete account",
-  "deleteAccountConfirmMessage": "Are you sure you want to delete your account? This action is irreversible."
+  "deleteAccountConfirmMessage": "Are you sure you want to delete your account? This action is irreversible.",
+  "storageSubtitle": "Track your storage usage and manage your plan.",
+  "activeSubscriptionDetails": "Active subscription details",
+  "planName": "Plan name",
+  "storageLimitLabel": "Storage limit",
+  "available": "Available",
+  "planUsedLabel": "Used",
+  "subscriptionStartsAt": "Start date",
+  "subscriptionEndsAt": "End date",
+  "billingMonthly": "Monthly",
+  "billingYearly": "Yearly",
+  "upgradeToPlan": "Upgrade to {name}",
+  "@upgradeToPlan": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "filesAlreadyInFolder": "Files are already in this folder",
+  "folderEmpty": "Folder is empty",
+  "accessRevoked": "Access revoked",
+  "userNotFound": "User not found",
+
+  "paymentAndSubscription": "Payment & Subscription",
+  "cardDeleted": "Card deleted",
+  "cardSetAsDefault": "Card set as default",
+  "myCards": "My cards",
+  "addCard": "Add card",
+  "noCardsLinked": "No cards linked",
+  "noSubscription": "No subscription",
+  "currentPlan": "Current plan",
+  "changePlan": "Change plan",
+  "choosePlan": "Choose plan",
+  "storageUsed": "{used} used",
+  "@storageUsed": {
+    "placeholders": { "used": { "type": "String" } }
+  },
+  "subscriptionUntil": "Until: {date}",
+  "@subscriptionUntil": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "cardStatusActive": "Active",
+  "cardStatusPending": "Pending confirmation",
+  "cardStatusBlocked": "Blocked",
+  "cardDefaultLabel": "Default",
+  "setAsDefault": "Set as default",
+  "deleteCardTitle": "Delete card?",
+  "deleteCardMessage": "Card {number} will be deleted.",
+  "@deleteCardMessage": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "cardNumberLabel": "Card number",
+  "enterCardNumber": "Enter card number",
+  "cardNumber16Digits": "Card number must be 16 digits",
+  "expiryDate": "Expiry date",
+  "enterExpiryDate": "Enter expiry date",
+  "expiryDateFormat": "Format: MM/YY",
+  "invalidMonth": "Invalid month",
+  "cardExpired": "Card has expired",
+  "checkCardData": "You entered invalid data, please check",
+  "validThruLabel": "VALID THRU",
+  "verifyCardTitle": "Card verification",
+  "enterSmsCode": "Enter SMS code",
+  "smsCodeSentFor": "Code sent to confirm card\n{number}",
+  "@smsCodeSentFor": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "cardAddedSuccess": "Card added successfully",
+  "confirmButton": "Confirm",
+  "plansTitle": "Plans",
+  "noPlans": "No plans available",
+  "confirmPurchaseTitle": "Confirm",
+  "confirmPurchaseMessage": "Subscribe to «{name}» for {price} UZS / {period}?",
+  "@confirmPurchaseMessage": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "price": { "type": "String" },
+      "period": { "type": "String" }
+    }
+  },
+  "updatePlan": "Subscribe",
+  "freeLabel": "Free",
+  "storageFeature": "{storage} Storage",
+  "@storageFeature": {
+    "placeholders": { "storage": { "type": "String" } }
+  },
+  "dataPreservedNote": "Your data will be preserved when upgrading.",
+  "unknownError": "Unknown error",
+  "switchPlanButton": "Switch to this plan",
+  "addCardPrompt": "Add a card to pay",
+  "downgradeWarningTitle": "Confirm plan change",
+  "downgradeWarningMessage": "You are currently using {used}. The «{plan}» plan offers {limit}. After switching, syncing new files will pause until your storage is within the limit. Existing files will not be deleted.",
+  "@downgradeWarningMessage": {
+    "placeholders": {
+      "used": { "type": "String" },
+      "plan": { "type": "String" },
+      "limit": { "type": "String" }
+    }
+  },
+  "continueAnyway": "Switch anyway",
+  "staySamePlan": "Stay on current plan",
+  "popularBadge": "Popular",
+  "planPeriodMonthly": "/mo",
+  "planPeriodYearly": "/yr",
+  "cardTypeUzcard": "Uzcard",
+  "cardTypeHumo": "Humo",
+  "cardTypeVisa": "Visa",
+  "cardTypeMastercard": "Mastercard",
+  "cardTypeUnknown": "Card",
+  "errorInvalidCredentials": "Incorrect phone number or password",
+  "errorUserNotFound": "User not found",
+  "errorInvalidCode": "Invalid verification code",
+  "errorSessionExpired": "Session expired, please try again",
+  "errorSessionExpiredRelogin": "Session expired. Please sign in again",
+  "errorUserAlreadyExists": "A user with this phone number already exists",
+  "genericErrorFallback": "Something went wrong, please try again later",
+  "planNameFree": "Free",
+  "planNameStart": "Start",
+  "planNamePlus": "Plus",
+  "planNameFamily": "Family",
+  "planNamePro": "Pro",
+  "clearDoneButton": "Clear",
+  "allUploadedStatus": "All uploaded!",
+  "noNetworkWaiting": "No network — waiting...",
+  "uploadingProgress": "Uploading {current} of {total}...",
+  "@uploadingProgress": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "tapToSelectFiles": "Tap to select",
+  "photosAndVideosOnly": "Photos and videos only",
+  "uploadingCountBadge": "{count} uploading",
+  "@uploadingCountBadge": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "pausedCountBadge": "{count} paused",
+  "@pausedCountBadge": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "doneCountBadge": "{count} done",
+  "@doneCountBadge": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "addFilesButton": "Add",
+  "waitingForNetworkShort": "Waiting for network...",
+  "uploadingEllipsis": "Uploading...",
+  "selectPhotosVideos": "Select photos / videos",
+  "uploadMoreButton": "Upload more",
+  "addMoreButton": "Add more",
+  "pausedWillResumeAuto": "No network — will resume automatically",
+  "shareButtonWithCount": "Share ({count})",
+  "@shareButtonWithCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "filesAndFoldersCount": "{files} files, {folders} folders",
+  "@filesAndFoldersCount": {
+    "placeholders": {
+      "files": { "type": "int" },
+      "folders": { "type": "int" }
+    }
+  },
+  "chooseFolderTitle": "Choose folder",
+  "homeFolderLabel": "Home",
+  "invalidPhoneNumber": "Invalid phone number",
+  "repeatPasswordHint": "Repeat your password",
+  "removedFromFavourites": "Removed from favourites",
+  "alreadyInFavourites": "Selected files are already in favourites",
+  "cannotMoveIntoItself": "Can't move a folder into itself",
+  "forgotPasswordTitle": "Forgot Password?",
+  "forgotPasswordSubtitle": "Enter your phone number and we'll send you a code to reset your password.",
+  "phoneNumberLabel": "Phone Number",
+  "sendOtpCodeButton": "Send OTP Code",
+  "verifyOtpCodeTitle": "Verify OTP Code",
+  "otpSentToPrefix": "We sent a 6-digit code to ",
+  "enterCompleteOtpCode": "Enter the complete 6-digit code",
+  "verifyButton": "Verify",
+  "resendCodeButton": "Resend Code",
+  "otpCodeResentMessage": "OTP code resent",
+  "setNewPasswordTitle": "Set New Password",
+  "setNewPasswordSubtitle": "Create a strong password with at least 8 characters.",
+  "enterNewPasswordHint": "Enter new password",
+  "confirmNewPasswordHint": "Confirm new password",
+  "resetPasswordButton": "Reset Password",
+  "passwordResetSuccessMessage": "Password reset successfully!",
+  "errorOtpStillValid": "Previous verification code is still valid. Please wait before requesting a new one.",
+  "loginWelcomeTitle": "Welcome back to\nBulutcha",
+  "loginSubtitle": "Please sign in to access your secure files.",
+  "passwordLabel": "Password",
+  "enterYourPasswordHint": "Enter your password",
+  "signInButton": "Sign In",
+  "noAccountPrompt": "Don't have an account? ",
+  "registerLink": "Register",
+  "enterOtpCodeTitle": "Enter OTP Code",
+  "notifications": "Notifications",
+  "noNotificationsYet": "No notifications yet",
+  "markAllAsRead": "Mark all as read",
+  "markAsRead": "Mark as read",
+  "deleteNotification": "Delete notification",
+  "notificationDeleteConfirmMessage": "Delete this notification? This action is irreversible.",
+  "failedToLoadNotifications": "Failed to load notifications",
+  "allNotificationsMarkedRead": "All notifications marked as read",
+  "notifTypeSubscriptionExpiryWarning": "Subscription expiring soon",
+  "notifTypeSubscriptionExpired": "Subscription expired",
+  "notifTypeSubscriptionRenewed": "Subscription renewed",
+  "notifTypeSubscriptionDowngraded": "Subscription downgraded",
+  "notifTypePaymentSuccess": "Payment successful",
+  "notifTypePaymentFailed": "Payment failed",
+  "notifTypeCardDeclined": "Card declined",
+  "notifTypeFileShared": "A file was shared with you",
+  "notifTypeFileShareRevoked": "File access revoked",
+  "notifTypeShareRequestReceived": "New access request",
+  "notifTypeShareRequestApproved": "Access request approved",
+  "notifTypeShareRequestRejected": "Access request rejected",
+  "notifTypeSystemAnnouncement": "System announcement",
+  "notifTypeStorageWarning": "Storage running low",
+  "notifTypeStorageFull": "Storage full",
+  "notifTypeUnknown": "New notification"
 }

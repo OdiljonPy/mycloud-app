@@ -2,8 +2,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'core/config/app_config.dart';
 import 'core/services/language_notifier.dart';
+import 'core/services/navigation_service.dart';
+import 'core/services/push_notification_service.dart';
 import 'features/auth/presentation/splash_page.dart';
 import 'l10n/app_localizations.dart';
 
@@ -84,6 +89,15 @@ final ThemeData _darkTheme = ThemeData(
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   AppConfig.initialize(Environment.prod);
+  await initializeDateFormatting();
+
+  try {
+    await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  } catch (e) {
+    debugPrint('[Main] Firebase init failed (non-critical): $e');
+  }
+
   runApp(const ProviderScope(child: CloudApp()));
 }
 
@@ -97,6 +111,8 @@ class CloudApp extends StatelessWidget {
       builder: (context, _) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
+          navigatorKey: NavigationService.navigatorKey,
+          scaffoldMessengerKey: NavigationService.scaffoldMessengerKey,
           title: 'Bulutcha',
           theme: _lightTheme,
           darkTheme: _darkTheme,

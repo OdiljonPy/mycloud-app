@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../../../../core/errors/app_exception.dart';
 import '../../../../core/storage/secure_storage.dart';
 import '../models/share_models.dart';
 import 'share_remote_data_source.dart';
@@ -32,8 +33,11 @@ class ShareRemoteDataSourceImpl implements ShareRemoteDataSource {
           .map((e) => FileShareModel.fromJson(e as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
-      throw Exception(
-          e.response?.data?['message'] ?? 'Не удалось загрузить shared by me');
+      throw AppException(
+        message: e.response?.data?['message']?.toString() ??
+            'Не удалось загрузить shared by me',
+        statusCode: e.response?.statusCode,
+      );
     }
   }
 
@@ -48,8 +52,11 @@ class ShareRemoteDataSourceImpl implements ShareRemoteDataSource {
       );
       return FileShareModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      throw Exception(
-          e.response?.data?['message'] ?? 'Не удалось поделиться файлами');
+      throw AppException(
+        message: e.response?.data?['message']?.toString() ??
+            'Не удалось поделиться файлами',
+        statusCode: e.response?.statusCode,
+      );
     }
   }
 
@@ -72,8 +79,11 @@ class ShareRemoteDataSourceImpl implements ShareRemoteDataSource {
       );
       return FileShareModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      throw Exception(
-          e.response?.data?['message'] ?? 'Не удалось отозвать доступ');
+      throw AppException(
+        message: e.response?.data?['message']?.toString() ??
+            'Не удалось отозвать доступ',
+        statusCode: e.response?.statusCode,
+      );
     }
   }
 
@@ -90,8 +100,11 @@ class ShareRemoteDataSourceImpl implements ShareRemoteDataSource {
           .map((e) => SharedByMeUserModel.fromJson(e as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['message'] ??
-          'Не удалось загрузить пользователей');
+      throw AppException(
+        message: e.response?.data?['message']?.toString() ??
+            'Не удалось загрузить пользователей',
+        statusCode: e.response?.statusCode,
+      );
     }
   }
 
@@ -106,8 +119,11 @@ class ShareRemoteDataSourceImpl implements ShareRemoteDataSource {
       return ControllerDefaultResponseModel.fromJson(
           response.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      throw Exception(
-          e.response?.data?['message'] ?? 'Не удалось загрузить файлы');
+      throw AppException(
+        message: e.response?.data?['message']?.toString() ??
+            'Не удалось загрузить файлы',
+        statusCode: e.response?.statusCode,
+      );
     }
   }
 
@@ -123,8 +139,11 @@ class ShareRemoteDataSourceImpl implements ShareRemoteDataSource {
       return ControllerDefaultResponseModel.fromJson(
           response.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      throw Exception(
-          e.response?.data?['message'] ?? 'Не удалось загрузить папку');
+      throw AppException(
+        message: e.response?.data?['message']?.toString() ??
+            'Не удалось загрузить папку',
+        statusCode: e.response?.statusCode,
+      );
     }
   }
 
@@ -141,8 +160,11 @@ class ShareRemoteDataSourceImpl implements ShareRemoteDataSource {
           .map((e) => SharedWithMeUserModel.fromJson(e as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['message'] ??
-          'Не удалось загрузить shared with me');
+      throw AppException(
+        message: e.response?.data?['message']?.toString() ??
+            'Не удалось загрузить shared with me',
+        statusCode: e.response?.statusCode,
+      );
     }
   }
 
@@ -158,8 +180,11 @@ class ShareRemoteDataSourceImpl implements ShareRemoteDataSource {
       return ControllerDefaultResponseModel.fromJson(
           response.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      throw Exception(
-          e.response?.data?['message'] ?? 'Не удалось загрузить файлы');
+      throw AppException(
+        message: e.response?.data?['message']?.toString() ??
+            'Не удалось загрузить файлы',
+        statusCode: e.response?.statusCode,
+      );
     }
   }
 
@@ -175,8 +200,11 @@ class ShareRemoteDataSourceImpl implements ShareRemoteDataSource {
       return ControllerDefaultResponseModel.fromJson(
           response.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      throw Exception(
-          e.response?.data?['message'] ?? 'Не удалось загрузить папку');
+      throw AppException(
+        message: e.response?.data?['message']?.toString() ??
+            'Не удалось загрузить папку',
+        statusCode: e.response?.statusCode,
+      );
     }
   }
 
@@ -195,8 +223,11 @@ class ShareRemoteDataSourceImpl implements ShareRemoteDataSource {
       return ShareRequestListModel.fromJson(
           response.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      throw Exception(
-          e.response?.data?['message'] ?? 'Не удалось создать share request');
+      throw AppException(
+        message: e.response?.data?['message']?.toString() ??
+            'Не удалось создать share request',
+        statusCode: e.response?.statusCode,
+      );
     }
   }
 
@@ -214,8 +245,11 @@ class ShareRemoteDataSourceImpl implements ShareRemoteDataSource {
           ShareRequestListModel.fromJson(e as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['message'] ??
-          'Не удалось загрузить share requests');
+      throw AppException(
+        message: e.response?.data?['message']?.toString() ??
+            'Не удалось загрузить share requests',
+        statusCode: e.response?.statusCode,
+      );
     }
   }
 
@@ -230,8 +264,11 @@ class ShareRemoteDataSourceImpl implements ShareRemoteDataSource {
       return ShareRequestDetailModel.fromJson(
           response.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      throw Exception(
-          e.response?.data?['message'] ?? 'Не удалось загрузить детали');
+      throw AppException(
+        message: e.response?.data?['message']?.toString() ??
+            'Не удалось загрузить детали',
+        statusCode: e.response?.statusCode,
+      );
     }
   }
 
@@ -250,8 +287,11 @@ class ShareRemoteDataSourceImpl implements ShareRemoteDataSource {
       return ShareRequestPermission.fromJson(
           response.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      throw Exception(
-          e.response?.data?['message'] ?? 'Не удалось обновить статус');
+      throw AppException(
+        message: e.response?.data?['message']?.toString() ??
+            'Не удалось обновить статус',
+        statusCode: e.response?.statusCode,
+      );
     }
   }
 }

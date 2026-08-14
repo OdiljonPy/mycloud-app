@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'dart:io';
 import 'package:cross_file/cross_file.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mime/mime.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -27,7 +28,8 @@ class _TusDiskStore extends TusStore {
       if (!await f.exists()) return null;
       final url = await f.readAsString();
       return Uri.tryParse(url);
-    } catch (_) {
+    } catch (e) {
+      if (kDebugMode) debugPrint('[UploadRepo] disk store get failed: $e');
       return null;
     }
   }
@@ -36,7 +38,9 @@ class _TusDiskStore extends TusStore {
   Future<void> set(String fingerprint, Uri url) async {
     try {
       await File(_keyFile(fingerprint)).writeAsString(url.toString());
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('[UploadRepo] disk store set failed: $e');
+    }
   }
 
   @override
@@ -44,49 +48,25 @@ class _TusDiskStore extends TusStore {
     try {
       final f = File(_keyFile(fingerprint));
       if (await f.exists()) await f.delete();
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('[UploadRepo] disk store remove failed: $e');
+    }
   }
 }
 
 class UploadRepository {
-  // Задержка перед возобновлением после восстановления сети
   static int resumeDelaySeconds = 3;
+
+  static const _knownMediaExtensions = {'cr2', 'nef', 'arw', 'ts', 'mts'};
 
   static bool isAllowed(String fileName) {
     final mime = lookupMimeType(fileName) ?? '';
+    if (mime.isEmpty) {
+      final ext = fileName.split('.').last.toLowerCase();
+      return _knownMediaExtensions.contains(ext);
+    }
     return mime.startsWith('image/') || mime.startsWith('video/');
   }
-
-  static const List<String> allowedExtensions = [
-    'jpg',
-    'jpeg',
-    'png',
-    'gif',
-    'webp',
-    'heic',
-    'heif',
-    'bmp',
-    'tiff',
-    'tif',
-    'svg',
-    'ico',
-    'cr2',
-    'nef',
-    'arw',
-    'mp4',
-    'mov',
-    'avi',
-    'mkv',
-    'wmv',
-    'flv',
-    'webm',
-    'm4v',
-    '3gp',
-    'mpeg',
-    'mpg',
-    'ts',
-    'mts',
-  ];
 
   Future<void> uploadFile({
     required XFile file,
@@ -97,13 +77,13 @@ class UploadRepository {
     void Function(String status)? onStatusChange,
   }) async {
     final token = await SecureStorage.getAccessToken();
-    if (token == null) throw AppException(message: 'No auth token');
+    if (token == null) throw const AppException(message: 'No auth token');
 
     final fileName = file.name;
     final mimeType = lookupMimeType(fileName) ?? 'application/octet-stream';
 
     if (!isAllowed(fileName)) {
-      throw AppException(message: 'Разрешены только фото и видео файлы');
+      throw const AppException(message: 'Разрешены только фото и видео файлы');
     }
 
     final metadata = {
@@ -166,7 +146,6 @@ class UploadRepository {
         // Сеть пропала — ждём connectivity и повторяем
         onStatusChange?.call('paused');
 
-        // Ждём пока сеть вернётся
         await _waitForNetwork();
 
         onStatusChange?.call('resumed');
@@ -176,10 +155,9 @@ class UploadRepository {
       }
     }
 
-    connectivitySub?.cancel();
+    connectivitySub.cancel();
   }
 
-  // Ожидает восстановления сети
   Future<void> _waitForNetwork() async {
     final completer = Completer<void>();
     StreamSubscription? sub;

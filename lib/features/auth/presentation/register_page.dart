@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../data/auth_repository.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/error_localizer.dart';
 import '../../../core/utils/uzbek_phone_formatter.dart';
+import '../../../l10n/app_localizations.dart';
 import 'otp_page.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -99,9 +101,11 @@ class _RegisterPageState extends State<RegisterPage> {
         );
       }
     } on AppException catch (e) {
-      setState(() => _error = e.message);
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      setState(() => _error = ErrorLocalizer.forException(e, l10n));
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -133,17 +137,10 @@ class _RegisterPageState extends State<RegisterPage> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-<<<<<<< HEAD
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios, color: Theme.of(context).colorScheme.onSurface, size: 20),
-=======
-        backgroundColor: bgColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20),
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -169,7 +166,6 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               const SizedBox(height: 32),
 
-              // Full Name
               _buildField(
                 label: 'Full Name',
                 hint: 'John Doe',
@@ -182,7 +178,6 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               const SizedBox(height: 16),
 
-              // Phone Number
               _buildField(
                 label: 'Phone Number',
                 hint: '+998 XX XXX XX XX',
@@ -199,13 +194,12 @@ class _RegisterPageState extends State<RegisterPage> {
               if (_phoneTouched && !_isPhoneValid) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'Неверный номер телефона',
+                  AppLocalizations.of(context)!.invalidPhoneNumber,
                   style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],
               const SizedBox(height: 16),
 
-              // Password
               _buildField(
                 label: 'Password',
                 hint: 'Enter your password',
@@ -232,16 +226,15 @@ class _RegisterPageState extends State<RegisterPage> {
               if (_passwordTouched && !_isPasswordValid) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'Минимум 8 символов',
+                  AppLocalizations.of(context)!.passwordTooShort,
                   style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],
               const SizedBox(height: 16),
 
-              // Confirm Password
               _buildField(
                 label: 'Confirm Password',
-                hint: 'Повторите пароль',
+                hint: AppLocalizations.of(context)!.repeatPasswordHint,
                 controller: _confirmPasswordController,
                 icon: Icons.lock_outline_rounded,
                 obscure: _obscureConfirmPassword,
@@ -266,7 +259,7 @@ class _RegisterPageState extends State<RegisterPage> {
               if (_confirmPasswordTouched && !_isConfirmValid) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'Пароли не совпадают',
+                  AppLocalizations.of(context)!.passwordsDoNotMatch,
                   style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],
@@ -385,13 +378,9 @@ class _RegisterPageState extends State<RegisterPage> {
             hintText: hint,
             hintStyle: TextStyle(color: hintColor),
             filled: true,
-<<<<<<< HEAD
             fillColor: Theme.of(context).brightness == Brightness.dark
                     ? const Color(0xFF2A2A2A)
                     : const Color(0xFFF5F7FA),
-=======
-            fillColor: inputFillColor,
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
             prefixIcon: Container(
               margin: const EdgeInsets.all(10),
               padding: const EdgeInsets.all(8),

@@ -7,7 +7,10 @@ import '../data/sync_task.dart';
 class MediaScanner {
   final SyncQueueDb db;
   final Set<String> uploadedKeys;
-  final Set<String>? selectedLocalIds;
+
+  /// Album/bucket id (AssetPathEntity.id), не asset id. Если задан — сканер
+  /// проходит только по этим альбомам, а не по всей галерее.
+  final Set<String>? selectedAlbumIds;
   final String? sessionId;
   final void Function(int pending)? onProgress;
 
@@ -22,7 +25,7 @@ class MediaScanner {
   MediaScanner({
     required this.db,
     required this.uploadedKeys,
-    this.selectedLocalIds,
+    this.selectedAlbumIds,
     this.sessionId,
     this.onProgress,
     this.filterFromMs,
@@ -75,6 +78,16 @@ class MediaScanner {
       final now = DateTime.now().millisecondsSinceEpoch;
 
       for (final album in albums) {
+        // "All" — виртуальный агрегирующий альбом (дублирует все реальные
+        // папки). Пропускаем всегда: иначе один и тот же asset сначала
+        // вставился бы с albumId="All", и потом никогда бы не совпал с
+        // реальным выбранным альбомом (Camera/Screenshots) при purge.
+        if (album.isAll) continue;
+
+        if (selectedAlbumIds != null && !selectedAlbumIds!.contains(album.id)) {
+          continue;
+        }
+
         final assetCount = await album.assetCountAsync;
         if (assetCount == 0) continue;
 
@@ -91,13 +104,6 @@ class MediaScanner {
           await Future.delayed(Duration.zero);
           for (final asset in assets) {
             try {
-              // Skip if selective sync is on and asset not selected
-              if (selectedLocalIds != null &&
-                  !selectedLocalIds!.contains(asset.id)) {
-                continue;
-              }
-
-              // Delta filter: пропускаем если ассет старее watermark
               final assetCreatedMs = asset.createDateTime.millisecondsSinceEpoch;
               if (filterFromMs != null && assetCreatedMs < filterFromMs!) continue;
 
@@ -105,7 +111,6 @@ class MediaScanner {
               final name = asset.title ?? '${asset.id}.${asset.type == AssetType.video ? 'mp4' : 'jpg'}';
               final mimeType = _mimeForAsset(asset);
 
-              // bucket_day для группировки
               final bucketDay = '${asset.createDateTime.year.toString().padLeft(4, '0')}'
                   '-${asset.createDateTime.month.toString().padLeft(2, '0')}'
                   '-${asset.createDateTime.day.toString().padLeft(2, '0')}';
@@ -121,10 +126,13 @@ class MediaScanner {
                     realSize = await file.length();
                     resolvedPath = file.path;
                   }
-                } catch (_) {}
+                } catch (e) {
+                  if (kDebugMode) {
+                    debugPrint('[MediaScanner] originFile resolve failed for ${asset.id}: $e');
+                  }
+                }
               }
 
-              // Skip if already in local DB
               if (await db.exists(asset.id)) continue;
 
               // Дополнительно: проверка по имени+размеру для случая после logout
@@ -133,7 +141,6 @@ class MediaScanner {
                 if (alreadyDone) continue;
               }
 
-              // Key для server-side dedup
               final key = '$name|$realSize';
 
               // Check if already uploaded to server (cold start dedup)
@@ -150,11 +157,11 @@ class MediaScanner {
                   bucketDay: bucketDay,
                   createdAt: now,
                   updatedAt: now,
+                  albumId: album.id,
                 ));
                 continue;
               }
 
-              // Enqueue as pending
               await db.insertOrIgnore(SyncTask(
                 localId: asset.id,
                 filePath: resolvedPath,
@@ -167,6 +174,7 @@ class MediaScanner {
                 bucketDay: bucketDay,
                 createdAt: now,
                 updatedAt: now,
+                albumId: album.id,
               ));
               enqueued++;
               onProgress?.call(enqueued);

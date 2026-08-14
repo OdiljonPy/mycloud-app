@@ -23,9 +23,12 @@ class ProfileRepository {
     return data.toString();
   }
 
-  Future<Map<String, dynamic>> getMe() async {
+  Future<Map<String, dynamic>> getMe({bool silent = false}) async {
     try {
-      final r = await _dio.get('/authentication/users/me/');
+      final r = await _dio.get(
+        '/authentication/users/me/',
+        options: silent ? Options(extra: {'silentAuth': true}) : null,
+      );
       return r.data is Map<String, dynamic> ? r.data : {};
     } on DioException catch (e) {
       throw AppException(

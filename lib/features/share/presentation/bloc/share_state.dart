@@ -63,12 +63,12 @@ class ShareSuccess extends ShareState {
 }
 
 class ShareError extends ShareState {
-  final String message;
+  final Object error;
 
-  const ShareError({required this.message});
+  const ShareError({required this.error});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [error];
 }
 
 // ================= NEW SHARE REQUEST STATES =================

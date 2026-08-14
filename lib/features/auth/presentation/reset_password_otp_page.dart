@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../data/auth_repository.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/error_localizer.dart';
+import '../../../l10n/app_localizations.dart';
 import 'reset_password_page.dart';
 
 class ResetPasswordOtpPage extends StatefulWidget {
@@ -38,9 +40,47 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
 
   String get _otpCode => _controllers.map((c) => c.text).join();
 
+  void _onDigitChanged(String val, int index) {
+    final digits = val.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (digits.length > 1) {
+      // Вставка из буфера / автозаполнение — раскладываем по всем полям с начала.
+      final chars = digits.split('');
+      for (int j = 0; j < 6; j++) {
+        _controllers[j].text = j < chars.length ? chars[j] : '';
+      }
+      final nextEmpty = chars.length.clamp(0, 6);
+      if (nextEmpty < 6) {
+        _focusNodes[nextEmpty].requestFocus();
+      } else {
+        FocusScope.of(context).unfocus();
+      }
+    } else {
+      _controllers[index].text = digits;
+      if (digits.isNotEmpty && index < 5) {
+        _focusNodes[index + 1].requestFocus();
+      }
+      if (digits.isEmpty && index > 0) {
+        _focusNodes[index - 1].requestFocus();
+      }
+    }
+
+    setState(() {});
+    if (_otpCode.length == 6) _verify();
+  }
+
+  void _onBackspace(int index) {
+    if (_controllers[index].text.isEmpty && index > 0) {
+      _controllers[index - 1].clear();
+      _focusNodes[index - 1].requestFocus();
+      setState(() {});
+    }
+  }
+
   Future<void> _verify() async {
+    if (_isLoading) return;
     if (_otpCode.length < 6) {
-      setState(() => _error = 'Enter the complete 6-digit code');
+      setState(() => _error = AppLocalizations.of(context)!.enterCompleteOtpCode);
       return;
     }
 
@@ -50,8 +90,9 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
     });
 
     try {
-      // Verify OTP is valid — don't save tokens (this is password reset flow)
-      await _authRepo.verifyOtp(
+      // Password-reset flow: password/verify/ returns a new otp_key
+      // required by password/reset/ (no tokens saved, sync untouched)
+      final newOtpKey = await _authRepo.verifyPasswordOtp(
         otpKey: _otpKey,
         otpCode: int.parse(_otpCode),
       );
@@ -60,14 +101,17 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
           context,
           MaterialPageRoute(
             builder: (_) => ResetPasswordPage(
-              otpKey: _otpKey,
+              otpKey: newOtpKey.isNotEmpty ? newOtpKey : _otpKey,
               otpCode: int.parse(_otpCode),
             ),
           ),
         );
       }
     } on AppException catch (e) {
-      setState(() => _error = e.message);
+      final localized = mounted
+          ? ErrorLocalizer.forException(e, AppLocalizations.of(context)!)
+          : e.message;
+      setState(() => _error = localized);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -79,20 +123,22 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
       final newKey = await _authRepo.resendPasswordOtp(
           phoneNumber: widget.phoneNumber);
       setState(() => _otpKey = newKey);
-      // Clear OTP fields
       for (final c in _controllers) {
         c.clear();
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('OTP code resent'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.otpCodeResentMessage),
             backgroundColor: Colors.green,
           ),
         );
       }
     } on AppException catch (e) {
-      setState(() => _error = e.message);
+      final localized = mounted
+          ? ErrorLocalizer.forException(e, AppLocalizations.of(context)!)
+          : e.message;
+      setState(() => _error = localized);
     } finally {
       if (mounted) setState(() => _isResending = false);
     }
@@ -152,7 +198,7 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
               const SizedBox(height: 24),
 
               Text(
-                'Verify OTP Code',
+                AppLocalizations.of(context)!.verifyOtpCodeTitle,
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -164,7 +210,7 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
                 text: TextSpan(
                   style: TextStyle(fontSize: 14, color: subtitleColor),
                   children: [
-                    const TextSpan(text: 'We sent a 6-digit code to '),
+                    TextSpan(text: AppLocalizations.of(context)!.otpSentToPrefix),
                     TextSpan(
                       text: widget.phoneNumber,
                       style: TextStyle(
@@ -178,7 +224,6 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
 
               const SizedBox(height: 40),
 
-              // OTP fields
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(
@@ -186,42 +231,43 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
                   (i) => SizedBox(
                     width: 46,
                     height: 56,
-                    child: TextField(
-                      controller: _controllers[i],
-                      focusNode: _focusNodes[i],
-                      textAlign: TextAlign.center,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        LengthLimitingTextInputFormatter(1),
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: accentColor,
-                      ),
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: inputFillColor,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: accentColor, width: 2),
-                        ),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      onChanged: (val) {
-                        if (val.isNotEmpty && i < 5) {
-                          _focusNodes[i + 1].requestFocus();
+                    child: Focus(
+                      onKeyEvent: (node, event) {
+                        if (event is KeyDownEvent &&
+                            event.logicalKey == LogicalKeyboardKey.backspace) {
+                          _onBackspace(i);
                         }
-                        if (val.isEmpty && i > 0) {
-                          _focusNodes[i - 1].requestFocus();
-                        }
-                        if (_otpCode.length == 6) _verify();
+                        return KeyEventResult.ignored;
                       },
+                      child: TextField(
+                        controller: _controllers[i],
+                        focusNode: _focusNodes[i],
+                        textAlign: TextAlign.center,
+                        keyboardType: TextInputType.number,
+                        autofillHints: const [AutofillHints.oneTimeCode],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: accentColor,
+                        ),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: inputFillColor,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: accentColor, width: 2),
+                          ),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        onChanged: (val) => _onDigitChanged(val, i),
+                      ),
                     ),
                   ),
                 ),
@@ -275,9 +321,9 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
-                          'Verify',
-                          style: TextStyle(
+                      : Text(
+                          AppLocalizations.of(context)!.verifyButton,
+                          style: const TextStyle(
                             fontSize: 16,
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -301,7 +347,7 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
                           ),
                         )
                       : Text(
-                          'Resend Code',
+                          AppLocalizations.of(context)!.resendCodeButton,
                           style: TextStyle(
                             color: accentColor,
                             fontWeight: FontWeight.w600,

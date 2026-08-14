@@ -1,22 +1,24 @@
 import 'dart:ui';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
-import 'package:photo_manager/photo_manager.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import '../data/home_repository.dart';
 import '../data/download_repository.dart';
 import '../data/models/folder_model.dart';
 import '../data/models/file_model.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/error_localizer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/storage/secure_storage.dart';
 import 'package:cloud_app/features/home/presentation/move_destination_screen.dart';
 import '../../upload/presentation/upload_page.dart';
 import 'photo_viewer_page.dart';
-import 'video_player_page.dart';
 import '../../../core/providers/favourites_provider.dart';
 import '../../../core/network/dio_client.dart';
 import '../../share/presentation/bloc/share_bloc.dart';
@@ -24,6 +26,12 @@ import '../../share/data/repository/share_repository_impl.dart';
 import '../../share/data/remote/share_remote_data_source_impl.dart';
 import '../../share/presentation/widgets/share_dialog.dart';
 import '../../profile/data/profile_repository.dart';
+import '../../../shared/widgets/shimmer_placeholders.dart';
+import '../../../shared/widgets/staggered_list_item.dart';
+import '../../../shared/widgets/media_thumbnail.dart';
+import '../../../core/utils/media_type_helper.dart';
+import '../../../core/utils/page_transitions.dart';
+import '../../../core/utils/safe_action_mixin.dart';
 
 
 enum _FilterType { all, images, videos }
@@ -37,23 +45,35 @@ class FilesPage extends StatefulWidget {
   State<FilesPage> createState() => FilesPageState();
 }
 
-class FilesPageState extends State<FilesPage> {
+class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
   final _repo = HomeRepository();
   final _downloadRepo = DownloadRepository();
   final _profileRepo = ProfileRepository();
 
   List<FolderModel> _folders = [];
   List<FileModel> _files = [];
-  bool _isLoading = true;
+  // Starts false: _loadContent() guards on this flag and flips it true
+  // synchronously before its first await.
+  bool _isLoading = false;
   String? _error;
   bool _isGrid = true;
   String? _authToken;
 
 
-  final Map<String, double> _downloadProgress = {};
-  final Map<String, int> _downloadReceivedBytes = {};
+  // Progress ticks many times/sec — kept outside setState so per-chunk
+  // updates rebuild only the affected _FileTile, not the whole page.
+  final Map<String, ValueNotifier<({double progress, int received})>>
+      _downloadNotifiers = {};
 
   final List<({String id, String name, bool isSync})> _breadcrumb = [];
+  final List<({String id, String name, bool isSync})> _savedBreadcrumb = [];
+  // Snapshot of the folder view we were in before entering favourites —
+  // lets "back" pop to it from memory instead of re-fetching the root.
+  List<FileModel>? _savedFiles;
+  List<FolderModel>? _savedFolders;
+  int? _savedPage;
+  bool? _savedHasNextPage;
+  int? _savedTotalFilesCount;
 
   bool _showFavourites = false;
   _FilterType _activeFilter = _FilterType.all;
@@ -62,6 +82,9 @@ class FilesPageState extends State<FilesPage> {
   bool _hasNextPage = false;
   bool _isLoadingMore = false;
   final ScrollController _scrollController = ScrollController();
+  // True only for the brief window right after a full-screen load — gates
+  // the staggered fade-in so it never replays for scroll/pagination reveals.
+  bool _staggerActive = false;
 
   bool get _isSelectionMode =>
       _selectedFiles.isNotEmpty || _selectedFolders.isNotEmpty;
@@ -81,6 +104,56 @@ class FilesPageState extends State<FilesPage> {
     if (v >= 1073741824) return '${(v / 1073741824).toStringAsFixed(2)} GB';
     if (v >= 1048576) return '${(v / 1048576).toStringAsFixed(1)} MB';
     return '${(v / 1024).toStringAsFixed(0)} KB';
+  }
+
+  Future<void> _toggleFavourite(FileModel file) async {
+    HapticFeedback.lightImpact();
+    try {
+      await FavouritesProvider.instance.toggleFavourite(file);
+    } catch (_) {
+      if (!mounted) return;
+      final t = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.favouriteUpdateFailed)),
+      );
+    }
+  }
+
+  bool _selectedFavouritesAllMarked() {
+    if (_selectedFiles.isEmpty) return false;
+    final selected = _files.where((f) => _selectedFiles.contains(f.id));
+    return selected.isNotEmpty && selected.every((f) => f.isFavourite);
+  }
+
+  void _bulkToggleFavourites() {
+    if (_selectedFiles.isEmpty) return;
+    final l10n = AppLocalizations.of(context)!;
+    final selected =
+        _files.where((f) => _selectedFiles.contains(f.id)).toList();
+    final removing = _selectedFavouritesAllMarked();
+    final targets = selected.where((f) => f.isFavourite == removing).toList();
+
+    setState(() {
+      _selectedFiles.clear();
+      _selectedFolders.clear();
+    });
+
+    if (targets.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.alreadyInFavourites)),
+      );
+      return;
+    }
+
+    for (final f in targets) {
+      _toggleFavourite(f);
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+            removing ? l10n.removedFromFavourites : l10n.addedToFavourites),
+      ),
+    );
   }
 
   Widget _buildPaginationRow({
@@ -108,8 +181,9 @@ class FilesPageState extends State<FilesPage> {
   String? _getPinId(String folderId) {
     for (final pin in _pinnedFolders) {
       final folder = pin['folder'];
-      if (folder is FolderModel && folder.id == folderId)
+      if (folder is FolderModel && folder.id == folderId) {
         return pin['pinId'] as String?;
+      }
     }
     return null;
   }
@@ -140,8 +214,8 @@ class FilesPageState extends State<FilesPage> {
       setState(() => _pinnedFolders =
           _pinnedFolders.where((p) => p['pinId'] != folder.id).toList());
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!))));
       }
     }
   }
@@ -156,8 +230,8 @@ class FilesPageState extends State<FilesPage> {
     } on AppException catch (e) {
       setState(() => _pinnedFolders = backup);
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!))));
       }
     }
   }
@@ -203,12 +277,11 @@ class FilesPageState extends State<FilesPage> {
   List<FolderModel> get _displayFolders => _showFavourites ? [] : _folders;
 
   bool _matchesFilter(FileModel f, _FilterType filter) {
-    final m = f.mimeType.toLowerCase();
     switch (filter) {
       case _FilterType.images:
-        return m.startsWith('image/');
+        return MediaTypeHelper.isImage(f.mimeType);
       case _FilterType.videos:
-        return m.startsWith('video/');
+        return MediaTypeHelper.isVideo(f.mimeType);
       case _FilterType.all:
         return true;
     }
@@ -220,6 +293,7 @@ class FilesPageState extends State<FilesPage> {
     FavouritesProvider.instance.loadFavourites();
     _loadContent();
     _loadAuthToken();
+    _scrollController.addListener(_onScroll);
     _shareBloc = ShareBloc(
       ShareRepositoryImpl(
         ShareRemoteDataSourceImpl(DioClient.instance),
@@ -227,10 +301,20 @@ class FilesPageState extends State<FilesPage> {
     );
   }
 
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoadingMore && _hasNextPage && !_showFavourites) _loadMoreContent();
+    }
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
     _shareBloc.close();
+    for (final n in _downloadNotifiers.values) {
+      n.dispose();
+    }
     super.dispose();
   }
 
@@ -246,16 +330,14 @@ class FilesPageState extends State<FilesPage> {
   Future<void> _openFileViewer(FileModel file) async {
     if (_isOpeningFile) return;
     _isOpeningFile = true;
-    final t = AppLocalizations.of(context)!;
     try {
     final mime = file.mimeType.toLowerCase();
 
-    if (mime.startsWith('image/') || mime.startsWith('video/')) {
+    if (MediaTypeHelper.isImage(mime) || MediaTypeHelper.isVideo(mime)) {
       final allMediaFiles = _displayFiles
-          .where((f) {
-            final m = f.mimeType.toLowerCase();
-            return m.startsWith('image/') || m.startsWith('video/');
-          })
+          .where((f) =>
+              MediaTypeHelper.isImage(f.mimeType) ||
+              MediaTypeHelper.isVideo(f.mimeType))
           .toList();
 
       final idx = allMediaFiles.indexWhere((f) => f.id == file.id);
@@ -287,7 +369,7 @@ class FilesPageState extends State<FilesPage> {
   }
 
   Future<void> _loadContent() async {
-    if (!mounted) return;
+    if (!mounted || _isLoading) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -302,7 +384,9 @@ class FilesPageState extends State<FilesPage> {
       List<Map<String, dynamic>> pinned = [];
       try {
         pinned = await _repo.getPinnedFolders();
-      } catch (_) {}
+      } catch (e) {
+        if (kDebugMode) debugPrint('[FilesPage] getPinnedFolders failed: $e');
+      }
       if (!mounted) return;
       // Mark sync folder by name if server returns is_sync=false
       final rawFolders = result['folders'] as List<FolderModel>;
@@ -312,30 +396,40 @@ class FilesPageState extends State<FilesPage> {
         }
         return f;
       }).toList();
-      // Sort: sync folder always first
       markedFolders.sort((a, b) => a.isSync ? -1 : (b.isSync ? 1 : 0));
 
       if (!mounted) return;
+      final loadedFiles = result['files'] as List<FileModel>;
       setState(() {
         _folders = markedFolders;
-        _files = result['files'] as List<FileModel>;
+        _files = _isSyncFolder ? _sortByCaptureDate(loadedFiles) : loadedFiles;
         _hasNextPage = result['hasNext'] as bool;
         _pinnedFolders = pinned;
         _totalFilesCount = result['totalCount'] as int? ?? _files.length;
-        _isLoading = false;
+        _staggerActive = true;
       });
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted) setState(() => _staggerActive = false);
+      });
+      _precacheThumbnails();
 
-    } on AppException catch (e) {
+    } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.message;
-        _isLoading = false;
+        _error = ErrorLocalizer.forException(e, AppLocalizations.of(context)!);
       });
+    } finally {
+      // finally (not just the catch branch) — guarantees _isLoading always
+      // clears even if something other than the awaited calls above throws,
+      // so the re-entrancy guard at the top of this function can never
+      // permanently wedge the page.
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _loadMoreContent() async {
-    if (!mounted || _isLoadingMore || !_hasNextPage) return;
+    // Favourites has no server-side pagination — never request a "next page".
+    if (!mounted || _isLoadingMore || !_hasNextPage || _showFavourites) return;
     setState(() => _isLoadingMore = true);
     try {
       final result = await _repo.getContent(
@@ -343,23 +437,72 @@ class FilesPageState extends State<FilesPage> {
         page: _currentPage + 1,
       );
       if (!mounted) return;
-      final newFiles = result['files'] as List<FileModel>;
+      // Defensive dedup: offset-based pagination can repeat an item across
+      // pages if the folder changed between requests (upload/delete mid-scroll).
+      final existingIds = _files.map((f) => f.id).toSet();
+      final newFiles = (result['files'] as List<FileModel>)
+          .where((f) => existingIds.add(f.id))
+          .toList();
       setState(() {
         _files.addAll(newFiles);
+        if (_isSyncFolder) _files = _sortByCaptureDate(_files);
         _currentPage++;
         _hasNextPage = result['hasNext'] as bool;
         _isLoadingMore = false;
       });
 
-    } on AppException catch (_) {
+    } on AppException catch (e) {
+      if (!mounted) return;
+      // 404 here means "no more pages" — not a real error, don't alarm the user.
+      if (e.statusCode == 404) {
+        setState(() {
+          _isLoadingMore = false;
+          _hasNextPage = false;
+        });
+        return;
+      }
+      setState(() => _isLoadingMore = false);
+      final t = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(t.genericErrorFallback),
+          action: SnackBarAction(label: t.retry, onPressed: _loadMoreContent),
+        ),
+      );
+    } catch (e) {
       if (!mounted) return;
       setState(() => _isLoadingMore = false);
+      final t = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(t.genericErrorFallback),
+          action: SnackBarAction(label: t.retry, onPressed: _loadMoreContent),
+        ),
+      );
+    }
+  }
+
+  // Warms the image cache for the first screenful so thumbnails are
+  // already decoded by the time the user scrolls to them.
+  void _precacheThumbnails() {
+    for (final f in _files.take(8)) {
+      final thumb = f.thumbnailPath;
+      if (thumb == null || thumb.isEmpty) continue;
+      precacheImage(CachedNetworkImageProvider(thumb), context);
     }
   }
 
   void reloadContent() => _loadContent();
 
   bool handleBackNavigation() {
+    if (_showFavourites) {
+      bool needsReload = false;
+      setState(() {
+        needsReload = _exitFavourites(restore: true);
+      });
+      if (needsReload) _loadContent();
+      return true;
+    }
     if (_breadcrumb.isNotEmpty) {
       setState(() {
         _breadcrumb.removeLast();
@@ -384,28 +527,24 @@ class FilesPageState extends State<FilesPage> {
     final currentFolder = _currentFolderId;
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => UploadPage(
-          parentId: currentFolder,
-          onUploadComplete: () async {
-            await Future.delayed(const Duration(seconds: 2));
-            _loadContent();
-          },
-        ),
-      ),
+      slideUpRoute(UploadPage(
+        parentId: currentFolder,
+        onUploadComplete: () async {
+          await Future.delayed(const Duration(seconds: 2));
+          _loadContent();
+        },
+      )),
     ).then((_) => _loadContent());
   }
 
   Future<void> _pickAndUploadFiles() async {
     final ImagePicker picker = ImagePicker();
 
-    // Pick multiple images/videos from gallery
     final List<XFile> selectedFiles = await picker.pickMultipleMedia();
 
     if (selectedFiles.isEmpty) return;
     if (!mounted) return;
 
-    // Convert XFile to PlatformFile
     final List<PlatformFile> files = [];
     for (final xFile in selectedFiles) {
       final file = File(xFile.path);
@@ -422,22 +561,32 @@ class FilesPageState extends State<FilesPage> {
     final currentFolder = _currentFolderId;
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => UploadPage(
-          parentId: currentFolder,
-          initialFiles: files,
-          onUploadComplete: () async {
-            await Future.delayed(const Duration(seconds: 2));
-            _loadContent();
-          },
-        ),
-      ),
+      slideUpRoute(UploadPage(
+        parentId: currentFolder,
+        initialFiles: files,
+        onUploadComplete: () async {
+          await Future.delayed(const Duration(seconds: 2));
+          _loadContent();
+        },
+      )),
     ).then((_) => _loadContent());
   }
 
   void _openFolder(FolderModel folder) {
+    // Pinned folders (e.g. Sync) are reachable from any depth, not just
+    // root — tapping the one we're already inside (or one already on the
+    // stack, via a pin shortcut) must not re-append it as a new segment.
+    final existingIndex = _breadcrumb.indexWhere((b) => b.id == folder.id);
+    if (existingIndex != -1 && existingIndex == _breadcrumb.length - 1) {
+      return; // already viewing this folder
+    }
+
     setState(() {
-      _breadcrumb.add((id: folder.id, isSync: folder.isSync, name: folder.name));
+      if (existingIndex != -1) {
+        _breadcrumb.removeRange(existingIndex + 1, _breadcrumb.length);
+      } else {
+        _breadcrumb.add((id: folder.id, isSync: folder.isSync, name: folder.name));
+      }
       _showFavourites = false;
       _activeFilter = _FilterType.all;
       _folderPage = 0;
@@ -464,6 +613,52 @@ class FilesPageState extends State<FilesPage> {
       widget.onFolderChanged?.call(_breadcrumb[index].id);
     }
     _loadContent();
+  }
+
+  /// Snapshots the current folder view before switching to favourites, so
+  /// leaving favourites can restore it from memory (browser-back semantics).
+  void _enterFavourites() {
+    _savedBreadcrumb
+      ..clear()
+      ..addAll(_breadcrumb);
+    _savedFiles = List.of(_files);
+    _savedFolders = List.of(_folders);
+    _savedPage = _currentPage;
+    _savedHasNextPage = _hasNextPage;
+    _savedTotalFilesCount = _totalFilesCount;
+    _breadcrumb.clear();
+    _showFavourites = true;
+    _activeFilter = _FilterType.all;
+  }
+
+  /// Leaves favourites. If [restore] is true and a snapshot exists, pops
+  /// back to the pre-favourites folder view without refetching. Otherwise
+  /// (explicit "home" navigation, or no snapshot to restore) resets to root
+  /// and returns true so the caller knows it must call [_loadContent].
+  bool _exitFavourites({required bool restore}) {
+    final canRestore = restore && _savedFiles != null;
+    if (canRestore) {
+      _breadcrumb
+        ..clear()
+        ..addAll(_savedBreadcrumb);
+      _files = _savedFiles!;
+      _folders = _savedFolders!;
+      _currentPage = _savedPage!;
+      _hasNextPage = _savedHasNextPage!;
+      _totalFilesCount = _savedTotalFilesCount ?? _files.length;
+    } else {
+      _breadcrumb.clear();
+      _folderPage = 0;
+    }
+    _savedBreadcrumb.clear();
+    _savedFiles = null;
+    _savedFolders = null;
+    _savedPage = null;
+    _savedHasNextPage = null;
+    _savedTotalFilesCount = null;
+    _showFavourites = false;
+    _activeFilter = _FilterType.all;
+    return !canRestore;
   }
 
   void _showFilterSheet() {
@@ -625,26 +820,28 @@ class FilesPageState extends State<FilesPage> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () async {
+                        onPressed: () {
                           final name = controller.text.trim();
                           if (name.isEmpty) return;
                           Navigator.pop(ctx);
-                          try {
-                            final newFolder = await _repo.createFolder(
-                              name: name,
-                              parentId: _currentFolderId,
-                            );
-                            _openFolder(newFolder);
-                          } on AppException catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(e.message),
-                                  backgroundColor: Colors.red,
-                                ),
+                          safeAction(() async {
+                            try {
+                              final newFolder = await _repo.createFolder(
+                                name: name,
+                                parentId: _currentFolderId,
                               );
+                              _openFolder(newFolder);
+                            } on AppException catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
                             }
-                          }
+                          });
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
@@ -698,6 +895,7 @@ class FilesPageState extends State<FilesPage> {
     required String previewUrl,
     required Color iconColor,
     required IconData icon,
+    String mimeType = '',
   }) {
     showModalBottomSheet(
       context: context,
@@ -710,6 +908,7 @@ class FilesPageState extends State<FilesPage> {
         previewUrl: previewUrl,
         iconColor: iconColor,
         icon: icon,
+        mimeType: mimeType,
         fetchInfo: () => _profileRepo.getContentInfo(id: id, type: type),
         fmt: _fmt,
       ),
@@ -813,21 +1012,28 @@ class FilesPageState extends State<FilesPage> {
                       Navigator.pop(ctx);
                       _showRenameDialog(
                         currentName: folder.name,
-                        onRename: (newName) async {
+                        onRename: (newName) => safeAction(() async {
                           try {
                             await _repo.renameItem(
                                 type: 'folder', id: folder.id, name: newName);
                             if (!mounted) return;
-                            _loadContent();
+                            setState(() {
+                              final idx = _folders
+                                  .indexWhere((f) => f.id == folder.id);
+                              if (idx != -1) {
+                                _folders[idx] =
+                                    _folders[idx].copyWith(name: newName);
+                              }
+                            });
                           } on AppException catch (e) {
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                  content: Text(e.message),
+                                  content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
                                   backgroundColor: Colors.red),
                             );
                           }
-                        },
+                        }),
                       );
                     },
                   ),
@@ -867,21 +1073,23 @@ class FilesPageState extends State<FilesPage> {
                       Navigator.pop(ctx);
                       _showDeleteConfirmDialog(
                         itemName: folder.name,
-                        onConfirm: () async {
+                        onConfirm: () => safeAction(() async {
+                          final idx = _folders.indexOf(folder);
+                          if (idx == -1) return;
+                          setState(() => _folders.removeAt(idx));
                           try {
                             await _repo.deleteItem(
                                 type: 'folder', id: folder.id);
-                            if (!mounted) return;
-                            _loadContent();
                           } on AppException catch (e) {
                             if (!mounted) return;
+                            setState(() => _folders.insert(idx, folder));
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                  content: Text(e.message),
+                                  content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
                                   backgroundColor: Colors.red),
                             );
                           }
-                        },
+                        }),
                       );
                     },
                   ),
@@ -906,8 +1114,8 @@ class FilesPageState extends State<FilesPage> {
                   ),
                 ],
                 if (isSyncF)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12, top: 4),
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 12, top: 4),
                     child: Center(
                       child: Text(
                         'Sync folder · managed automatically',
@@ -1021,7 +1229,7 @@ class FilesPageState extends State<FilesPage> {
                       : t.addToFavourites,
                   onTap: () {
                     Navigator.pop(ctx);
-                    FavouritesProvider.instance.toggleFavourite(file);
+                    _toggleFavourite(file);
                   },
                 ),
                 _buildBottomSheetItem(
@@ -1055,6 +1263,7 @@ class FilesPageState extends State<FilesPage> {
                       previewUrl: file.thumbnailPath ?? '',
                       iconColor: _color(file.mimeType),
                       icon: _icon(file.mimeType),
+                      mimeType: file.mimeType,
                     );
                   },
                 ),
@@ -1066,21 +1275,29 @@ class FilesPageState extends State<FilesPage> {
                     Navigator.pop(ctx);
                     _showRenameDialog(
                       currentName: file.name,
-                      onRename: (newName) async {
+                      onRename: (newName) => safeAction(() async {
                         try {
                           await _repo.renameItem(
                               type: 'file', id: file.id, name: newName);
                           if (!mounted) return;
-                          _loadContent();
+                          setState(() {
+                            final idx =
+                                _files.indexWhere((f) => f.id == file.id);
+                            if (idx != -1) {
+                              _files[idx] = _files[idx].copyWith(name: newName);
+                            }
+                          });
+                          FavouritesProvider.instance
+                              .renameFile(file.id, newName);
                         } on AppException catch (e) {
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                                content: Text(e.message),
+                                content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
                                 backgroundColor: Colors.red),
                           );
                         }
-                      },
+                      }),
                     );
                   },
                 ),
@@ -1129,20 +1346,29 @@ class FilesPageState extends State<FilesPage> {
                     Navigator.pop(ctx);
                     _showDeleteConfirmDialog(
                       itemName: file.name,
-                      onConfirm: () async {
+                      onConfirm: () => safeAction(() async {
+                        final idx = _files.indexOf(file);
+                        if (idx == -1) return;
+                        setState(() {
+                          _files.removeAt(idx);
+                          _totalFilesCount =
+                              (_totalFilesCount - 1).clamp(0, 1 << 31);
+                        });
                         try {
                           await _repo.deleteItem(type: 'file', id: file.id);
-                          if (!mounted) return;
-                          _loadContent();
                         } on AppException catch (e) {
                           if (!mounted) return;
+                          setState(() {
+                            _files.insert(idx, file);
+                            _totalFilesCount++;
+                          });
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                                content: Text(e.message),
+                                content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
                                 backgroundColor: Colors.red),
                           );
                         }
-                      },
+                      }),
                     );
                   },
                 ),
@@ -1241,6 +1467,7 @@ class FilesPageState extends State<FilesPage> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
+              HapticFeedback.mediumImpact();
               onConfirm();
             },
             style: ElevatedButton.styleFrom(
@@ -1262,9 +1489,18 @@ class FilesPageState extends State<FilesPage> {
       listenable: FavouritesProvider.instance,
       builder: (context, _) {
         return PopScope(
-          canPop: _breadcrumb.isEmpty,
+          canPop: _breadcrumb.isEmpty && !_showFavourites,
           onPopInvokedWithResult: (didPop, _) {
-            if (!didPop && _breadcrumb.isNotEmpty) {
+            if (didPop) return;
+            if (_showFavourites) {
+              bool needsReload = false;
+              setState(() {
+                needsReload = _exitFavourites(restore: true);
+              });
+              if (needsReload) _loadContent();
+              return;
+            }
+            if (_breadcrumb.isNotEmpty) {
               setState(() {
                 _breadcrumb.removeLast();
                 _folderPage = 0;
@@ -1279,7 +1515,10 @@ class FilesPageState extends State<FilesPage> {
             body: Stack(
               children: [
                 RefreshIndicator(
-                  onRefresh: _loadContent,
+                  onRefresh: () async {
+                    HapticFeedback.lightImpact();
+                    await _loadContent();
+                  },
                   child: CustomScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     controller: _scrollController,
@@ -1288,7 +1527,7 @@ class FilesPageState extends State<FilesPage> {
                       SliverToBoxAdapter(child: _buildBreadcrumb()),
                       if (_isLoading)
                         const SliverFillRemaining(
-                          child: Center(child: CircularProgressIndicator()),
+                          child: FilesListShimmer(),
                         )
                       else if (_error != null)
                         SliverFillRemaining(child: _buildError())
@@ -1386,8 +1625,8 @@ class FilesPageState extends State<FilesPage> {
     final textColor = isDark ? Colors.white : Colors.black87;
 
     return AnimatedPositioned(
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeOutExpo,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
       bottom: _isSelectionMode ? 16 : -160,
       left: 20,
       right: 20,
@@ -1495,22 +1734,12 @@ class FilesPageState extends State<FilesPage> {
                   children: [
                     _buildActionItem(
                       icon: Icons.star_rounded,
-                      label: t.favourite,
+                      label: _selectedFavouritesAllMarked()
+                          ? t.removeFromFavourites
+                          : t.addToFavourites,
                       iconColor: textColor,
                       textColor: textColor,
-                      onTap: () {
-                        for (var f in _files.where(
-                                (e) => _selectedFiles.contains(e.id))) {
-                          FavouritesProvider.instance.toggleFavourite(f);
-                        }
-                        setState(() {
-                          _selectedFiles.clear();
-                          _selectedFolders.clear();
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(t.addedToFavourites)),
-                        );
-                      },
+                      onTap: _bulkToggleFavourites,
                     ),
                     _buildActionItem(
                       icon: Icons.download_rounded,
@@ -1590,31 +1819,45 @@ class FilesPageState extends State<FilesPage> {
                         _showDeleteConfirmDialog(
                           itemName: t.deleteItems(_selectedFiles.length +
                               _selectedFolders.length),
-                          onConfirm: () async {
-                            setState(() => _isLoading = true);
+                          onConfirm: () => safeAction(() async {
+                            final removedFileIds = _selectedFiles.toList();
+                            final removedFolderIds = _selectedFolders
+                                .where((id) => !_folders.any((f) => f.id == id && f.isSync))
+                                .toList();
+                            final filesSnapshot = List<FileModel>.from(_files);
+                            final foldersSnapshot =
+                                List<FolderModel>.from(_folders);
+                            setState(() {
+                              _files.removeWhere(
+                                  (f) => removedFileIds.contains(f.id));
+                              _folders.removeWhere(
+                                  (f) => removedFolderIds.contains(f.id));
+                              _totalFilesCount =
+                                  (_totalFilesCount - removedFileIds.length)
+                                      .clamp(0, 1 << 31);
+                              _selectedFiles.clear();
+                              _selectedFolders.clear();
+                            });
                             try {
                               await HomeRepository().deleteItems(
-                                files: _selectedFiles.toList(),
-                                folders: _selectedFolders
-                                    .where((id) => !_folders.any((f) => f.id == id && f.isSync))
-                                    .toList(),
+                                files: removedFileIds,
+                                folders: removedFolderIds,
                               );
-                              setState(() {
-                                _selectedFiles.clear();
-                                _selectedFolders.clear();
-                              });
-                              _loadContent();
                             } catch (e) {
-                              setState(() => _isLoading = false);
                               if (!mounted) return;
+                              setState(() {
+                                _files = filesSnapshot;
+                                _folders = foldersSnapshot;
+                                _totalFilesCount += removedFileIds.length;
+                              });
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(e.toString()),
+                                  content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
                                   backgroundColor: Colors.red,
                                 ),
                               );
                             }
-                          },
+                          }),
                         );
                       },
                     ),
@@ -1658,10 +1901,17 @@ class FilesPageState extends State<FilesPage> {
                 : Icons.star_border_rounded,
             color: _showFavourites ? Colors.amber : cs.onSurface,
           ),
-          onPressed: () => setState(() {
-            _showFavourites = !_showFavourites;
-            _activeFilter = _FilterType.all;
-          }),
+          onPressed: () {
+            bool needsReload = false;
+            setState(() {
+              if (_showFavourites) {
+                needsReload = _exitFavourites(restore: true);
+              } else {
+                _enterFavourites();
+              }
+            });
+            if (needsReload) _loadContent();
+          },
           tooltip: t.favourites,
         ),
         IconButton(
@@ -1690,11 +1940,20 @@ class FilesPageState extends State<FilesPage> {
           children: [
             GestureDetector(
               onTap: () {
-                _navigateTo(-1);
+                final needsReload = _showFavourites || _breadcrumb.isNotEmpty;
                 setState(() {
-                  _showFavourites = false;
-                  _activeFilter = _FilterType.all;
+                  if (_showFavourites) {
+                    _exitFavourites(restore: false);
+                  } else {
+                    _breadcrumb.clear();
+                    _folderPage = 0;
+                    _activeFilter = _FilterType.all;
+                  }
                 });
+                if (needsReload) {
+                  widget.onFolderChanged?.call(null);
+                  _loadContent();
+                }
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -1790,13 +2049,16 @@ class FilesPageState extends State<FilesPage> {
     );
   }
 
+  void _removeDownloadNotifier(String fileId) {
+    _downloadNotifiers.remove(fileId)?.dispose();
+  }
+
   Future<void> _startDownload(FileModel file) async {
     final t = AppLocalizations.of(context)!;
-    if (_downloadProgress.containsKey(file.id)) return;
-    setState(() {
-      _downloadProgress[file.id] = 0.0;
-      _downloadReceivedBytes[file.id] = 0;
-    });
+    if (_downloadNotifiers.containsKey(file.id)) return;
+    final notifier =
+        ValueNotifier<({double progress, int received})>((progress: 0.0, received: 0));
+    setState(() => _downloadNotifiers[file.id] = notifier);
     try {
       await _downloadRepo.downloadFile(
         fileId: file.id,
@@ -1804,18 +2066,15 @@ class FilesPageState extends State<FilesPage> {
         mimeType: file.mimeType,
         onProgress: (received, total) {
           if (!mounted) return;
-          setState(() {
-            _downloadReceivedBytes[file.id] = received;
-            if (total > 0)
-              _downloadProgress[file.id] = received / total;
-          });
+          // Direct notifier mutation — only the listening _FileTile rebuilds.
+          notifier.value = (
+            progress: total > 0 ? received / total : notifier.value.progress,
+            received: received,
+          );
         },
       );
       if (!mounted) return;
-      setState(() {
-        _downloadProgress.remove(file.id);
-        _downloadReceivedBytes.remove(file.id);
-      });
+      setState(() => _removeDownloadNotifier(file.id));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(t.fileSaved(file.name)),
@@ -1824,12 +2083,9 @@ class FilesPageState extends State<FilesPage> {
       );
     } on AppException catch (e) {
       if (!mounted) return;
-      setState(() {
-        _downloadProgress.remove(file.id);
-        _downloadReceivedBytes.remove(file.id);
-      });
+      setState(() => _removeDownloadNotifier(file.id));
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+        SnackBar(content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)), backgroundColor: Colors.red),
       );
     }
   }
@@ -1852,11 +2108,13 @@ class FilesPageState extends State<FilesPage> {
 
   List<Widget> _buildContentSlivers() {
     final t = AppLocalizations.of(context)!;
+    // Computed once per rebuild — the getter copies the whole list on each call
+    final displayFiles = _displayFiles;
     // ── Header & folders section (non-virtualized, small content) ──
     final headerChildren = <Widget>[];
 
-    // ── Sync folder info banner ──
-    if (_isSyncFolder) {
+    // ── Sync folder info banner ── (not relevant while showing favourites)
+    if (_isSyncFolder && !_showFavourites) {
       headerChildren.add(Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -1905,7 +2163,7 @@ class FilesPageState extends State<FilesPage> {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
-              '${_displayFiles.length}',
+              '${displayFiles.length}',
               style: const TextStyle(
                 fontSize: 12,
                 color: Colors.amber,
@@ -1993,7 +2251,7 @@ class FilesPageState extends State<FilesPage> {
       headerChildren.add(const SizedBox(height: 8));
     }
 
-    if (_displayFiles.isNotEmpty && !_showFavourites) {
+    if (displayFiles.isNotEmpty && !_showFavourites) {
       headerChildren.add(_buildSectionHeader(
           t.files, Icons.insert_drive_file, _totalFilesCount));
       headerChildren.add(const SizedBox(height: 8));
@@ -2009,9 +2267,9 @@ class FilesPageState extends State<FilesPage> {
     }
 
     // ── 2. Files sliver (virtualized, grouped by date) ──
-    if (_displayFiles.isNotEmpty) {
+    if (displayFiles.isNotEmpty) {
       if (_isGrid && !_showFavourites) {
-        final grouped = _groupFilesByDate(_displayFiles);
+        final grouped = _groupFilesByDate(displayFiles);
         for (final entry in grouped) {
           slivers.add(SliverToBoxAdapter(
             child: Padding(
@@ -2029,27 +2287,31 @@ class FilesPageState extends State<FilesPage> {
             delegate: SliverChildBuilderDelegate(
               (ctx, i) {
                 final f = entry.value[i];
-                return RepaintBoundary(
-                  child: _FileGridCard(
-                    key: ValueKey(f.id),
-                    file: f,
-                    isSelected: _selectedFiles.contains(f.id),
-                    isSelectionMode: _isSelectionMode,
-                    onTap: () {
-                      if (_isSelectionMode) {
-                        _toggleFileSelection(f.id);
-                      } else {
-                        _openFileViewer(f);
-                      }
-                    },
-                    onSelectTap: () => _toggleFileSelection(f.id),
-                    onMenuTap: () => _showFileMenu(f),
-                    onFavouriteTap: () =>
-                        FavouritesProvider.instance.toggleFavourite(f),
+                return StaggeredListItem(
+                  index: i,
+                  animate: _staggerActive,
+                  child: RepaintBoundary(
+                    child: _FileGridCard(
+                      key: ValueKey(f.id),
+                      file: f,
+                      isSelected: _selectedFiles.contains(f.id),
+                      isSelectionMode: _isSelectionMode,
+                      onTap: () {
+                        if (_isSelectionMode) {
+                          _toggleFileSelection(f.id);
+                        } else {
+                          _openFileViewer(f);
+                        }
+                      },
+                      onSelectTap: () => _toggleFileSelection(f.id),
+                      onMenuTap: () => _showFileMenu(f),
+                      onFavouriteTap: () => _toggleFavourite(f),
+                    ),
                   ),
                 );
               },
               childCount: entry.value.length,
+              addAutomaticKeepAlives: false,
             ),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
@@ -2064,8 +2326,26 @@ class FilesPageState extends State<FilesPage> {
       }
     }
 
-    // ── 3. Loading more indicator ──
-    if (_isLoadingMore) {
+    // ── 3. Load-more trigger + indicator ──
+    // Date-grouped grid has no index-based trigger (unlike list sliver),
+    // so a trailing sliver re-triggers loading while it stays in viewport.
+    if (_isGrid && !_showFavourites && displayFiles.isNotEmpty && _hasNextPage) {
+      slivers.add(SliverToBoxAdapter(
+        child: Builder(builder: (ctx) {
+          if (!_isLoadingMore) {
+            Future.microtask(() => _loadMoreContent());
+          }
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          );
+        }),
+      ));
+    } else if (_isGrid && !_showFavourites && _isLoadingMore) {
+      // List sliver already renders its own single trailing spinner —
+      // this fallback only covers the grid layout, which has none.
       slivers.add(const SliverToBoxAdapter(
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 20),
@@ -2095,7 +2375,6 @@ class FilesPageState extends State<FilesPage> {
           return GestureDetector(
             onTap: () => _openFolder(folder),
             onLongPress: () {
-              // Prevent unpin for sync folder
               if (folder.isSync) return;
               if (!context.mounted) return;
               showDialog(
@@ -2157,10 +2436,24 @@ class FilesPageState extends State<FilesPage> {
     );
   }
 
+  /// Список-вид для sync-папок (обычная — сортировка не трогается,
+  /// возвращается порядок с сервера как есть): порядок как в галерее
+  /// телефона — по дате съёмки (или создания записи, если съёмки нет),
+  /// новые сверху. Та же логика, что уже использует _groupFilesByDate
+  /// для grid-режима.
+  List<FileModel> _sortByCaptureDate(List<FileModel> files) {
+    final sorted = [...files];
+    sorted.sort((a, b) {
+      final aDate = a.capturedAt ?? a.createdAt;
+      final bDate = b.capturedAt ?? b.createdAt;
+      return bDate.compareTo(aDate);
+    });
+    return sorted;
+  }
+
   List<MapEntry<String, List<FileModel>>> _groupFilesByDate(List<FileModel> files) {
     final Map<String, List<FileModel>> groups = {};
     for (final file in files) {
-      // Используем capturedAt (дата съёмки) если есть, иначе createdAt
       final date = file.capturedAt ?? file.createdAt;
       final key = [
         date.year.toString().padLeft(4, '0'),
@@ -2180,72 +2473,23 @@ class FilesPageState extends State<FilesPage> {
     return sorted;
   }
 
-  Widget _buildFilesGridSliver() {
-    // Index-based pagination: show loading indicator as last item
-    final itemCount = _displayFiles.length + (_hasNextPage ? 1 : 0);
-
-    return SliverGrid(
-      delegate: SliverChildBuilderDelegate(
-        (context, i) {
-          // Loading indicator at the end
-          if (i == _displayFiles.length) {
-            // Trigger loading more when reaching the last item
-            if (_hasNextPage && !_isLoadingMore) {
-              Future.microtask(() => _loadMoreContent());
-            }
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            );
-          }
-
-          final f = _displayFiles[i];
-          return RepaintBoundary(
-            child: _FileGridCard(
-              key: ValueKey(f.id),
-              file: f,
-              isSelected: _selectedFiles.contains(f.id),
-              isSelectionMode: _isSelectionMode,
-              onTap: () {
-                if (_isSelectionMode) {
-                  _toggleFileSelection(f.id);
-                } else {
-                  _openFileViewer(f);
-                }
-              },
-              onSelectTap: () => _toggleFileSelection(f.id),
-              onMenuTap: () => _showFileMenu(f),
-              onFavouriteTap: () =>
-                  FavouritesProvider.instance.toggleFavourite(f),
-            ),
-          );
-        },
-        childCount: itemCount,
-      ),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 2,
-        mainAxisSpacing: 2,
-        childAspectRatio: 1.0,
-      ),
-    );
-  }
-
   Widget _buildFilesListSliver() {
-    // Index-based pagination: show loading indicator as last item
-    final itemCount = _displayFiles.length + (_hasNextPage ? 1 : 0);
+    // Snapshot once — the _displayFiles getter copies the list on every
+    // call, which is O(n²) when accessed per item in the delegate
+    final files = _displayFiles;
+    // Favourites has no pagination of its own — never show/trigger it here.
+    final hasNextPage = _hasNextPage && !_showFavourites;
+    final itemCount = files.length + (hasNextPage ? 1 : 0);
 
     return SliverList(
       delegate: SliverChildBuilderDelegate(
         (context, i) {
-          // Loading indicator at the end
-          if (i == _displayFiles.length) {
-            // Trigger loading more when reaching the last item
-            if (_hasNextPage && !_isLoadingMore) {
+          if (i == files.length) {
+            if (hasNextPage && !_isLoadingMore) {
               Future.microtask(() => _loadMoreContent());
             }
+            // Single pagination spinner — only while an actual fetch is in flight.
+            if (!_isLoadingMore) return const SizedBox.shrink();
             return const Center(
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 20),
@@ -2254,31 +2498,34 @@ class FilesPageState extends State<FilesPage> {
             );
           }
 
-          final f = _displayFiles[i];
-          return RepaintBoundary(
-            child: _FileTile(
-              key: ValueKey(f.id),
-              file: f,
-              isSelected: _selectedFiles.contains(f.id),
-              isSelectionMode: _isSelectionMode,
-              authToken: _authToken,
-              onTap: () {
-                if (_isSelectionMode) {
-                  _toggleFileSelection(f.id);
-                } else {
-                  _openFileViewer(f);
-                }
-              },
-              onSelectTap: () => _toggleFileSelection(f.id),
-              onMenuTap: () => _showFileMenu(f),
-              downloadProgress: _downloadProgress[f.id],
-              downloadReceivedBytes: _downloadReceivedBytes[f.id],
-              onFavouriteTap: () =>
-                  FavouritesProvider.instance.toggleFavourite(f),
+          final f = files[i];
+          return StaggeredListItem(
+            index: i,
+            animate: _staggerActive,
+            child: RepaintBoundary(
+              child: _FileTile(
+                key: ValueKey(f.id),
+                file: f,
+                isSelected: _selectedFiles.contains(f.id),
+                isSelectionMode: _isSelectionMode,
+                authToken: _authToken,
+                onTap: () {
+                  if (_isSelectionMode) {
+                    _toggleFileSelection(f.id);
+                  } else {
+                    _openFileViewer(f);
+                  }
+                },
+                onSelectTap: () => _toggleFileSelection(f.id),
+                onMenuTap: () => _showFileMenu(f),
+                downloadNotifier: _downloadNotifiers[f.id],
+                onFavouriteTap: () => _toggleFavourite(f),
+              ),
             ),
           );
         },
         childCount: itemCount,
+        addAutomaticKeepAlives: false,
       ),
     );
   }
@@ -2339,6 +2586,7 @@ class FilesPageState extends State<FilesPage> {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
+          addAutomaticKeepAlives: false,
           gridDelegate:
           const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
@@ -2349,20 +2597,24 @@ class FilesPageState extends State<FilesPage> {
           itemCount: pageFolders.length,
           itemBuilder: (_, i) {
             final folder = pageFolders[i];
-            return _FolderCard(
-              folder: folder,
-              isSelected: _selectedFolders.contains(folder.id),
-              isSelectionMode: _isSelectionMode,
-              isSyncFolder: folder.isSync,
-              onTap: () {
-                if (_isSelectionMode) {
-                  _toggleFolderSelection(folder.id);
-                } else {
-                  _openFolder(folder);
-                }
-              },
-              onSelectTap: () => _toggleFolderSelection(folder.id),
-              onMenuTap: () => _showFolderMenu(folder),
+            return StaggeredListItem(
+              index: i,
+              animate: _staggerActive,
+              child: _FolderCard(
+                folder: folder,
+                isSelected: _selectedFolders.contains(folder.id),
+                isSelectionMode: _isSelectionMode,
+                isSyncFolder: folder.isSync,
+                onTap: () {
+                  if (_isSelectionMode) {
+                    _toggleFolderSelection(folder.id);
+                  } else {
+                    _openFolder(folder);
+                  }
+                },
+                onSelectTap: () => _toggleFolderSelection(folder.id),
+                onMenuTap: () => _showFolderMenu(folder),
+              ),
             );
           },
         ),
@@ -2392,21 +2644,25 @@ class FilesPageState extends State<FilesPage> {
     final pageFolders = _displayFolders.sublist(start, end);
     return Column(
       children: [
-        ...pageFolders.map(
-              (f) => _FolderListTile(
-            folder: f,
-            isSelected: _selectedFolders.contains(f.id),
-            isSelectionMode: _isSelectionMode,
-            isSyncFolder: f.isSync,
-            onTap: () {
-              if (_isSelectionMode) {
-                _toggleFolderSelection(f.id);
-              } else {
-                _openFolder(f);
-              }
-            },
-            onSelectTap: () => _toggleFolderSelection(f.id),
-            onMenuTap: () => _showFolderMenu(f),
+        ...pageFolders.asMap().entries.map(
+              (entry) => StaggeredListItem(
+            index: entry.key,
+            animate: _staggerActive,
+            child: _FolderListTile(
+              folder: entry.value,
+              isSelected: _selectedFolders.contains(entry.value.id),
+              isSelectionMode: _isSelectionMode,
+              isSyncFolder: entry.value.isSync,
+              onTap: () {
+                if (_isSelectionMode) {
+                  _toggleFolderSelection(entry.value.id);
+                } else {
+                  _openFolder(entry.value);
+                }
+              },
+              onSelectTap: () => _toggleFolderSelection(entry.value.id),
+              onMenuTap: () => _showFolderMenu(entry.value),
+            ),
           ),
         ),
         if (totalFolders > 4)
@@ -2614,6 +2870,7 @@ class _FilterChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
         padding:
         const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
@@ -2882,8 +3139,10 @@ class _FileTile extends StatelessWidget {
   final bool isSelected;
   final bool isSelectionMode;
   final VoidCallback onMenuTap;
-  final double? downloadProgress;
-  final int? downloadReceivedBytes;
+  // Ticks many times per second while downloading — kept as a standalone
+  // notifier so progress updates rebuild only this tile, not the whole
+  // FilesPageState (see _startDownload).
+  final ValueNotifier<({double progress, int received})>? downloadNotifier;
   final VoidCallback? onFavouriteTap;
   final String? authToken;
 
@@ -2896,15 +3155,12 @@ class _FileTile extends StatelessWidget {
     required this.isSelected,
     required this.isSelectionMode,
     required this.onMenuTap,
-    this.downloadProgress,
-    this.downloadReceivedBytes,
+    this.downloadNotifier,
     this.onFavouriteTap,
     this.authToken,
     this.onTap,
     this.onSelectTap,
   });
-
-  bool get _isDownloading => downloadProgress != null;
 
   IconData _icon(String mime) {
     if (mime.startsWith('image/')) return Icons.image_rounded;
@@ -2919,87 +3175,39 @@ class _FileTile extends StatelessWidget {
   }
 
   Widget _buildLeading(Color color) {
-    final mime = file.mimeType.toLowerCase();
-    final thumb = file.thumbnailPath;
-    if (thumb != null && thumb.isNotEmpty) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: SizedBox(
-          width: 42,
-          height: 42,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              CachedNetworkImage(
-                imageUrl: thumb,
-                fit: BoxFit.cover,
-                placeholder: (_, __) => _iconBox(color),
-                errorWidget: (_, __, ___) => _iconBox(color),
-              ),
-              if (mime.startsWith('video/'))
-                Positioned(
-                  right: 2,
-                  bottom: 2,
-                  child: Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                        color: color, shape: BoxShape.circle),
-                    child: const Icon(Icons.play_arrow_rounded,
-                        color: Colors.white, size: 10),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      );
-    }
-    if (mime.startsWith('video/')) {
-      return Container(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Icon(Icons.videocam_rounded, color: color, size: 20),
-            Positioned(
-              right: 2,
-              bottom: 2,
-              child: Container(
-                width: 14,
-                height: 14,
-                decoration: BoxDecoration(
-                    color: color, shape: BoxShape.circle),
-                child: const Icon(Icons.play_arrow_rounded,
-                    color: Colors.white, size: 10),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    return _iconBox(color);
-  }
-
-  Widget _iconBox(Color color) {
-    return Container(
+    final isMedia = MediaTypeHelper.isImage(file.mimeType) ||
+        MediaTypeHelper.isVideo(file.mimeType);
+    return MediaThumbnail(
+      mimeType: file.mimeType,
+      thumbnailPath: file.thumbnailPath,
+      cacheKey: file.id,
       width: 42,
       height: 42,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Icon(_icon(file.mimeType), color: color, size: 20),
+      memCacheWidth: 130,
+      memCacheHeight: 130,
+      borderRadius: BorderRadius.circular(10),
+      heroTag: isMedia ? 'file_hero_${file.id}' : null,
+      fallbackIcon: _icon(file.mimeType),
+      fallbackIconColor: color,
+      playBadgeColor: color,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final color = _color(file.mimeType);
+    final notifier = downloadNotifier;
+    if (notifier == null) return _buildTile(context, color, null, null);
+    return ValueListenableBuilder<({double progress, int received})>(
+      valueListenable: notifier,
+      builder: (context, dl, _) =>
+          _buildTile(context, color, dl.progress, dl.received),
+    );
+  }
+
+  Widget _buildTile(BuildContext context, Color color, double? progress,
+      int? received) {
+    final isDownloading = progress != null;
     return RepaintBoundary(child: Container(
       margin: const EdgeInsets.only(bottom: 8),
       clipBehavior: Clip.antiAlias,
@@ -3041,7 +3249,7 @@ class _FileTile extends StatelessWidget {
                   activeColor: Colors.blue,
                 ),
               )
-                  : _isDownloading
+                  : isDownloading
                   ? SizedBox(
                 width: 42,
                 height: 42,
@@ -3049,7 +3257,7 @@ class _FileTile extends StatelessWidget {
                   alignment: Alignment.center,
                   children: [
                     CircularProgressIndicator(
-                      value: downloadProgress,
+                      value: progress,
                       strokeWidth: 3,
                       backgroundColor: Theme.of(context)
                           .colorScheme
@@ -3060,7 +3268,7 @@ class _FileTile extends StatelessWidget {
                           Color(0xFF1A73E8)),
                     ),
                     Text(
-                      '${((downloadProgress ?? 0) * 100).toInt()}%',
+                      '${(progress * 100).toInt()}%',
                       style: const TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
@@ -3078,9 +3286,9 @@ class _FileTile extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              subtitle: _isDownloading
+              subtitle: isDownloading
                   ? Text(
-                '${DownloadRepository.formatBytes(downloadReceivedBytes ?? 0)} / ${file.formattedSize}',
+                '${DownloadRepository.formatBytes(received ?? 0)} / ${file.formattedSize}',
                 style: const TextStyle(
                     color: Color(0xFF1A73E8), fontSize: 12),
               )
@@ -3121,9 +3329,9 @@ class _FileTile extends StatelessWidget {
                 ],
               ),
             ),
-            if (_isDownloading)
+            if (isDownloading)
               LinearProgressIndicator(
-                value: downloadProgress,
+                value: progress,
                 minHeight: 3,
                 backgroundColor: Theme.of(context)
                     .colorScheme
@@ -3178,6 +3386,7 @@ class _FileGridCard extends StatelessWidget {
     final color = _color(mime);
     final thumb = file.thumbnailPath;
     final hasPreview = thumb != null && thumb.isNotEmpty;
+    final isMedia = MediaTypeHelper.isImage(mime) || MediaTypeHelper.isVideo(mime);
 
     return RepaintBoundary(child: GestureDetector(
       onTap: isSelectionMode ? onSelectTap : onTap,
@@ -3206,49 +3415,23 @@ class _FileGridCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  ClipRRect(
+                  MediaThumbnail(
+                    mimeType: file.mimeType,
+                    thumbnailPath: file.thumbnailPath,
+                    cacheKey: file.id,
+                    memCacheWidth: 300,
+                    memCacheHeight: 300,
                     borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(16)),
-                    child: hasPreview
-                        ? CachedNetworkImage(
-                      imageUrl: thumb,
-                      fit: BoxFit.cover,
-                      memCacheWidth: 300,
-                      memCacheHeight: 300,
-                      fadeInDuration: const Duration(milliseconds: 150),
-                      placeholder: (_, __) => Container(
-                        color: color.withValues(alpha: 0.08),
-                        child: Icon(_icon(mime),
-                            color: color, size: 40),
-                      ),
-                      errorWidget: (_, __, ___) => Container(
-                        color: color.withValues(alpha: 0.08),
-                        child: Icon(_icon(mime),
-                            color: color, size: 40),
-                      ),
-                    )
-                        : Container(
-                      color: color.withValues(alpha: 0.08),
-                      child: Center(
-                        child: Icon(_icon(mime),
-                            color: color, size: 40),
-                      ),
-                    ),
+                    heroTag: isMedia && hasPreview
+                        ? 'file_hero_${file.id}'
+                        : null,
+                    fallbackIcon: _icon(mime),
+                    fallbackIconColor: color,
+                    fallbackBackgroundColor: color.withValues(alpha: 0.08),
+                    fallbackIconSize: 40,
+                    playBadgeColor: Colors.black.withValues(alpha: 0.5),
                   ),
-                  if (mime.startsWith('video/') && hasPreview)
-                    Center(
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color:
-                          Colors.black.withValues(alpha: 0.5),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.play_arrow_rounded,
-                            color: Colors.white, size: 20),
-                      ),
-                    ),
                   if (isSelected)
                     Positioned(
                       top: 6,
@@ -3348,6 +3531,7 @@ class _InfoBottomSheet extends StatefulWidget {
   final String previewUrl;
   final Color iconColor;
   final IconData icon;
+  final String mimeType;
   final Future<Map<String, dynamic>> Function() fetchInfo;
   final String Function(dynamic) fmt;
 
@@ -3358,6 +3542,7 @@ class _InfoBottomSheet extends StatefulWidget {
     required this.previewUrl,
     required this.iconColor,
     required this.icon,
+    this.mimeType = '',
     required this.fetchInfo,
     required this.fmt,
   });
@@ -3380,17 +3565,19 @@ class _InfoBottomSheetState extends State<_InfoBottomSheet> {
   Future<void> _load() async {
     try {
       final data = await widget.fetchInfo();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _info = data;
           _isLoading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = ErrorLocalizer.forException(e, AppLocalizations.of(context)!);
           _isLoading = false;
         });
+      }
     }
   }
 
@@ -3398,14 +3585,10 @@ class _InfoBottomSheetState extends State<_InfoBottomSheet> {
     if (raw == null) return '—';
     try {
       final dt = DateTime.parse(raw).toLocal();
-      const months = [
-        'янв', 'фев', 'мар', 'апр', 'май', 'июн',
-        'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'
-      ];
-      return '${dt.day} ${months[dt.month - 1]}. ${dt.year} г., '
-          '${dt.hour.toString().padLeft(2, '0')}:'
-          '${dt.minute.toString().padLeft(2, '0')}';
-    } catch (_) {
+      final locale = Localizations.localeOf(context).toString();
+      return DateFormat('d MMM yyyy, HH:mm', locale).format(dt);
+    } catch (e) {
+      if (kDebugMode) debugPrint('[FilesPage] _formatDate failed: $e');
       return raw;
     }
   }
@@ -3456,18 +3639,22 @@ class _InfoBottomSheetState extends State<_InfoBottomSheet> {
               ),
               child: Row(
                 children: [
-                  ClipRRect(
+                  widget.previewUrl.isNotEmpty
+                      ? MediaThumbnail(
+                    mimeType: widget.mimeType,
+                    thumbnailPath: widget.previewUrl,
+                    cacheKey: widget.id,
+                    width: 52,
+                    height: 52,
+                    memCacheWidth: 160,
+                    memCacheHeight: 160,
                     borderRadius: BorderRadius.circular(10),
-                    child: widget.previewUrl.isNotEmpty
-                        ? CachedNetworkImage(
-                      imageUrl: widget.previewUrl,
-                      width: 52,
-                      height: 52,
-                      fit: BoxFit.cover,
-                      placeholder: (_, __) => _iconBox(cs),
-                      errorWidget: (_, __, ___) => _iconBox(cs),
-                    )
-                        : _iconBox(cs),
+                    fallbackIcon: widget.icon,
+                    fallbackIconColor: widget.iconColor,
+                  )
+                      : ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: _iconBox(cs),
                   ),
                   const SizedBox(width: 14),
                   Expanded(

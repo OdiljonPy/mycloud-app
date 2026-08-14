@@ -6,8 +6,8 @@ import 'package:cloud_app/l10n/app_localizations.dart';
 import 'home_page.dart';
 import 'files_page.dart';
 import 'shared_page.dart';
-import '../../upload/presentation/upload_page.dart';
 import '../../../core/storage/secure_storage.dart';
+import '../../auth/data/auth_repository.dart';
 import '../../auth/presentation/login_page.dart';
 import '../../profile/presentation/profile_page.dart';
 
@@ -22,14 +22,6 @@ class _MainPageState extends State<MainPage> {
   int _currentIndex = 0;
   DateTime? _lastBackPress;
 
-  String? _currentFolderId;
-
-  void _onFolderChanged(String? folderId) {
-    setState(() {
-      _currentFolderId = folderId;
-    });
-  }
-
   final _homeKey = GlobalKey<HomePageState>();
   final _filesKey = GlobalKey<FilesPageState>();
 
@@ -43,14 +35,12 @@ class _MainPageState extends State<MainPage> {
         canPop: false,
         onPopInvokedWithResult: (didPop, result) {
           if (didPop) return;
-          // Non-Home tab
           if (_currentIndex != 0) {
             if (_currentIndex == 1) {
               if (_filesKey.currentState?.handleBackNavigation() ?? false) {
                 return; // FilesPage handled the back press (e.g., navigated up a directory)
               }
             }
-            // Switch to Home
             setState(() => _currentIndex = 0);
             return;
           }
@@ -75,7 +65,6 @@ class _MainPageState extends State<MainPage> {
             children: [
               HomePage(
                 key: _homeKey,
-                onFolderChanged: _onFolderChanged,
                 onNavigateToFiles: () => setState(() => _currentIndex = 1),
                 onNavigateToShared: () => setState(() => _currentIndex = 2),
                 onToggleFavourites: () {
@@ -85,7 +74,7 @@ class _MainPageState extends State<MainPage> {
                   });
                 },
               ),
-              FilesPage(key: _filesKey, onFolderChanged: _onFolderChanged),
+              FilesPage(key: _filesKey),
               const SharedPage(),
               ProfilePage(onLogout: _logout),
             ],
@@ -97,6 +86,9 @@ class _MainPageState extends State<MainPage> {
   }
 
   Future<void> _logout() async {
+    // Отписываем push-устройство, пока access token ещё валиден — сам
+    // запрос требует аутентификации.
+    await AuthRepository.unregisterCurrentDevice();
     await SecureStorage.clearTokens();
     await syncOnLogoutCallback();
     if (mounted) {
@@ -201,6 +193,7 @@ class _NavItem extends StatelessWidget {
           children: [
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
                 color: active

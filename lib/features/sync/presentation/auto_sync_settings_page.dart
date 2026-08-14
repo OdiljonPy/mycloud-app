@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/utils/page_transitions.dart';
 import '../sync_progress.dart';
 import '../sync_providers.dart';
+import 'select_sync_files_page.dart';
 
 class AutoSyncSettingsPage extends ConsumerStatefulWidget {
   const AutoSyncSettingsPage({super.key});
@@ -17,25 +19,43 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
   // true = user manually stopped → show "Continue" + "Reset"
   bool _paused = false;
   bool _isResetting = false;
+  // Separate flags (not a single shared one) — start can run for a while
+  // (gallery scan + uploads) and stop must still be able to interrupt it,
+  // so the two must not block each other.
+  bool _isStarting = false;
+  bool _isStopping = false;
 
   // ─── Button actions ───────────────────────────────────────────────────────
 
   void _startSync() {
+    if (_isStarting) return;
+    _isStarting = true;
     if (mounted) setState(() => _paused = false);
-    ref.read(syncRepositoryProvider).startAutoSync();
+    ref
+        .read(syncRepositoryProvider)
+        .startAutoSync()
+        .whenComplete(() => _isStarting = false);
   }
 
   Future<void> _stopSync() async {
+    if (_isStopping) return;
+    _isStopping = true;
     if (mounted) setState(() => _paused = true);
-    await ref.read(syncRepositoryProvider).stopSync();
+    try {
+      await ref.read(syncRepositoryProvider).stopSync();
+    } finally {
+      _isStopping = false;
+    }
   }
 
   Future<void> _resetQueue() async {
     if (_isResetting) return;
-    if (mounted) setState(() {
+    if (mounted) {
+      setState(() {
       _paused = false;
       _isResetting = true;
     });
+    }
     try {
       final repo = ref.read(syncRepositoryProvider);
       await repo.stopSync();
@@ -48,21 +68,62 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
 
   // ─── Settings toggles ─────────────────────────────────────────────────────
 
+  // Настройка влияет только на автозапуск при холодном старте / логине /
+  // обновлении главной (см. app_initializer.dart, auth_repository.dart,
+  // home_page.dart) — на текущий/ручной синк (кнопки ниже) не влияет и
+  // ничего не запускает и не останавливает сама по себе.
   Future<void> _setAutoSync(bool value) async {
     await ref.read(syncSettingsProvider.notifier).setAutoSync(value);
-    if (value) {
-      _startSync();
-    } else {
-      await _stopSync();
-    }
   }
 
   Future<void> _setWifiOnly(bool value) async {
     await ref.read(syncSettingsProvider.notifier).setWifiOnly(value);
   }
 
+  // Свич сам по себе не может включить режим "только выбранные" без
+  // непустого списка — вместо этого сразу открываем пикер.
   Future<void> _setUseSelected(bool value) async {
+    if (value && ref.read(syncSettingsProvider).selectedFiles.isEmpty) {
+      await _openFilePicker();
+      return;
+    }
     await ref.read(syncSettingsProvider.notifier).setUseSelectedFiles(value);
+    if (value) {
+      // Свич включили с уже сохранённым выбором альбомов (не через пикер) —
+      // всё равно чистим очередь от того, что могло насинкаться в full-sync
+      // режиме, пока свич был выключен.
+      await ref.read(syncRepositoryProvider).purgeNonSelectedAlbums();
+    }
+  }
+
+  // Тап по строке (не по свичу) — всегда открывает пикер для
+  // просмотра/изменения текущего выбора.
+  Future<void> _openFilePicker() async {
+    final notifier = ref.read(syncSettingsProvider.notifier);
+    final current = ref.read(syncSettingsProvider).selectedFiles.toSet();
+
+    final result = await Navigator.of(context).push<List<String>>(
+      slideUpRoute(SelectSyncFilesPage(initiallySelected: current)),
+    );
+    if (result == null || !mounted) return; // отмена/свайп назад — не трогаем
+
+    if (result.isEmpty) {
+      // Submit с 0 файлов: список не трогаем, режим не включаем.
+      await notifier.setUseSelectedFiles(false);
+      return;
+    }
+
+    await notifier.saveSelectedFiles(result);
+    await notifier.setUseSelectedFiles(true);
+    // Вычищаем из очереди всё, что не входит в новый выбор альбомов —
+    // иначе то, что уже насканилось раньше (full-sync или прошлый выбор),
+    // всё равно догрузится в фоне.
+    await ref.read(syncRepositoryProvider).purgeNonSelectedAlbums();
+
+    // Подхватываем новый фильтр независимо от тумблера "Sync Enable" —
+    // startAutoSync() сам безопасно no-op'нется, если синк уже идёт
+    // (см. guard isRunning/isScanning в AutoSyncService).
+    ref.read(syncRepositoryProvider).startAutoSync();
   }
 
   // ─── Build ────────────────────────────────────────────────────────────────
@@ -86,8 +147,8 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
     final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
     final labelColor = isDark
-        ? const Color(0xFFEBEBF5).withOpacity(0.6)
-        : const Color(0xFF3C3C43).withOpacity(0.6);
+        ? const Color(0xFFEBEBF5).withValues(alpha: 0.6)
+        : const Color(0xFF3C3C43).withValues(alpha: 0.6);
     final separatorColor = isDark
         ? const Color(0xFF38383A)
         : const Color(0xFFE5E5EA);
@@ -146,9 +207,12 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
                   ),
                   _buildSwitchTile(
                     title: t.syncSelectedFiles,
-                    subtitle: t.syncSelectedFilesSubtitle,
+                    subtitle: settings.selectedFiles.isNotEmpty
+                        ? t.syncSelectedCount(settings.selectedFiles.length)
+                        : t.syncSelectedFilesSubtitle,
                     value: settings.useSelectedFiles,
                     onChanged: _setUseSelected,
+                    onTitleTap: _openFilePicker,
                     iosBlue: iosBlue,
                     textColor: textColor,
                     labelColor: labelColor,
@@ -368,7 +432,30 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
     required Color labelColor,
     required Color separatorColor,
     required bool showDivider,
+    VoidCallback? onTitleTap,
   }) {
+    final titleColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+            color: textColor,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 13,
+            color: labelColor,
+          ),
+        ),
+      ],
+    );
+
     return Column(
       children: [
         Padding(
@@ -376,27 +463,13 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
           child: Row(
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w400,
-                        color: textColor,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: labelColor,
-                      ),
-                    ),
-                  ],
-                ),
+                child: onTitleTap != null
+                    ? GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: onTitleTap,
+                        child: titleColumn,
+                      )
+                    : titleColumn,
               ),
               const SizedBox(width: 12),
               Transform.scale(
@@ -404,7 +477,7 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
                 child: Switch.adaptive(
                   value: value,
                   onChanged: onChanged,
-                  activeColor: iosBlue,
+                  activeThumbColor: iosBlue,
                 ),
               ),
             ],

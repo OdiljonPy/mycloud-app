@@ -158,8 +158,22 @@
     }
   },
   "addedToFavourites": "Добавлено в избранное",
+  "favouriteUpdateFailed": "Не удалось обновить избранное",
+  "unitBytes": "байт",
+  "unitKb": "КБ",
+  "unitMb": "МБ",
+  "unitGb": "ГБ",
+  "unitTb": "ТБ",
+  "storageUsedOfLimit": "{used} использовано из {limit}",
+  "@storageUsedOfLimit": {
+    "placeholders": {
+      "used": { "type": "String" },
+      "limit": { "type": "String" }
+    }
+  },
   "couldNotOpenImage": "Не удалось открыть изображение",
   "couldNotOpenVideo": "Не удалось открыть видео",
+  "videoFormatNotSupported": "Формат видео не поддерживается для просмотра",
   "noSharedWithMe": "Никто не делился файлами",
   "noSharedWithMeSubtitle": "Когда кто-то поделится файлом — они появятся здесь",
   "noSharedByMe": "Вы ещё ни с кем не делились",
@@ -255,6 +269,15 @@
   "syncResumeButton": "Продолжить синк",
   "syncSelectedFiles": "Выбранные файлы",
   "syncSelectedFilesSubtitle": "Синхронизировать только выбранные",
+  "syncSelectedCount": "{count} медиа выбрано",
+  "@syncSelectedCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "selectSyncFilesTitle": "Выбор файлов для синхронизации",
+  "selectSyncFilesDone": "Готово",
+  "selectSyncFilesPermissionDenied": "Нет доступа к галерее. Разрешите доступ в настройках устройства.",
   "syncTotal": "Всего",
   "uploadedLabel": "Загружено",
   "uploadPageTitle": "Загрузка",
@@ -285,5 +308,222 @@
   },
   "deleteAccount": "Удалить аккаунт",
   "deleteAccountConfirm": "Удалить аккаунт",
-  "deleteAccountConfirmMessage": "Вы уверены, что хотите удалить аккаунт? Это действие необратимо."
+  "deleteAccountConfirmMessage": "Вы уверены, что хотите удалить аккаунт? Это действие необратимо.",
+  "storageSubtitle": "Отслеживайте использование хранилища и управляйте тарифом.",
+  "activeSubscriptionDetails": "Детали вашей активной подписки",
+  "planName": "Название тарифа",
+  "storageLimitLabel": "Лимит хранилища",
+  "available": "Доступно",
+  "planUsedLabel": "Использовано",
+  "subscriptionStartsAt": "Дата начала",
+  "subscriptionEndsAt": "Дата окончания",
+  "billingMonthly": "Ежемесячно",
+  "billingYearly": "Ежегодно",
+  "upgradeToPlan": "Улучшить до {name}",
+  "@upgradeToPlan": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "filesAlreadyInFolder": "Файлы уже находятся в этой папке",
+  "folderEmpty": "Папка пуста",
+  "accessRevoked": "Доступ отозван",
+  "userNotFound": "Пользователь не найден",
+
+  "paymentAndSubscription": "Подписка и оплата",
+  "cardDeleted": "Карта удалена",
+  "cardSetAsDefault": "Карта установлена по умолчанию",
+  "myCards": "Мои карты",
+  "addCard": "Добавить карту",
+  "noCardsLinked": "Карты не привязаны",
+  "noSubscription": "Без подписки",
+  "currentPlan": "Текущий тариф",
+  "changePlan": "Изменить тариф",
+  "choosePlan": "Выбрать тариф",
+  "storageUsed": "{used} использовано",
+  "@storageUsed": {
+    "placeholders": { "used": { "type": "String" } }
+  },
+  "subscriptionUntil": "До: {date}",
+  "@subscriptionUntil": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "cardStatusActive": "Активна",
+  "cardStatusPending": "Ожидает подтверждения",
+  "cardStatusBlocked": "Заблокирована",
+  "cardDefaultLabel": "По умолчанию",
+  "setAsDefault": "По умолчанию",
+  "deleteCardTitle": "Удалить карту?",
+  "deleteCardMessage": "Карта {number} будет удалена.",
+  "@deleteCardMessage": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "cardNumberLabel": "Номер карты",
+  "enterCardNumber": "Введите номер карты",
+  "cardNumber16Digits": "Номер карты — 16 цифр",
+  "expiryDate": "Срок действия",
+  "enterExpiryDate": "Введите срок действия",
+  "expiryDateFormat": "Формат: MM/YY",
+  "invalidMonth": "Неверный месяц",
+  "cardExpired": "Срок действия карты истёк",
+  "checkCardData": "Вы неверно ввели данные, пожалуйста проверьте",
+  "validThruLabel": "ДЕЙСТВУЕТ ДО",
+  "verifyCardTitle": "Подтверждение карты",
+  "enterSmsCode": "Введите SMS-код",
+  "smsCodeSentFor": "Код отправлен для подтверждения карты\n{number}",
+  "@smsCodeSentFor": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "cardAddedSuccess": "Карта успешно добавлена",
+  "confirmButton": "Подтвердить",
+  "plansTitle": "Тарифы",
+  "noPlans": "Нет тарифов",
+  "confirmPurchaseTitle": "Подтверждение",
+  "confirmPurchaseMessage": "Подключить тариф «{name}» за {price} UZS / {period}?",
+  "@confirmPurchaseMessage": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "price": { "type": "String" },
+      "period": { "type": "String" }
+    }
+  },
+  "updatePlan": "Обновить",
+  "freeLabel": "Бесплатно",
+  "storageFeature": "{storage} Памяти",
+  "@storageFeature": {
+    "placeholders": { "storage": { "type": "String" } }
+  },
+  "dataPreservedNote": "Ваши данные сохранятся при обновлении тарифа.",
+  "unknownError": "Неизвестная ошибка",
+  "switchPlanButton": "Перейти на этот план",
+  "addCardPrompt": "Добавьте карту для оплаты",
+  "downgradeWarningTitle": "Подтвердите переход на другой тариф",
+  "downgradeWarningMessage": "Сейчас используется {used} из доступных. На плане «{plan}» доступно {limit}. После перехода синхронизация новых файлов остановится, пока хранилище не будет в пределах лимита. Существующие файлы не будут удалены.",
+  "@downgradeWarningMessage": {
+    "placeholders": {
+      "used": { "type": "String" },
+      "plan": { "type": "String" },
+      "limit": { "type": "String" }
+    }
+  },
+  "continueAnyway": "Всё равно перейти",
+  "staySamePlan": "Остаться на текущем плане",
+  "popularBadge": "Популярный",
+  "planPeriodMonthly": "/мес",
+  "planPeriodYearly": "/год",
+  "cardTypeUzcard": "Uzcard",
+  "cardTypeHumo": "Humo",
+  "cardTypeVisa": "Visa",
+  "cardTypeMastercard": "Mastercard",
+  "cardTypeUnknown": "Карта",
+  "errorInvalidCredentials": "Неверный номер телефона или пароль",
+  "errorUserNotFound": "Пользователь не найден",
+  "errorInvalidCode": "Неверный код подтверждения",
+  "errorSessionExpired": "Сессия истекла, попробуйте снова",
+  "errorSessionExpiredRelogin": "Сессия истекла. Войдите заново",
+  "errorUserAlreadyExists": "Пользователь с таким номером уже существует",
+  "genericErrorFallback": "Произошла ошибка, попробуйте позже",
+  "planNameFree": "Бесплатно",
+  "planNameStart": "Старт",
+  "planNamePlus": "Плюс",
+  "planNameFamily": "Семья",
+  "planNamePro": "Про",
+  "clearDoneButton": "Очистить",
+  "allUploadedStatus": "Всё загружено!",
+  "noNetworkWaiting": "Нет сети — ожидание...",
+  "uploadingProgress": "Загрузка {current} из {total}...",
+  "@uploadingProgress": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "tapToSelectFiles": "Нажмите чтобы выбрать",
+  "photosAndVideosOnly": "Только фото и видео",
+  "uploadingCountBadge": "{count} загружается",
+  "@uploadingCountBadge": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "pausedCountBadge": "{count} на паузе",
+  "@pausedCountBadge": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "doneCountBadge": "{count} готово",
+  "@doneCountBadge": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "addFilesButton": "Добавить",
+  "waitingForNetworkShort": "Ожидание сети...",
+  "uploadingEllipsis": "Загрузка...",
+  "selectPhotosVideos": "Выбрать фото / видео",
+  "uploadMoreButton": "Загрузить ещё",
+  "addMoreButton": "Добавить ещё",
+  "pausedWillResumeAuto": "Нет сети — возобновится автоматически",
+  "shareButtonWithCount": "Поделиться ({count})",
+  "@shareButtonWithCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "filesAndFoldersCount": "{files} файлов, {folders} папок",
+  "@filesAndFoldersCount": {
+    "placeholders": {
+      "files": { "type": "int" },
+      "folders": { "type": "int" }
+    }
+  },
+  "chooseFolderTitle": "Выберите папку",
+  "homeFolderLabel": "Главная",
+  "invalidPhoneNumber": "Неверный номер телефона",
+  "repeatPasswordHint": "Повторите пароль",
+  "removedFromFavourites": "Убрано из избранного",
+  "alreadyInFavourites": "Выбранные файлы уже в избранном",
+  "cannotMoveIntoItself": "Нельзя переместить папку внутрь самой себя",
+  "forgotPasswordTitle": "Забыли пароль?",
+  "forgotPasswordSubtitle": "Введите номер телефона, и мы отправим код для сброса пароля.",
+  "phoneNumberLabel": "Номер телефона",
+  "sendOtpCodeButton": "Отправить код",
+  "verifyOtpCodeTitle": "Подтвердите код",
+  "otpSentToPrefix": "Мы отправили 6-значный код на ",
+  "enterCompleteOtpCode": "Введите полный 6-значный код",
+  "verifyButton": "Подтвердить",
+  "resendCodeButton": "Отправить код повторно",
+  "otpCodeResentMessage": "Код отправлен повторно",
+  "setNewPasswordTitle": "Задайте новый пароль",
+  "setNewPasswordSubtitle": "Придумайте надёжный пароль не менее 8 символов.",
+  "enterNewPasswordHint": "Введите новый пароль",
+  "confirmNewPasswordHint": "Подтвердите новый пароль",
+  "resetPasswordButton": "Сбросить пароль",
+  "passwordResetSuccessMessage": "Пароль успешно изменён!",
+  "errorOtpStillValid": "Предыдущий код ещё действителен. Подождите перед запросом нового.",
+  "loginWelcomeTitle": "С возвращением в\nBulutcha",
+  "loginSubtitle": "Войдите, чтобы получить доступ к своим файлам.",
+  "passwordLabel": "Пароль",
+  "enterYourPasswordHint": "Введите пароль",
+  "signInButton": "Войти",
+  "noAccountPrompt": "Нет аккаунта? ",
+  "registerLink": "Регистрация",
+  "enterOtpCodeTitle": "Введите код подтверждения",
+  "notifications": "Уведомления",
+  "noNotificationsYet": "Пока нет уведомлений",
+  "markAllAsRead": "Отметить все прочитанными",
+  "markAsRead": "Отметить прочитанным",
+  "deleteNotification": "Удалить уведомление",
+  "notificationDeleteConfirmMessage": "Удалить это уведомление? Это действие необратимо.",
+  "failedToLoadNotifications": "Не удалось загрузить уведомления",
+  "allNotificationsMarkedRead": "Все уведомления отмечены прочитанными",
+  "notifTypeSubscriptionExpiryWarning": "Подписка скоро истекает",
+  "notifTypeSubscriptionExpired": "Подписка истекла",
+  "notifTypeSubscriptionRenewed": "Подписка продлена",
+  "notifTypeSubscriptionDowngraded": "Подписка понижена",
+  "notifTypePaymentSuccess": "Платёж прошёл успешно",
+  "notifTypePaymentFailed": "Платёж не прошёл",
+  "notifTypeCardDeclined": "Карта отклонена",
+  "notifTypeFileShared": "Вам предоставили доступ к файлу",
+  "notifTypeFileShareRevoked": "Доступ к файлу отозван",
+  "notifTypeShareRequestReceived": "Новый запрос на доступ",
+  "notifTypeShareRequestApproved": "Запрос на доступ одобрен",
+  "notifTypeShareRequestRejected": "Запрос на доступ отклонён",
+  "notifTypeSystemAnnouncement": "Системное уведомление",
+  "notifTypeStorageWarning": "Мало свободного места",
+  "notifTypeStorageFull": "Хранилище заполнено",
+  "notifTypeUnknown": "Новое уведомление"
 }

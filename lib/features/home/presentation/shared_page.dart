@@ -2,9 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import '../../../shared/widgets/media_thumbnail.dart';
+import '../../../core/utils/media_type_helper.dart';
 import '../data/home_repository.dart';
-import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/error_localizer.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/network/dio_client.dart';
@@ -31,7 +32,9 @@ class _SharedPageState extends State<SharedPage> {
   final _repo = HomeRepository();
 
   List<_SharedUser> _users = [];
-  bool _isLoading = true;
+  // Starts false: _loadSharedUsers()/_openSharedFolder() guard on this flag,
+  // and both flip it true synchronously before their first await.
+  bool _isLoading = false;
   String? _error;
   final Map<String, String> _previewUrls = {};
 
@@ -81,7 +84,8 @@ class _SharedPageState extends State<SharedPage> {
       }
       final mime = mimeType.toLowerCase();
       final thumbPath = _normalizeUrl(item['thumbnail_path']?.toString());
-      if (mime.startsWith('image/') && thumbPath != null && !_previewUrls.containsKey(id)) {
+      final isMedia = MediaTypeHelper.isImage(mime) || MediaTypeHelper.isVideo(mime);
+      if (isMedia && thumbPath != null && !_previewUrls.containsKey(id)) {
         _previewUrls[id] = thumbPath;
       }
     }
@@ -100,9 +104,9 @@ class _SharedPageState extends State<SharedPage> {
     }
     final mime = mimeType.toLowerCase();
     final id = item['id']?.toString() ?? '';
-    if (mime.startsWith('image/')) {
+    if (MediaTypeHelper.isImage(mime)) {
       _openImageViewer(id, name);
-    } else if (mime.startsWith('video/')) {
+    } else if (MediaTypeHelper.isVideo(mime)) {
       _openVideoViewer(id, name);
     }
   }
@@ -127,23 +131,28 @@ class _SharedPageState extends State<SharedPage> {
       return;
     }
     if (mounted) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(videoUrl: url, fileName: name)));
+      Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(videoUrl: url, fileName: name, fileId: fileId)));
     }
   }
 
   Future<void> _loadSharedUsers() async {
-    if (!mounted) return;
+    if (!mounted || _isLoading) return;
     setState(() { _isLoading = true; _error = null; });
     try {
       final results = await _repo.getSharedWithMe();
       if (!mounted) return;
       setState(() {
         _users = results.map((e) => _SharedUser.fromJson(e as Map<String, dynamic>)).toList();
-        _isLoading = false;
       });
-    } on AppException catch (e) {
+    } catch (e) {
+      // Broad catch (not just AppException) + finally below — a narrower
+      // catch left _isLoading stuck true on e.g. a parse error, which with
+      // the re-entrancy guard above meant the page could never load again.
       if (!mounted) return;
-      setState(() { _error = e.message; _isLoading = false; });
+      final l10n = AppLocalizations.of(context)!;
+      setState(() { _error = ErrorLocalizer.forException(e, l10n); });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -155,7 +164,7 @@ class _SharedPageState extends State<SharedPage> {
   }
 
   Future<void> _openSharedFolder(String folderId) async {
-    if (_selectedUserId == null) return;
+    if (_selectedUserId == null || _isLoading) return;
     setState(() { _selectedFolderId = folderId; _isLoading = true; });
     try {
       final data = await _repo.getSharedFolder(_selectedUserId!, folderId);
@@ -169,11 +178,16 @@ class _SharedPageState extends State<SharedPage> {
       } else {
         items = data['results'] ?? data['files'] ?? [];
       }
-      setState(() { _items = items; _isLoading = false; });
+      setState(() => _items = items);
       _loadPreviewUrls(_items);
-    } on AppException catch (e) {
+    } catch (e) {
+      // Broad catch + finally below — same reasoning as _loadSharedUsers:
+      // a narrower catch could leave _isLoading stuck true forever.
       if (!mounted) return;
-      setState(() { _error = e.message; _isLoading = false; });
+      final l10n = AppLocalizations.of(context)!;
+      setState(() => _error = ErrorLocalizer.forException(e, l10n));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -285,6 +299,7 @@ class _SharedPageState extends State<SharedPage> {
         onTap: () => _switchSegment(index),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: active ? const Color(0xFF1A73E8) : Colors.transparent,
@@ -310,7 +325,7 @@ class _SharedPageState extends State<SharedPage> {
         child: BlocBuilder<ShareBloc, ShareState>(
           builder: (context, state) {
             if (state is ShareLoading) return const Center(child: CircularProgressIndicator());
-            if (state is ShareError) return _buildByMeError(state.message, t);
+            if (state is ShareError) return _buildByMeError(ErrorLocalizer.forException(state.error, t), t);
             if (_activeByMeTab == 0 && state is SharedByMeUsersLoaded) return _buildByMeUsers(state.users, t);
             if (_activeByMeTab == 1 && state is SharedByMeLoaded) return _buildByMeItems(state.shares, t);
             return const SizedBox.shrink();
@@ -321,11 +336,14 @@ class _SharedPageState extends State<SharedPage> {
   }
 
   Widget _buildByMeSubTabs(AppLocalizations t) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: Container(
         padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(color: const Color(0xFFF0F0F0), borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF21262D) : const Color(0xFFF0F0F0),
+            borderRadius: BorderRadius.circular(12)),
         child: Row(children: [
           _subTabButton(t.usersTab, 0),
           const SizedBox(width: 3),
@@ -342,6 +360,7 @@ class _SharedPageState extends State<SharedPage> {
         onTap: () => _switchByMeTab(index),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
             color: active ? const Color(0xFF1A73E8) : Colors.transparent,
@@ -385,6 +404,7 @@ class _SharedPageState extends State<SharedPage> {
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: users.length,
+        addAutomaticKeepAlives: false,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (_, i) => _buildByMeUserCard(users[i], t),
       ),
@@ -431,6 +451,7 @@ class _SharedPageState extends State<SharedPage> {
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: shares.length,
+        addAutomaticKeepAlives: false,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (_, i) => _buildByMeItemCard(shares[i], t),
       ),
@@ -508,6 +529,7 @@ class _SharedPageState extends State<SharedPage> {
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: _users.length,
+        addAutomaticKeepAlives: false,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (_, i) => _buildUserCard(_users[i], t),
       ),
@@ -552,6 +574,7 @@ class _SharedPageState extends State<SharedPage> {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: _items.length,
+      addAutomaticKeepAlives: false,
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (_, i) {
         final item = _items[i] as Map<String, dynamic>;
@@ -593,25 +616,28 @@ class _SharedPageState extends State<SharedPage> {
     }
     final mime = mimeType.toLowerCase();
     final previewUrl = _previewUrls[id];
-    if (mime.startsWith('image/') && previewUrl != null) {
-      return ClipRRect(borderRadius: BorderRadius.circular(12),
-        child: CachedNetworkImage(imageUrl: previewUrl, width: 44, height: 44, fit: BoxFit.cover,
-          placeholder: (_, __) => Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFF1A73E8).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.image_rounded, color: Color(0xFF1A73E8), size: 22)),
-          errorWidget: (_, __, ___) => Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFF1A73E8).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.image_rounded, color: Color(0xFF1A73E8), size: 22))));
-    }
-    if (mime.startsWith('video/')) {
-      return Container(width: 44, height: 44,
-        decoration: BoxDecoration(color: const Color(0xFFEA4335).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-        child: Stack(alignment: Alignment.center, children: [
-          const Icon(Icons.videocam_rounded, color: Color(0xFFEA4335), size: 22),
-          Positioned(right: 2, bottom: 2, child: Container(width: 14, height: 14,
-            decoration: const BoxDecoration(color: Color(0xFFEA4335), shape: BoxShape.circle),
-            child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 10))),
-        ]));
-    }
-    return Container(width: 44, height: 44,
-      decoration: BoxDecoration(color: const Color(0xFF1A73E8).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-      child: const Icon(Icons.insert_drive_file_rounded, color: Color(0xFF1A73E8), size: 22));
+    final fallbackIcon = MediaTypeHelper.isVideo(mime)
+        ? Icons.videocam_rounded
+        : MediaTypeHelper.isImage(mime)
+            ? Icons.image_rounded
+            : Icons.insert_drive_file_rounded;
+    final fallbackColor = MediaTypeHelper.isVideo(mime)
+        ? const Color(0xFFEA4335)
+        : const Color(0xFF1A73E8);
+    return MediaThumbnail(
+      mimeType: mime,
+      thumbnailPath: previewUrl,
+      cacheKey: id,
+      width: 44,
+      height: 44,
+      memCacheWidth: 130,
+      memCacheHeight: 130,
+      borderRadius: BorderRadius.circular(12),
+      fallbackIcon: fallbackIcon,
+      fallbackIconColor: fallbackColor,
+      fallbackIconSize: 22,
+      playBadgeColor: fallbackColor,
+    );
   }
 
   String? _normalizeUrl(String? raw) {

@@ -41,12 +41,28 @@ lib/core/config/app_config_local.dart
 *.iml
 .vscode/
 .DS_Store
-<<<<<<< HEAD
+
+# Misc
 patch_*.py
 android/app/bulutcha.jks
-android/key.properties
-=======
 
 # FVM Version Cache
 .fvm/
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
+logs.md
+
+# Screenshots / temp media dumped in repo root
+*.jpg
+*.jpeg
+*.png
+!/assets/**
+
+# Stray audit/report notes
+bulutcha_architecture_report.md
+modernization_audit_2026-07.md
+Swagger API.md
+
+MD/
+API_AUDIT.md
+ARCHITECTURE_AUDIT.md
+.DS_Store
+**/.DS_Store

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -36,6 +37,9 @@ class AutoSyncService {
   static const String _kColdStartKey = 'sync_cold_start_done';
   static const String _kAutoSyncEnabledKey = 'auto_sync_enabled';
   static const String _kWatermarkKey = 'sync_last_watermark_ms';
+  static const String _kWifiOnlyKey = 'auto_sync_wifi_only';
+  static const String _kSelectedOnlyKey = 'auto_sync_selected_only';
+  static const String _kSelectedAlbumsKey = 'selected_albums';
 
   final SyncQueueDb _db = SyncQueueDb();
   final StreamController<SyncProgress> _progressController =
@@ -47,6 +51,7 @@ class AutoSyncService {
   bool _isScanning = false;
   bool get isScanning => _isScanning;
   int _syncSessionId = 0;
+  bool _settingsChanged = false;
 
   Future<void> initialize() async {
     await _db.init();
@@ -76,14 +81,14 @@ class AutoSyncService {
       }
     }
 
-    Set<String>? selectedIds;
-    final selectiveOn = prefs.getBool('auto_sync_selected_only') ?? false;
+    // selectiveOn + пустой selectedAlbumIds (Set, не null) => MediaScanner
+    // отфильтрует ВСЁ (ничего не заматчится) — это осознанно: "только
+    // выбранные альбомы" с пустым списком должно ничего не синкать, а не всё.
+    Set<String>? selectedAlbumIds;
+    final selectiveOn = prefs.getBool(_kSelectedOnlyKey) ?? false;
     if (selectiveOn) {
-      final list = prefs.getStringList('selected_files') ?? [];
-      final cleaned = list.where((id) => id.trim().isNotEmpty).toSet();
-      if (cleaned.isNotEmpty) {
-        selectedIds = cleaned;
-      }
+      final list = prefs.getStringList(_kSelectedAlbumsKey) ?? [];
+      selectedAlbumIds = list.where((id) => id.trim().isNotEmpty).toSet();
     }
 
     final watermarkMs = prefs.getInt(_kWatermarkKey);
@@ -98,13 +103,12 @@ class AutoSyncService {
     final scanner = MediaScanner(
       db: _db,
       uploadedKeys: uploadedKeys,
-      selectedLocalIds: selectedIds,
+      selectedAlbumIds: selectedAlbumIds,
       filterFromMs: filterFromMs,
     );
     final newItems = await scanner.scanAndEnqueue();
     debugPrint('[AutoSync] Scanned: $newItems new items enqueued');
 
-    // Обновляем watermark = now после каждого scan
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     await prefs.setInt(_kWatermarkKey, nowMs);
     debugPrint('[AutoSync] Watermark updated: ${DateTime.fromMillisecondsSinceEpoch(nowMs)}');
@@ -137,12 +141,13 @@ class AutoSyncService {
     if (token == null || token.isEmpty) return;
 
     final prefs = await SharedPreferences.getInstance();
-    Set<String>? selectedIds;
-    final selectiveOn = prefs.getBool('auto_sync_selected_only') ?? false;
+    // См. комментарий в initialize(): пустой список при selectiveOn
+    // должен фильтровать всё, а не отключать фильтр.
+    Set<String>? selectedAlbumIds;
+    final selectiveOn = prefs.getBool(_kSelectedOnlyKey) ?? false;
     if (selectiveOn) {
-      final list = prefs.getStringList('selected_files') ?? [];
-      final cleaned = list.where((id) => id.trim().isNotEmpty).toSet();
-      if (cleaned.isNotEmpty) selectedIds = cleaned;
+      final list = prefs.getStringList(_kSelectedAlbumsKey) ?? [];
+      selectedAlbumIds = list.where((id) => id.trim().isNotEmpty).toSet();
     }
 
     // Delta scan: сканируем только файлы после последнего синка
@@ -161,7 +166,7 @@ class AutoSyncService {
     final scanner = MediaScanner(
       db: _db,
       uploadedKeys: {},
-      selectedLocalIds: selectedIds,
+      selectedAlbumIds: selectedAlbumIds,
       filterFromMs: filterFromMs,
       resolveFiles: false,
       onProgress: (count) {
@@ -169,11 +174,17 @@ class AutoSyncService {
         _emit(_currentProgress.copyWith(scannedCount: _scannedCount, isScanning: true, sessionUploaded: _sessionUploadedCount));
       },
     );
-    final newItems = await scanner.scanAndEnqueue();
-    debugPrint('[AutoSync] Rescan: $newItems new items enqueued');
+    try {
+      final newItems = await scanner.scanAndEnqueue();
+      debugPrint('[AutoSync] Rescan: $newItems new items enqueued');
+      await prefs.setInt(_kWatermarkKey, DateTime.now().millisecondsSinceEpoch);
+    } finally {
+      // Обязательно сбрасываем даже при исключении внутри scanAndEnqueue —
+      // иначе _isScanning зависает в true навсегда и guard в startAutoSync()
+      // молча блокирует все последующие синки (и авто, и ручные).
+      _isScanning = false;
+    }
 
-    // Обновляем watermark после скана
-    await prefs.setInt(_kWatermarkKey, DateTime.now().millisecondsSinceEpoch);
     final counts = await _db.getStatusCounts();
     _emit(_currentProgress.copyWith(
       pending: counts['pending'] ?? 0,
@@ -187,7 +198,6 @@ class AutoSyncService {
       currentFileName: _currentFileName,
       totalInBatch: _totalInBatch,
     ));
-    _isScanning = false;
   }
 
   Future<void> startSync() async {
@@ -217,8 +227,9 @@ class AutoSyncService {
       final syncFolderUuid = syncFolder.id;
       debugPrint('[Sync] Session $sessionId using folder: $syncFolderUuid');
 
+      List<Map<String, dynamic>> pinnedFolders = [];
       try {
-        final pinnedFolders = await repo.getPinnedFolders();
+        pinnedFolders = await repo.getPinnedFolders();
         final alreadyPinned = pinnedFolders.any(
               (p) => (p['folder'] as FolderModel?)?.id == syncFolderUuid,
         );
@@ -229,6 +240,34 @@ class AutoSyncService {
         debugPrint('[Sync] Pin attempt (non-critical): $e');
       }
 
+      // Альбомный режим: у каждого выбранного альбома своя папка на
+      // сервере (то же имя, что на телефоне) вместо единой syncFolderUuid.
+      // Имена альбомов нужны только для резолва — не храним их в БД.
+      final prefs = await SharedPreferences.getInstance();
+      final selectiveOn = prefs.getBool(_kSelectedOnlyKey) ?? false;
+      // Снимок настроек на старте сессии — сверяется в конце каждой
+      // итерации while, чтобы обнаружить смену выбора папок "на лету"
+      // без прерывания текущей сессии (см. _settingsChanged ниже).
+      final initialSelectiveOn = selectiveOn;
+      final initialSelectedAlbumIds =
+          prefs.getStringList(_kSelectedAlbumsKey)?.toSet() ?? <String>{};
+      _settingsChanged = false;
+      final Map<String, String> albumNames = {};
+      if (selectiveOn) {
+        try {
+          final albums = await PhotoManager.getAssetPathList(
+            type: RequestType.common,
+            hasAll: true,
+          );
+          for (final a in albums) {
+            if (!a.isAll) albumNames[a.id] = a.name;
+          }
+        } catch (e) {
+          debugPrint('[Sync] Failed to load album names: $e');
+        }
+      }
+      final Map<String, String> albumFolderCache = {};
+
       final galleryService = GalleryService(
         baseUrl: AppConfig.instance.baseUrl,
         token: token,
@@ -236,6 +275,9 @@ class AutoSyncService {
       final uploader = TusSyncUploader();
 
       while (_isRunning && sessionId == _syncSessionId) {
+        await _waitForWifiIfNeeded(sessionId);
+        if (!_isRunning || sessionId != _syncSessionId) break;
+
         final tasks = await _db.getPendingOldestFirst(limit: 50);
         if (tasks.isEmpty) {
           if (_isScanning) {
@@ -252,15 +294,56 @@ class AutoSyncService {
         // до checkDuplicates — иначе сервер не распознаёт дубли
         final resolvedTasks = await _resolveTaskSizes(tasks);
 
-        Map<String, bool> duplicateMap;
-        try {
-          duplicateMap = await galleryService.checkDuplicates(
-            resolvedTasks,
-            folderId: syncFolderUuid,
+        // Целевая папка на задачу: в альбомном режиме — своя папка на
+        // альбом, иначе — единая syncFolderUuid (старое поведение).
+        final Map<int, String> taskFolderIds = {};
+        for (final task in resolvedTasks) {
+          if (task.id == null) continue;
+          taskFolderIds[task.id!] = await _resolveTargetFolderId(
+            selectiveOn: selectiveOn,
+            task: task,
+            repo: repo,
+            fallbackFolderId: syncFolderUuid,
+            albumNames: albumNames,
+            albumFolderCache: albumFolderCache,
+            pinnedFolders: pinnedFolders,
           );
-        } catch (e) {
-          debugPrint('[Sync] Duplicate check failed (uploading all): $e');
-          duplicateMap = {};
+        }
+
+        Map<String, bool> duplicateMap = {};
+        if (selectiveOn) {
+          // checkDuplicates бьёт по конкретной папке — с несколькими
+          // альбомами группируем задачи по целевой папке и проверяем
+          // каждую группу отдельно, иначе дубликаты в "чужой" папке
+          // проверялись бы неправильно.
+          final byFolder = <String, List<SyncTask>>{};
+          for (final task in resolvedTasks) {
+            final folderId = task.id != null
+                ? (taskFolderIds[task.id!] ?? syncFolderUuid)
+                : syncFolderUuid;
+            byFolder.putIfAbsent(folderId, () => []).add(task);
+          }
+          for (final entry in byFolder.entries) {
+            try {
+              final partial = await galleryService.checkDuplicates(
+                entry.value,
+                folderId: entry.key,
+              );
+              duplicateMap.addAll(partial);
+            } catch (e) {
+              debugPrint('[Sync] Duplicate check failed for folder ${entry.key} (uploading all): $e');
+            }
+          }
+        } else {
+          try {
+            duplicateMap = await galleryService.checkDuplicates(
+              resolvedTasks,
+              folderId: syncFolderUuid,
+            );
+          } catch (e) {
+            debugPrint('[Sync] Duplicate check failed (uploading all): $e');
+            duplicateMap = {};
+          }
         }
 
         for (final task in resolvedTasks) {
@@ -301,7 +384,6 @@ class AutoSyncService {
           // filePath резолвится здесь — не во время scan
           String resolvedPath = task.filePath;
           if (resolvedPath.isEmpty) {
-            // Резолвим через photo_manager по localId
             try {
               final asset = await AssetEntity.fromId(task.localId);
               final originFile = await asset?.originFile;
@@ -351,6 +433,9 @@ class AutoSyncService {
             continue;
           }
 
+          await _waitForWifiIfNeeded(sessionId);
+          if (!_isRunning || sessionId != _syncSessionId) break;
+
           _currentFileName = task.fileName;
           await _db.markUploading(task.id!);
           counts = await _db.getStatusCounts();
@@ -374,7 +459,7 @@ class AutoSyncService {
 
             final serverUuid = await uploader.upload(
               uploadTask,
-              folderId: syncFolderUuid,
+              folderId: taskFolderIds[task.id!] ?? syncFolderUuid,
               onProgress: (progress) {
                 _emit(_currentProgress.copyWith(currentFileProgress: progress, sessionUploaded: _sessionUploadedCount));
               },
@@ -404,6 +489,18 @@ class AutoSyncService {
             totalInBatch: _totalInBatch,
           ));
         }
+
+        // Смена выбора папок "на лету": не прерываем текущую сессию —
+        // только помечаем, что следующий цикл должен пересканировать со
+        // свежим фильтром (см. _settingsChanged в finally ниже).
+        final freshPrefs = await SharedPreferences.getInstance();
+        final freshSelectiveOn = freshPrefs.getBool(_kSelectedOnlyKey) ?? false;
+        final freshSelectedAlbumIds =
+            freshPrefs.getStringList(_kSelectedAlbumsKey)?.toSet() ?? <String>{};
+        if (freshSelectiveOn != initialSelectiveOn ||
+            !setEquals(freshSelectedAlbumIds, initialSelectedAlbumIds)) {
+          _settingsChanged = true;
+        }
       }
     } finally {
       _isRunning = false;
@@ -421,6 +518,65 @@ class AutoSyncService {
         currentFileName: _currentFileName,
         totalInBatch: _totalInBatch,
       ));
+
+      // Если во время этой сессии сменился выбор папок и сессию не
+      // остановили вручную (stopSync/onLogout бампают _syncSessionId) —
+      // запускаем новый цикл со свежим фильтром сразу после того, как
+      // текущий доканчился естественным образом.
+      if (_settingsChanged && sessionId == _syncSessionId) {
+        _settingsChanged = false;
+        unawaited(startAutoSync());
+      }
+    }
+  }
+
+  /// Возвращает id папки на сервере для задачи. В обычном режиме — всегда
+  /// [fallbackFolderId]. В альбомном — папка, соответствующая альбому
+  /// задачи (создаётся/резолвится лениво и кэшируется на сессию синка).
+  Future<String> _resolveTargetFolderId({
+    required bool selectiveOn,
+    required SyncTask task,
+    required HomeRepository repo,
+    required String fallbackFolderId,
+    required Map<String, String> albumNames,
+    required Map<String, String> albumFolderCache,
+    required List<Map<String, dynamic>> pinnedFolders,
+  }) async {
+    if (!selectiveOn) return fallbackFolderId;
+    final albumId = task.albumId;
+    // Задачи без albumId — легаси-записи до миграции v5, в альбомном
+    // режиме их не должно быть в очереди (purgeNonSelectedAlbums их
+    // чистит), но на всякий случай не роняем sync, а шлём в дефолтную папку.
+    if (albumId == null) return fallbackFolderId;
+
+    final cached = albumFolderCache[albumId];
+    if (cached != null) return cached;
+
+    final albumName = albumNames[albumId] ?? albumId;
+    try {
+      final folder = await repo.resolveSyncFolderForAlbum(
+        albumId: albumId,
+        albumName: albumName,
+      );
+      albumFolderCache[albumId] = folder.id;
+
+      final alreadyPinned = pinnedFolders.any(
+        (p) => (p['folder'] as FolderModel?)?.id == folder.id,
+      );
+      if (!alreadyPinned) {
+        try {
+          await repo.pinFolder(folder.id);
+        } catch (e) {
+          debugPrint('[Sync] Pin attempt for album folder "$albumName" (non-critical): $e');
+        }
+      }
+      return folder.id;
+    } catch (e) {
+      debugPrint('[Sync] resolveSyncFolderForAlbum failed for "$albumName": $e — falling back to default folder');
+      // Кешируем и неудачу — иначе при 50+ файлах в альбоме тот же
+      // падающий запрос повторялся бы на каждый файл в этой сессии синка.
+      albumFolderCache[albumId] = fallbackFolderId;
+      return fallbackFolderId;
     }
   }
 
@@ -455,6 +611,30 @@ class AutoSyncService {
     return result;
   }
 
+  /// Если включён "только Wi-Fi" и сейчас не Wi-Fi — блокируется
+  /// (с поллингом раз в 3с) пока сеть не станет Wi-Fi, настройка не
+  /// выключится или синк не остановится извне.
+  Future<void> _waitForWifiIfNeeded(int sessionId) async {
+    var loggedPause = false;
+    while (_isRunning && sessionId == _syncSessionId) {
+      final prefs = await SharedPreferences.getInstance();
+      final wifiOnly = prefs.getBool(_kWifiOnlyKey) ?? false;
+      if (!wifiOnly) return;
+
+      final results = await Connectivity().checkConnectivity();
+      if (results.contains(ConnectivityResult.wifi)) {
+        if (loggedPause) debugPrint('[Sync] Wi-Fi restored, resuming');
+        return;
+      }
+
+      if (!loggedPause) {
+        loggedPause = true;
+        debugPrint('[Sync] Wi-Fi only: no Wi-Fi, pausing until it returns');
+      }
+      await Future.delayed(const Duration(seconds: 3));
+    }
+  }
+
   Future<void> stopSync() async {
     _isRunning = false;
     _syncSessionId++;
@@ -480,6 +660,18 @@ class AutoSyncService {
   Future<void> setAutoSyncEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_kAutoSyncEnabledKey, enabled);
+  }
+
+  /// Вычищает из очереди pending-задачи вне текущего выбора альбомов.
+  /// Вызывается при включении/изменении режима "только выбранные альбомы" —
+  /// без этого уже отсканированные, но не загруженные файлы из других
+  /// папок продолжили бы синкаться в фоне.
+  Future<void> purgeNonSelectedAlbums() async {
+    await _db.init();
+    final prefs = await SharedPreferences.getInstance();
+    final list = prefs.getStringList(_kSelectedAlbumsKey) ?? [];
+    final albumIds = list.where((id) => id.trim().isNotEmpty).toSet();
+    await _db.purgeNonSelectedPending(albumIds);
   }
 
   String? _currentFileName;

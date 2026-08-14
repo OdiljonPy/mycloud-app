@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../data/auth_repository.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/error_localizer.dart';
 import '../../../core/utils/uzbek_phone_formatter.dart';
+import '../../../l10n/app_localizations.dart';
 import 'reset_password_otp_page.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
@@ -47,7 +49,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         );
       }
     } on AppException catch (e) {
-      setState(() => _error = e.message);
+      final localized = mounted
+          ? ErrorLocalizer.localize(e.message, AppLocalizations.of(context)!)
+          : e.message;
+      setState(() => _error = localized);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -78,7 +83,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     final bgColor = isDark ? const Color(0xFF000000) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
     final subtitleColor = isDark ? const Color(0xFF98989D) : const Color(0xFF8E8E93);
-    final inputFillColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF5F7FA);
     final hintColor = isDark ? const Color(0xFF636366) : const Color(0xFFC7C7CC);
     final accentColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF1A73E8);
     final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
@@ -86,18 +90,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-<<<<<<< HEAD
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios,
               color: Theme.of(context).colorScheme.onSurface, size: 20),
-=======
-        backgroundColor: bgColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20),
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -122,7 +119,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               const SizedBox(height: 24),
 
               Text(
-                'Forgot Password?',
+                AppLocalizations.of(context)!.forgotPasswordTitle,
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -131,14 +128,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Enter your phone number and we\'ll send you a code to reset your password.',
+                AppLocalizations.of(context)!.forgotPasswordSubtitle,
                 style: TextStyle(fontSize: 14, color: subtitleColor),
               ),
 
               const SizedBox(height: 40),
 
               Text(
-                'Phone Number',
+                AppLocalizations.of(context)!.phoneNumberLabel,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -157,13 +154,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   hintText: '+998 XX XXX XX XX',
                   hintStyle: TextStyle(color: hintColor),
                   filled: true,
-<<<<<<< HEAD
                   fillColor: Theme.of(context).brightness == Brightness.dark
                     ? const Color(0xFF2A2A2A)
                     : const Color(0xFFF5F7FA),
-=======
-                  fillColor: inputFillColor,
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
                   prefixIcon: Container(
                     margin: const EdgeInsets.all(10),
                     padding: const EdgeInsets.all(8),
@@ -193,7 +186,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               if (_phoneTouched && !_isPhoneValid) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'Неверный номер телефона',
+                  AppLocalizations.of(context)!.invalidPhoneNumber,
                   style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],
@@ -251,9 +244,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
-                          'Send OTP Code',
-                          style: TextStyle(
+                      : Text(
+                          AppLocalizations.of(context)!.sendOtpCodeButton,
+                          style: const TextStyle(
                             fontSize: 16,
                             color: Colors.white,
                             fontWeight: FontWeight.w600,

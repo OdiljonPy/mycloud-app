@@ -196,6 +196,15 @@
   "syncStop": "To'xtatish",
   "syncSelectedFiles": "Tanlangan fayllar",
   "syncSelectedFilesSubtitle": "Faqat tanlanganlarni sinxronlashtirish",
+  "syncSelectedCount": "{count} media tanlandi",
+  "@syncSelectedCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "selectSyncFilesTitle": "Sinxronlash uchun fayllarni tanlash",
+  "selectSyncFilesDone": "Tayyor",
+  "selectSyncFilesPermissionDenied": "Galereyaga ruxsat yo'q. Qurilma sozlamalarida ruxsat bering.",
   "syncTotal": "Jami",
   "uploadedLabel": "Yuklandi",
   "uploadPageTitle": "Yuklash",
@@ -204,8 +213,22 @@
   "favourites_breadcrumb": "Sevimlilar",
   "selectedCount": "Tanlangan: {count}",
   "addedToFavourites": "Sevimlilarga qo'shildi",
+  "favouriteUpdateFailed": "Sevimlilarni yangilab bo'lmadi",
+  "unitBytes": "bayt",
+  "unitKb": "KB",
+  "unitMb": "MB",
+  "unitGb": "GB",
+  "unitTb": "TB",
+  "storageUsedOfLimit": "{limit} dan {used} ishlatilgan",
+  "@storageUsedOfLimit": {
+    "placeholders": {
+      "used": { "type": "String" },
+      "limit": { "type": "String" }
+    }
+  },
   "couldNotOpenImage": "Rasmni ochib bo'lmadi",
   "couldNotOpenVideo": "Videoni ochib bo'lmadi",
+  "videoFormatNotSupported": "Bu video format ko'rish uchun qo'llab-quvvatlanmaydi",
   "noSharedWithMe": "Hech kim fayl ulashmagan",
   "noSharedWithMeSubtitle": "Kimdir fayl ulashsa — bu yerda ko'rinadi",
   "noSharedByMe": "Siz hali hech kim bilan ulashmadingiz",
@@ -224,44 +247,6 @@
   "pinLabel": "📌 Mahkamlash",
   "unpinLabel": "📌 Olib tashlash",
   "favourite": "Sevimli",
-  "syncFolderName": "📱 Sinxronizatsiya",
-  "syncStatusUploading": "{uploaded}/{total} yuklandi",
-  "@syncStatusUploading": {
-    "placeholders": {
-      "uploaded": { "type": "int" },
-      "total": { "type": "int" }
-    }
-  },
-  "syncStatusWaiting": "Sinxronizatsiya kutilmoqda: {count}",
-  "@syncStatusWaiting": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
-  "syncStatusComplete": "Sinxronizatsiya tugallandi",
-  "syncStatusErrors": "{count} ta xato",
-  "@syncStatusErrors": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
-  "syncSettingsTitle": "Avto-sinxronizatsiya",
-  "syncEnableToggle": "Avto-sinxronizatsiyani yoqish",
-  "syncWifiOnly": "Faqat Wi-Fi orqali",
-  "syncNowButton": "Hozir sinxronlash",
-  "syncResetButton": "Navbatni tozalash",
-  "syncFolderReadOnly": "Bu sizning Sinxronizatsiya papkangiz. Bu yerdagi fayllar avtomatik boshqariladi.",
-  "syncResetConfirmTitle": "Navbatni tozalash?",
-  "syncResetConfirmMessage": "Barcha yozuvlar o'chiriladi. Keyin ilova galereyani qayta skanerlaydi.",
-  "syncResetConfirmButton": "Tozalash",
-  "syncAutoUpload": "Foto va videolarni avtomatik yuklash",
-  "syncNoMobileData": "Mobil internet orqali sinxronlamaslik",
-  "syncStatusTitle": "Sinxronizatsiya holati",
-  "syncStatusPending": "Kutilmoqda",
-  "syncStatusUploading2": "Yuklanmoqda",
-  "syncStatusDone": "Tayyor",
-  "syncStatusFailed": "Xatolar",
-  "syncStop": "To'xtatish",
   "syncResumeButton": "Sinxronizatsiyani davom ettirish",
   "fileTypes": "Fayl turlari",
   "viewAll": "Barchasi",
@@ -289,5 +274,222 @@
   },
   "deleteAccount": "Hisobni o'chirish",
   "deleteAccountConfirm": "Hisobni o'chirish",
-  "deleteAccountConfirmMessage": "Hisobingizni o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi."
+  "deleteAccountConfirmMessage": "Hisobingizni o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi.",
+  "storageSubtitle": "Xotira foydalanishini kuzating va tarifingizni boshqaring.",
+  "activeSubscriptionDetails": "Faol obuna tafsilotlari",
+  "planName": "Tarif nomi",
+  "storageLimitLabel": "Xotira limiti",
+  "available": "Mavjud",
+  "planUsedLabel": "Foydalanilgan",
+  "subscriptionStartsAt": "Boshlanish sanasi",
+  "subscriptionEndsAt": "Tugash sanasi",
+  "billingMonthly": "Oylik",
+  "billingYearly": "Yillik",
+  "upgradeToPlan": "{name} ga o'tish",
+  "@upgradeToPlan": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "filesAlreadyInFolder": "Fayllar allaqachon shu papkada",
+  "folderEmpty": "Papka bo'sh",
+  "accessRevoked": "Ruxsat bekor qilindi",
+  "userNotFound": "Foydalanuvchi topilmadi",
+
+  "paymentAndSubscription": "To'lov va obuna",
+  "cardDeleted": "Karta o'chirildi",
+  "cardSetAsDefault": "Karta standart qilib belgilandi",
+  "myCards": "Mening kartalarim",
+  "addCard": "Karta qo'shish",
+  "noCardsLinked": "Kartalar biriktirilmagan",
+  "noSubscription": "Obuna yo'q",
+  "currentPlan": "Joriy tarif",
+  "changePlan": "Tarifni o'zgartirish",
+  "choosePlan": "Tarif tanlash",
+  "storageUsed": "{used} ishlatilgan",
+  "@storageUsed": {
+    "placeholders": { "used": { "type": "String" } }
+  },
+  "subscriptionUntil": "Gacha: {date}",
+  "@subscriptionUntil": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "cardStatusActive": "Faol",
+  "cardStatusPending": "Tasdiqlanishi kutilmoqda",
+  "cardStatusBlocked": "Bloklangan",
+  "cardDefaultLabel": "Standart",
+  "setAsDefault": "Standart qilish",
+  "deleteCardTitle": "Kartani o'chirish?",
+  "deleteCardMessage": "{number} kartasi o'chiriladi.",
+  "@deleteCardMessage": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "cardNumberLabel": "Karta raqami",
+  "enterCardNumber": "Karta raqamini kiriting",
+  "cardNumber16Digits": "Karta raqami — 16 ta raqam",
+  "expiryDate": "Amal qilish muddati",
+  "enterExpiryDate": "Amal qilish muddatini kiriting",
+  "expiryDateFormat": "Format: MM/YY",
+  "invalidMonth": "Noto'g'ri oy",
+  "cardExpired": "Karta muddati tugagan",
+  "checkCardData": "Siz noto'g'ri ma'lumot kiritdingiz, tekshirib ko'ring",
+  "validThruLabel": "AMAL QILISH MUDDATI",
+  "verifyCardTitle": "Kartani tasdiqlash",
+  "enterSmsCode": "SMS kodni kiriting",
+  "smsCodeSentFor": "{number} kartasini tasdiqlash uchun kod yuborildi",
+  "@smsCodeSentFor": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "cardAddedSuccess": "Karta muvaffaqiyatli qo'shildi",
+  "confirmButton": "Tasdiqlash",
+  "plansTitle": "Tariflar",
+  "noPlans": "Tariflar mavjud emas",
+  "confirmPurchaseTitle": "Tasdiqlash",
+  "confirmPurchaseMessage": "«{name}» tarifini {price} UZS / {period} ga ulashni istaysizmi?",
+  "@confirmPurchaseMessage": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "price": { "type": "String" },
+      "period": { "type": "String" }
+    }
+  },
+  "updatePlan": "Ulash",
+  "freeLabel": "Bepul",
+  "storageFeature": "{storage} Xotira",
+  "@storageFeature": {
+    "placeholders": { "storage": { "type": "String" } }
+  },
+  "dataPreservedNote": "Tarif yangilanishida ma'lumotlaringiz saqlanib qoladi.",
+  "unknownError": "Noma'lum xato",
+  "switchPlanButton": "Ushbu tarifga o'tish",
+  "addCardPrompt": "To'lov uchun karta qo'shing",
+  "downgradeWarningTitle": "Tarifni almashtirishni tasdiqlang",
+  "downgradeWarningMessage": "Hozir {used} ishlatilmoqda. «{plan}» tarifida {limit} mavjud. O'tishdan so'ng, xotira limit doirasiga tushmaguncha yangi fayllar sinxronizatsiyasi to'xtaydi. Mavjud fayllar o'chirilmaydi.",
+  "@downgradeWarningMessage": {
+    "placeholders": {
+      "used": { "type": "String" },
+      "plan": { "type": "String" },
+      "limit": { "type": "String" }
+    }
+  },
+  "continueAnyway": "Baribir o'tish",
+  "staySamePlan": "Joriy tarifda qolish",
+  "popularBadge": "Ommabop",
+  "planPeriodMonthly": "/oy",
+  "planPeriodYearly": "/yil",
+  "cardTypeUzcard": "Uzcard",
+  "cardTypeHumo": "Humo",
+  "cardTypeVisa": "Visa",
+  "cardTypeMastercard": "Mastercard",
+  "cardTypeUnknown": "Karta",
+  "errorInvalidCredentials": "Telefon raqami yoki parol noto'g'ri",
+  "errorUserNotFound": "Foydalanuvchi topilmadi",
+  "errorInvalidCode": "Tasdiqlash kodi noto'g'ri",
+  "errorSessionExpired": "Sessiya muddati tugadi, qaytadan urinib ko'ring",
+  "errorSessionExpiredRelogin": "Sessiya muddati tugadi. Qaytadan kiring",
+  "errorUserAlreadyExists": "Bu telefon raqami bilan foydalanuvchi allaqachon mavjud",
+  "genericErrorFallback": "Xatolik yuz berdi, keyinroq urinib ko'ring",
+  "planNameFree": "Bepul",
+  "planNameStart": "Start",
+  "planNamePlus": "Plus",
+  "planNameFamily": "Oila",
+  "planNamePro": "Pro",
+  "clearDoneButton": "Tozalash",
+  "allUploadedStatus": "Barchasi yuklandi!",
+  "noNetworkWaiting": "Tarmoq yo'q — kutilmoqda...",
+  "uploadingProgress": "{current}/{total} yuklanmoqda...",
+  "@uploadingProgress": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "tapToSelectFiles": "Tanlash uchun bosing",
+  "photosAndVideosOnly": "Faqat foto va videolar",
+  "uploadingCountBadge": "{count} ta yuklanmoqda",
+  "@uploadingCountBadge": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "pausedCountBadge": "{count} ta pauzada",
+  "@pausedCountBadge": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "doneCountBadge": "{count} ta tayyor",
+  "@doneCountBadge": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "addFilesButton": "Qo'shish",
+  "waitingForNetworkShort": "Tarmoq kutilmoqda...",
+  "uploadingEllipsis": "Yuklanmoqda...",
+  "selectPhotosVideos": "Foto / video tanlash",
+  "uploadMoreButton": "Yana yuklash",
+  "addMoreButton": "Yana qo'shish",
+  "pausedWillResumeAuto": "Tarmoq yo'q — avtomatik davom etadi",
+  "shareButtonWithCount": "Ulashish ({count})",
+  "@shareButtonWithCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "filesAndFoldersCount": "{files} fayl, {folders} papka",
+  "@filesAndFoldersCount": {
+    "placeholders": {
+      "files": { "type": "int" },
+      "folders": { "type": "int" }
+    }
+  },
+  "chooseFolderTitle": "Papkani tanlang",
+  "homeFolderLabel": "Bosh sahifa",
+  "invalidPhoneNumber": "Telefon raqami noto'g'ri",
+  "repeatPasswordHint": "Parolni takrorlang",
+  "removedFromFavourites": "Sevimlilardan olib tashlandi",
+  "alreadyInFavourites": "Tanlangan fayllar allaqachon sevimlilarda",
+  "cannotMoveIntoItself": "Papkani o'zining ichiga ko'chirib bo'lmaydi",
+  "forgotPasswordTitle": "Parolni unutdingizmi?",
+  "forgotPasswordSubtitle": "Telefon raqamingizni kiriting, biz parolni tiklash uchun kod yuboramiz.",
+  "phoneNumberLabel": "Telefon raqami",
+  "sendOtpCodeButton": "Kodni yuborish",
+  "verifyOtpCodeTitle": "Tasdiqlash kodini kiriting",
+  "otpSentToPrefix": "Biz 6 xonali kodni yubordik: ",
+  "enterCompleteOtpCode": "6 xonali kodni to'liq kiriting",
+  "verifyButton": "Tasdiqlash",
+  "resendCodeButton": "Kodni qayta yuborish",
+  "otpCodeResentMessage": "Kod qayta yuborildi",
+  "setNewPasswordTitle": "Yangi parol o'rnating",
+  "setNewPasswordSubtitle": "Kamida 8 belgidan iborat kuchli parol yarating.",
+  "enterNewPasswordHint": "Yangi parolni kiriting",
+  "confirmNewPasswordHint": "Yangi parolni tasdiqlang",
+  "resetPasswordButton": "Parolni tiklash",
+  "passwordResetSuccessMessage": "Parol muvaffaqiyatli o'zgartirildi!",
+  "errorOtpStillValid": "Oldingi tasdiqlash kodi hali amal qiladi. Yangisini so'rashdan oldin kuting.",
+  "loginWelcomeTitle": "Xush kelibsiz\nBulutcha",
+  "loginSubtitle": "Fayllaringizga kirish uchun tizimga kiring.",
+  "passwordLabel": "Parol",
+  "enterYourPasswordHint": "Parolni kiriting",
+  "signInButton": "Kirish",
+  "noAccountPrompt": "Akkountingiz yo'qmi? ",
+  "registerLink": "Ro'yxatdan o'tish",
+  "enterOtpCodeTitle": "Tasdiqlash kodini kiriting",
+  "notifications": "Bildirishnomalar",
+  "noNotificationsYet": "Hozircha bildirishnomalar yo'q",
+  "markAllAsRead": "Barchasini o'qilgan deb belgilash",
+  "markAsRead": "O'qilgan deb belgilash",
+  "deleteNotification": "Bildirishnomani o'chirish",
+  "notificationDeleteConfirmMessage": "Bu bildirishnomani o'chirasizmi? Bu amalni qaytarib bo'lmaydi.",
+  "failedToLoadNotifications": "Bildirishnomalarni yuklab bo'lmadi",
+  "allNotificationsMarkedRead": "Barcha bildirishnomalar o'qilgan deb belgilandi",
+  "notifTypeSubscriptionExpiryWarning": "Obuna muddati tugayapti",
+  "notifTypeSubscriptionExpired": "Obuna muddati tugadi",
+  "notifTypeSubscriptionRenewed": "Obuna yangilandi",
+  "notifTypeSubscriptionDowngraded": "Obuna pasaytirildi",
+  "notifTypePaymentSuccess": "To'lov muvaffaqiyatli o'tdi",
+  "notifTypePaymentFailed": "To'lov amalga oshmadi",
+  "notifTypeCardDeclined": "Karta rad etildi",
+  "notifTypeFileShared": "Sizga fayl ulashildi",
+  "notifTypeFileShareRevoked": "Faylga kirish huquqi bekor qilindi",
+  "notifTypeShareRequestReceived": "Yangi kirish so'rovi",
+  "notifTypeShareRequestApproved": "Kirish so'rovi tasdiqlandi",
+  "notifTypeShareRequestRejected": "Kirish so'rovi rad etildi",
+  "notifTypeSystemAnnouncement": "Tizim xabari",
+  "notifTypeStorageWarning": "Xotira deyarli to'lgan",
+  "notifTypeStorageFull": "Xotira to'ldi",
+  "notifTypeUnknown": "Yangi bildirishnoma"
 }

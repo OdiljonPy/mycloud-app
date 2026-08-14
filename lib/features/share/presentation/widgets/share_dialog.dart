@@ -2,10 +2,12 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:cloud_app/l10n/app_localizations.dart';
 import '../../data/models/share_models.dart';
 import '../bloc/share_bloc.dart';
 import '../bloc/share_event.dart';
 import '../bloc/share_state.dart';
+import '../../../../core/utils/error_localizer.dart';
 
 class _PhoneInputFormatter extends TextInputFormatter {
   @override
@@ -53,7 +55,6 @@ class _ShareDialogState extends State<ShareDialog> {
   bool _isSending = false;
   _ShareMode _mode = _ShareMode.byPhone;
 
-  // После генерации ссылки
   String? _generatedLink;
 
   @override
@@ -74,8 +75,8 @@ class _ShareDialogState extends State<ShareDialog> {
     final digits = _phoneController.text.replaceAll(' ', '');
     if (digits.length != 9) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Введите 9 цифр номера'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.enter9Digits),
           backgroundColor: Colors.orange,
         ),
       );
@@ -92,8 +93,8 @@ class _ShareDialogState extends State<ShareDialog> {
   void _shareByPhone() {
     if (_phoneNumbers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Добавьте хотя бы один номер телефона'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.addAtLeastOnePhone),
           backgroundColor: Colors.orange,
         ),
       );
@@ -115,8 +116,8 @@ class _ShareDialogState extends State<ShareDialog> {
     final name = _linkNameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Введите название ссылки'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.enterLinkName),
           backgroundColor: Colors.orange,
         ),
       );
@@ -138,8 +139,8 @@ class _ShareDialogState extends State<ShareDialog> {
     if (_generatedLink == null) return;
     Clipboard.setData(ClipboardData(text: _generatedLink!));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Ссылка скопирована'),
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.linkCopied),
         backgroundColor: Colors.green,
       ),
     );
@@ -155,9 +156,9 @@ class _ShareDialogState extends State<ShareDialog> {
         if (state is ShareSuccess) {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Поделились успешно'),
-              backgroundColor: Color(0xFF34A853),
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.shareSuccess),
+              backgroundColor: const Color(0xFF34A853),
             ),
           );
         } else if (state is ShareRequestCreated) {
@@ -170,7 +171,7 @@ class _ShareDialogState extends State<ShareDialog> {
           setState(() => _isSending = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(state.message),
+              content: Text(ErrorLocalizer.forException(state.error, AppLocalizations.of(context)!)),
               backgroundColor: Colors.red,
             ),
           );
@@ -225,7 +226,8 @@ class _ShareDialogState extends State<ShareDialog> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Поделиться (${_fileIds.length + _folderIds.length})',
+                          AppLocalizations.of(context)!.shareButtonWithCount(
+                              _fileIds.length + _folderIds.length),
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
@@ -256,7 +258,7 @@ class _ShareDialogState extends State<ShareDialog> {
                       children: [
                         Expanded(
                           child: _ModeTab(
-                            label: 'По номеру',
+                            label: AppLocalizations.of(context)!.shareByPhone,
                             icon: Icons.phone_rounded,
                             isActive: _mode == _ShareMode.byPhone,
                             isDark: isDark,
@@ -268,7 +270,7 @@ class _ShareDialogState extends State<ShareDialog> {
                         ),
                         Expanded(
                           child: _ModeTab(
-                            label: 'По ссылке',
+                            label: AppLocalizations.of(context)!.shareByLink,
                             icon: Icons.link_rounded,
                             isActive: _mode == _ShareMode.byLink,
                             isDark: isDark,
@@ -391,7 +393,7 @@ class _ShareDialogState extends State<ShareDialog> {
         _buildActionButtons(
           isDark: isDark,
           onAction: _shareByPhone,
-          actionLabel: 'Поделиться',
+          actionLabel: AppLocalizations.of(context)!.share,
         ),
       ],
     );
@@ -402,7 +404,6 @@ class _ShareDialogState extends State<ShareDialog> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Link name field
         TextField(
           controller: _linkNameController,
           style: TextStyle(color: textColor, fontSize: 16),
@@ -428,7 +429,6 @@ class _ShareDialogState extends State<ShareDialog> {
           ),
         ),
 
-        // Generated link block
         if (_generatedLink != null) ...[
           const SizedBox(height: 12),
           Container(
@@ -529,7 +529,8 @@ class _ShareDialogState extends State<ShareDialog> {
           const Icon(Icons.info_outline, size: 16, color: Colors.grey),
           const SizedBox(width: 8),
           Text(
-            '${_fileIds.length} файлов, ${_folderIds.length} папок',
+            AppLocalizations.of(context)!
+                .filesAndFoldersCount(_fileIds.length, _folderIds.length),
             style: const TextStyle(fontSize: 13, color: Colors.grey),
           ),
         ],
@@ -549,7 +550,7 @@ class _ShareDialogState extends State<ShareDialog> {
         Expanded(
           child: TextButton(
             onPressed: _isSending ? null : () => Navigator.pop(context),
-            child: Text('Отмена', style: TextStyle(color: textColor)),
+            child: Text(AppLocalizations.of(context)!.cancel, style: TextStyle(color: textColor)),
           ),
         ),
         const SizedBox(width: 12),
@@ -610,6 +611,7 @@ class _ModeTab extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
           color: isActive

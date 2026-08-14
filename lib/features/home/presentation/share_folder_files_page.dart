@@ -1,11 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:cloud_app/l10n/app_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import '../../../shared/widgets/media_thumbnail.dart';
+import '../../../core/utils/media_type_helper.dart';
 import '../data/home_repository.dart';
 import '../data/models/folder_model.dart';
 import '../data/models/file_model.dart';
-import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/error_localizer.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/network/dio_client.dart';
 import 'photo_viewer_page.dart';
@@ -38,7 +40,9 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
   final _repo = HomeRepository();
   List<FolderModel> _folders = [];
   List<FileModel> _files = [];
-  bool _isLoading = true;
+  // Starts false: _loadContent() guards on this flag and flips it true
+  // synchronously before its first await.
+  bool _isLoading = false;
   String? _error;
   bool _isGrid = true;
   String? _authToken;
@@ -59,10 +63,9 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
   List<FileModel> get _displayFiles {
     if (_activeFilter == _SffFilterType.all) return _files;
     return _files.where((f) {
-      final m = f.mimeType.toLowerCase();
       return _activeFilter == _SffFilterType.images
-          ? m.startsWith('image/')
-          : m.startsWith('video/');
+          ? MediaTypeHelper.isImage(f.mimeType)
+          : MediaTypeHelper.isVideo(f.mimeType);
     }).toList();
   }
 
@@ -92,7 +95,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
   }
 
   Future<void> _loadContent() async {
-    if (!mounted) return;
+    if (!mounted || _isLoading) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -136,21 +139,18 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
       setState(() {
         _folders = folders;
         _files = files;
-        _isLoading = false;
       });
       _loadPreviewUrls(files);
-    } on AppException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.message;
-        _isLoading = false;
-      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
-        _isLoading = false;
+        _error = ErrorLocalizer.forException(e, AppLocalizations.of(context)!);
       });
+    } finally {
+      // finally (not just the catch branch) — guarantees _isLoading always
+      // clears so the re-entrancy guard at the top can never permanently
+      // wedge the page.
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -205,13 +205,11 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
 
   Future<void> _openFileViewer(FileModel file) async {
     final mime = file.mimeType.toLowerCase();
-    if (mime.startsWith('image/')) {
-      // Get all media files (images AND videos) together
+    if (MediaTypeHelper.isImage(mime) || MediaTypeHelper.isVideo(mime)) {
       final allMediaFiles = _displayFiles
-          .where((f) {
-            final m = f.mimeType.toLowerCase();
-            return m.startsWith('image/') || m.startsWith('video/');
-          })
+          .where((f) =>
+              MediaTypeHelper.isImage(f.mimeType) ||
+              MediaTypeHelper.isVideo(f.mimeType))
           .toList();
 
       final idx = allMediaFiles.indexWhere((f) => f.id == file.id);
@@ -224,7 +222,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
           builder: (_) => PhotoViewerPage(
             files: allMediaFiles
                 .map((f) => (
-                      url: f.id.isNotEmpty ? '' : (f.thumbnailPath ?? ''),
+                      url: f.thumbnailPath ?? '',
                       name: f.name,
                       fileId: f.id,
                       mimeType: f.mimeType,
@@ -340,7 +338,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                 _buildBottomSheetItem(
                   icon: Icons.delete_rounded,
                   color: Colors.red,
-                  title: 'Удалить',
+                  title: AppLocalizations.of(ctx)!.delete,
                   onTap: () {
                     Navigator.pop(ctx);
                     _showDeleteConfirmDialog(
@@ -419,7 +417,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                 _buildBottomSheetItem(
                   icon: Icons.folder_open,
                   color: Colors.blue,
-                  title: 'Открыть',
+                  title: AppLocalizations.of(ctx)!.open,
                   onTap: () {
                     Navigator.pop(ctx);
                     _openFolder(folder);
@@ -428,7 +426,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                 _buildBottomSheetItem(
                   icon: Icons.delete_rounded,
                   color: Colors.red,
-                  title: 'Удалить',
+                  title: AppLocalizations.of(ctx)!.delete,
                   onTap: () {
                     Navigator.pop(ctx);
                     _showDeleteConfirmDialog(
@@ -459,21 +457,22 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Удалить?'),
+        title: Text(AppLocalizations.of(context)!.deleteConfirm),
         content: Text(
-          'Вы уверены, что хотите удалить «$itemName»?\nЭто действие необратимо.',
+          AppLocalizations.of(context)!.deleteConfirmMessage(itemName),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Отмена'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               onConfirm();
             },
-            child: const Text('Удалить', style: TextStyle(color: Colors.red)),
+            child: Text(AppLocalizations.of(context)!.delete,
+                style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -558,7 +557,6 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         children: [
-          // Root: user
           GestureDetector(
             onTap: _goToRoot,
             child: Container(
@@ -592,7 +590,6 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
               ),
             ),
           ),
-          // Breadcrumb items
           for (int i = 0; i < _breadcrumb.length; i++) ...[
             Icon(Icons.chevron_right, size: 18,
                 color: isDark ? Colors.white38 : Colors.grey),
@@ -636,8 +633,8 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
     final textColor = isDark ? Colors.white : Colors.black87;
 
     return AnimatedPositioned(
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeOutExpo,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
       bottom: _isSelectionMode ? 16 : -160,
       left: 20,
       right: 20,
@@ -670,7 +667,6 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Header row
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Row(
@@ -688,7 +684,8 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Выбрано: ${_selectedFiles.length + _selectedFolders.length}',
+                        AppLocalizations.of(context)!.selected(
+                            _selectedFiles.length + _selectedFolders.length),
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
@@ -710,9 +707,9 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: const Text(
-                          'Все',
-                          style: TextStyle(
+                        child: Text(
+                          AppLocalizations.of(context)!.all,
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: Colors.blue,
@@ -737,15 +734,15 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                   children: [
                     _buildActionItem(
                       icon: Icons.delete_rounded,
-                      label: 'Удалить',
+                      label: AppLocalizations.of(context)!.delete,
                       iconColor: Colors.red.shade400,
                       textColor: textColor,
                       onTap: () {
                         final fIds = _selectedFiles.toList();
                         final dIds = _selectedFolders.toList();
                         _showDeleteConfirmDialog(
-                          itemName:
-                              '${fIds.length + dIds.length} элементов',
+                          itemName: AppLocalizations.of(context)!
+                              .deleteItems(fIds.length + dIds.length),
                           onConfirm: () {
                             _shareBloc.add(RevokeShare(
                               fileIds: fIds,
@@ -792,33 +789,21 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
         ),
         child: Row(
           children: [
-            // Thumbnail or icon
-            Container(
+            MediaThumbnail(
+              mimeType: file.mimeType,
+              thumbnailPath: previewUrl,
+              cacheKey: file.id,
               width: 44,
               height: 44,
-              decoration: BoxDecoration(
-                color: _color(file.mimeType).withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: previewUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: previewUrl,
-                      fit: BoxFit.cover,
-                      httpHeaders: _authToken != null
-                          ? {'Authorization': 'Bearer $_authToken'}
-                          : {},
-                      errorWidget: (_, __, ___) => Icon(
-                        _icon(file.mimeType),
-                        color: _color(file.mimeType),
-                        size: 20,
-                      ),
-                    )
-                  : Icon(
-                      _icon(file.mimeType),
-                      color: _color(file.mimeType),
-                      size: 20,
-                    ),
+              memCacheWidth: 130,
+              memCacheHeight: 130,
+              borderRadius: BorderRadius.circular(10),
+              httpHeaders:
+                  _authToken != null ? {'Authorization': 'Bearer $_authToken'} : {},
+              fallbackIcon: _icon(file.mimeType),
+              fallbackIconColor: _color(file.mimeType),
+              fallbackIconSize: 20,
+              playBadgeColor: _color(file.mimeType),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -940,13 +925,13 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text('Фильтр',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(AppLocalizations.of(ctx)!.filter,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 Wrap(spacing: 10, runSpacing: 10, children: [
-                  _buildFilterChip(ctx, 'Все', Icons.apps_rounded, _SffFilterType.all),
-                  _buildFilterChip(ctx, 'Фото', Icons.image_rounded, _SffFilterType.images),
-                  _buildFilterChip(ctx, 'Видео', Icons.videocam_rounded, _SffFilterType.videos),
+                  _buildFilterChip(ctx, AppLocalizations.of(ctx)!.all, Icons.apps_rounded, _SffFilterType.all),
+                  _buildFilterChip(ctx, AppLocalizations.of(ctx)!.photos, Icons.image_rounded, _SffFilterType.images),
+                  _buildFilterChip(ctx, AppLocalizations.of(ctx)!.videos, Icons.videocam_rounded, _SffFilterType.videos),
                 ]),
                 const SizedBox(height: 8),
               ],
@@ -966,6 +951,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: isActive ? const Color(0xFF1A73E8) : Colors.grey.withValues(alpha: 0.1),
@@ -998,8 +984,8 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
             });
             _loadContent();
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Доступ отозван'),
+              SnackBar(
+                content: Text(AppLocalizations.of(context)!.accessRevoked),
                 backgroundColor: Colors.green,
               ),
             );
@@ -1007,7 +993,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
           if (state is ShareError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
+                content: Text(ErrorLocalizer.forException(state.error, AppLocalizations.of(context)!)),
                 backgroundColor: Colors.red,
               ),
             );
@@ -1048,7 +1034,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                         : Theme.of(context).colorScheme.onSurface,
                   ),
                   onPressed: _showFilterSheet,
-                  tooltip: 'Фильтр',
+                  tooltip: AppLocalizations.of(context)!.filter,
                 ),
                 IconButton(
                   icon: Icon(_isGrid ? Icons.list : Icons.grid_view),
@@ -1086,24 +1072,24 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                                 const SizedBox(height: 12),
                                 ElevatedButton(
                                   onPressed: _loadContent,
-                                  child: const Text('Повторить'),
+                                  child: Text(AppLocalizations.of(context)!.retry),
                                 ),
                               ],
                             ),
                           ),
                         )
                       else if (_folders.isEmpty && _files.isEmpty)
-                        const SliverFillRemaining(
+                        SliverFillRemaining(
                           child: Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.folder_off,
+                                const Icon(Icons.folder_off,
                                     color: Colors.grey, size: 48),
-                                SizedBox(height: 12),
+                                const SizedBox(height: 12),
                                 Text(
-                                  'Нет файлов',
-                                  style: TextStyle(color: Colors.grey),
+                                  AppLocalizations.of(context)!.folderEmpty,
+                                  style: const TextStyle(color: Colors.grey),
                                 ),
                               ],
                             ),
@@ -1117,28 +1103,58 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                             top: 8,
                             bottom: 160,
                           ),
-                          sliver: SliverList(
-                            delegate: SliverChildListDelegate([
+                          sliver: SliverMainAxisGroup(
+                            slivers: [
                               if (_folders.isNotEmpty) ...[
-                                _buildSectionHeader(
-                                    'Папки',
-                                    Icons.folder_rounded,
-                                    _folders.length),
-                                const SizedBox(height: 8),
-                                for (final folder in _folders)
-                                  _buildFolderItem(folder),
-                                const SizedBox(height: 16),
+                                SliverToBoxAdapter(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildSectionHeader(
+                                          AppLocalizations.of(context)!
+                                              .folders,
+                                          Icons.folder_rounded,
+                                          _folders.length),
+                                      const SizedBox(height: 8),
+                                    ],
+                                  ),
+                                ),
+                                SliverList(
+                                  delegate: SliverChildBuilderDelegate(
+                                    (ctx, i) => _buildFolderItem(_folders[i]),
+                                    childCount: _folders.length,
+                                    addAutomaticKeepAlives: false,
+                                  ),
+                                ),
+                                const SliverToBoxAdapter(
+                                  child: SizedBox(height: 16),
+                                ),
                               ],
                               if (_displayFiles.isNotEmpty) ...[
-                                _buildSectionHeader(
-                                    'Файлы',
-                                    Icons.insert_drive_file,
-                                    _displayFiles.length),
-                                const SizedBox(height: 8),
-                                for (final file in _displayFiles)
-                                  _buildFileItem(file),
+                                SliverToBoxAdapter(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildSectionHeader(
+                                          AppLocalizations.of(context)!.files,
+                                          Icons.insert_drive_file,
+                                          _displayFiles.length),
+                                      const SizedBox(height: 8),
+                                    ],
+                                  ),
+                                ),
+                                SliverList(
+                                  delegate: SliverChildBuilderDelegate(
+                                    (ctx, i) =>
+                                        _buildFileItem(_displayFiles[i]),
+                                    childCount: _displayFiles.length,
+                                    addAutomaticKeepAlives: false,
+                                  ),
+                                ),
                               ],
-                            ]),
+                            ],
                           ),
                         ),
                     ],

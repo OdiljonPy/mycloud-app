@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/storage/secure_storage.dart';
-import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/error_localizer.dart';
 import '../data/upload_repository.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -60,21 +61,33 @@ class _UploadPageState extends State<UploadPage> {
 
   Future<void> _loadInitialFiles() async {
     if (widget.initialFiles == null) return;
+    bool anyRejected = false;
     setState(() {
       _allDone = false;
       for (final f in widget.initialFiles!) {
         if (f.path == null) continue;
         if (_queue.length >= _maxFiles) break;
-        if (!UploadRepository.isAllowed(f.name)) continue;
+        if (!UploadRepository.isAllowed(f.name)) {
+          anyRejected = true;
+          continue;
+        }
         final alreadyAdded = _queue.any((q) => q.name == f.name);
         if (!alreadyAdded) {
           _queue.add(_FileItem(file: XFile(f.path!), name: f.name));
         }
       }
     });
+    if (anyRejected) _showUnsupportedFileSnackBar();
     if (_queue.isNotEmpty) {
       await _startUploadAll();
     }
+  }
+
+  void _showUnsupportedFileSnackBar() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context)!.photosAndVideosOnly)),
+    );
   }
 
   Future<void> _pickFiles() async {
@@ -85,17 +98,22 @@ class _UploadPageState extends State<UploadPage> {
 
     if (selected.isEmpty) return;
 
+    bool anyRejected = false;
     setState(() {
       _allDone = false;
       for (final xFile in selected) {
         if (_queue.length >= _maxFiles) break;
-        if (!UploadRepository.isAllowed(xFile.name)) continue;
+        if (!UploadRepository.isAllowed(xFile.name)) {
+          anyRejected = true;
+          continue;
+        }
         final alreadyAdded = _queue.any((q) => q.name == xFile.name);
         if (!alreadyAdded) {
           _queue.add(_FileItem(file: xFile, name: xFile.name));
         }
       }
     });
+    if (anyRejected) _showUnsupportedFileSnackBar();
 
     if (_queue.isNotEmpty &&
         _queue.any((f) => f.status == _FileStatus.waiting) &&
@@ -112,8 +130,8 @@ class _UploadPageState extends State<UploadPage> {
     if (userId == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Пользователь не найден'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.userNotFound),
             backgroundColor: Colors.red,
           ),
         );
@@ -178,11 +196,12 @@ class _UploadPageState extends State<UploadPage> {
         );
       } catch (e) {
         if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
           setState(() {
             item.status = item.cancelRequested
                 ? _FileStatus.cancelled
                 : _FileStatus.error;
-            item.error = e is AppException ? e.message : e.toString();
+            item.error = ErrorLocalizer.forException(e, l10n);
           });
         }
       }
@@ -204,6 +223,7 @@ class _UploadPageState extends State<UploadPage> {
       });
 
       if (hasSuccess) {
+        HapticFeedback.lightImpact();
         widget.onUploadComplete?.call();
       }
     }
@@ -270,9 +290,9 @@ class _UploadPageState extends State<UploadPage> {
               if (_queue.isNotEmpty && !_isUploading)
                 TextButton(
                   onPressed: _clearDone,
-                  child: const Text(
-                    'Очистить',
-                    style: TextStyle(color: Colors.red),
+                  child: Text(
+                    AppLocalizations.of(context)!.clearDoneButton,
+                    style: const TextStyle(color: Colors.red),
                   ),
                 ),
             ],
@@ -337,12 +357,13 @@ class _UploadPageState extends State<UploadPage> {
                           const SizedBox(height: 10),
                           Text(
                             _allDone
-                                ? 'Всё загружено!'
+                                ? AppLocalizations.of(context)!.allUploadedStatus
                                 : _pausedCount > 0
-                                ? 'Нет сети — ожидание...'
+                                ? AppLocalizations.of(context)!.noNetworkWaiting
                                 : _isUploading
-                                ? 'Загрузка ${_currentIndex + 1} из ${_queue.length}...'
-                                : 'Нажмите чтобы выбрать',
+                                ? AppLocalizations.of(context)!.uploadingProgress(
+                                    _currentIndex + 1, _queue.length)
+                                : AppLocalizations.of(context)!.tapToSelectFiles,
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
@@ -355,7 +376,7 @@ class _UploadPageState extends State<UploadPage> {
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            'Только фото и видео',
+                            AppLocalizations.of(context)!.photosAndVideosOnly,
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[500],
@@ -373,23 +394,25 @@ class _UploadPageState extends State<UploadPage> {
                       children: [
                         Text(
                           '${_queue.length} / $_maxFiles',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 13,
-                            color: Colors.black87,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(width: 8),
                         if (_uploadingCount > 0)
                           _StatusBadge(
-                            '$_uploadingCount загружается',
+                            AppLocalizations.of(context)!
+                                .uploadingCountBadge(_uploadingCount),
                             Colors.blue,
                           ),
                         if (_pausedCount > 0)
                           Padding(
                             padding: const EdgeInsets.only(left: 6),
                             child: _StatusBadge(
-                              '$_pausedCount на паузе',
+                              AppLocalizations.of(context)!
+                                  .pausedCountBadge(_pausedCount),
                               Colors.orange,
                             ),
                           ),
@@ -397,7 +420,8 @@ class _UploadPageState extends State<UploadPage> {
                           Padding(
                             padding: const EdgeInsets.only(left: 6),
                             child: _StatusBadge(
-                              '$_doneCount готово',
+                              AppLocalizations.of(context)!
+                                  .doneCountBadge(_doneCount),
                               Colors.green,
                             ),
                           ),
@@ -406,9 +430,9 @@ class _UploadPageState extends State<UploadPage> {
                           TextButton.icon(
                             onPressed: _pickFiles,
                             icon: const Icon(Icons.add, size: 15),
-                            label: const Text(
-                              'Добавить',
-                              style: TextStyle(fontSize: 13),
+                            label: Text(
+                              AppLocalizations.of(context)!.addFilesButton,
+                              style: const TextStyle(fontSize: 13),
                             ),
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
@@ -458,8 +482,8 @@ class _UploadPageState extends State<UploadPage> {
                             ),
                             label: Text(
                               _pausedCount > 0
-                                  ? 'Ожидание сети...'
-                                  : 'Загрузка...',
+                                  ? AppLocalizations.of(context)!.waitingForNetworkShort
+                                  : AppLocalizations.of(context)!.uploadingEllipsis,
                               style: const TextStyle(fontSize: 16),
                             ),
                             style: OutlinedButton.styleFrom(
@@ -477,10 +501,10 @@ class _UploadPageState extends State<UploadPage> {
                             ),
                             label: Text(
                               _queue.isEmpty
-                                  ? 'Выбрать фото / видео'
+                                  ? AppLocalizations.of(context)!.selectPhotosVideos
                                   : _allDone
-                                  ? 'Загрузить ещё'
-                                  : 'Добавить ещё',
+                                  ? AppLocalizations.of(context)!.uploadMoreButton
+                                  : AppLocalizations.of(context)!.addMoreButton,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
@@ -547,7 +571,7 @@ class _FileItemTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -621,14 +645,21 @@ class _FileItemTile extends StatelessWidget {
                 Expanded(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: item.progress,
-                      minHeight: 4,
-                      backgroundColor: Colors.grey[200],
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        item.status == _FileStatus.paused
-                            ? Colors.orange
-                            : Colors.blue,
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0, end: item.progress),
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      builder: (context, value, _) => LinearProgressIndicator(
+                        value: value,
+                        minHeight: 4,
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          item.status == _FileStatus.paused
+                              ? Colors.orange
+                              : Colors.blue,
+                        ),
                       ),
                     ),
                   ),
@@ -650,13 +681,13 @@ class _FileItemTile extends StatelessWidget {
 
           if (item.status == _FileStatus.paused) ...[
             const SizedBox(height: 4),
-            const Row(
+            Row(
               children: [
-                Icon(Icons.wifi_off_rounded, size: 12, color: Colors.orange),
-                SizedBox(width: 4),
+                const Icon(Icons.wifi_off_rounded, size: 12, color: Colors.orange),
+                const SizedBox(width: 4),
                 Text(
-                  'Нет сети — возобновится автоматически',
-                  style: TextStyle(fontSize: 11, color: Colors.orange),
+                  AppLocalizations.of(context)!.pausedWillResumeAuto,
+                  style: const TextStyle(fontSize: 11, color: Colors.orange),
                 ),
               ],
             ),

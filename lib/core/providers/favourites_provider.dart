@@ -58,10 +58,16 @@ class FavouritesProvider extends ChangeNotifier {
     }
   }
 
+  void renameFile(String fileId, String newName) {
+    final idx = _favouriteFiles.indexWhere((f) => f.id == fileId);
+    if (idx == -1) return;
+    _favouriteFiles[idx] = _favouriteFiles[idx].copyWith(name: newName);
+    notifyListeners();
+  }
+
   Future<void> toggleFavourite(FileModel file) async {
     final bool wasFav = _favouriteIds.contains(file.id);
 
-    // Optimistic update
     if (wasFav) {
       _favouriteIds.remove(file.id);
       _favouriteFiles.removeWhere((f) => f.id == file.id);
@@ -75,14 +81,10 @@ class FavouritesProvider extends ChangeNotifier {
       if (wasFav) {
         // Send file ID (UUID) not the record ID, as per backend expectation
         await _repo.removeFromFavourites(file.id);
-        await loadFavourites();
       } else {
         await _repo.addToFavourites(file.id);
-        // We probably need the new favouriteId record, so we reload to sync state
-        await loadFavourites();
       }
     } catch (e) {
-      // Revert optimistic update on failure
       if (wasFav) {
         _favouriteIds.add(file.id);
         _favouriteFiles.add(file.copyWith(isFavourite: true));

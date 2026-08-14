@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_app/l10n/app_localizations.dart';
 import 'package:cloud_app/features/home/data/home_repository.dart';
 import 'package:cloud_app/features/home/data/models/folder_model.dart';
-import 'package:cloud_app/core/errors/app_exception.dart';
+import 'package:cloud_app/core/utils/error_localizer.dart';
 
 class MoveDestinationScreen extends StatefulWidget {
   final List<String> selectedFiles;
@@ -62,7 +63,7 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e is AppException ? e.message : e.toString();
+        _error = ErrorLocalizer.forException(e, AppLocalizations.of(context)!);
         _isLoading = false;
       });
     }
@@ -70,7 +71,10 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
 
   void _navigateToFolder(FolderModel folder) {
     if (widget.selectedFolders.contains(folder.id)) {
-      return; // disabled
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.cannotMoveIntoItself)),
+      );
+      return;
     }
 
     setState(() {
@@ -93,9 +97,10 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
   }
 
   Future<void> _confirmMove() async {
+    if (_isLoading) return;
     if (_currentFolderId == widget.currentFolderId) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Файлы уже находятся в этой папке')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.filesAlreadyInFolder)),
       );
       return;
     }
@@ -116,7 +121,7 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e is AppException ? e.message : e.toString()),
+          content: Text(ErrorLocalizer.forException(e, AppLocalizations.of(context)!)),
           backgroundColor: Colors.red,
         ),
       );
@@ -128,14 +133,17 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
     return Dialog.fullscreen(
       child: Scaffold(
         appBar: AppBar(
-          title: const Text(
-            'Выберите папку',
-            style: TextStyle(color: Colors.black87, fontSize: 18),
+          title: Text(
+            AppLocalizations.of(context)!.chooseFolderTitle,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontSize: 18,
+            ),
           ),
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           elevation: 1,
           leading: IconButton(
-            icon: const Icon(Icons.close, color: Colors.black87),
+            icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onSurface),
             onPressed: () => Navigator.pop(context, false),
           ),
           actions: [
@@ -150,7 +158,7 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
         body: Column(
           children: [
             _buildBreadcrumbs(),
-            const Divider(height: 1, thickness: 1),
+            Divider(height: 1, thickness: 1, color: Theme.of(context).dividerColor),
             Expanded(child: _buildBody()),
           ],
         ),
@@ -170,7 +178,7 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
         itemBuilder: (context, index) {
           if (index == 0) {
             return _BreadcrumbItem(
-              title: 'Главная',
+              title: AppLocalizations.of(context)!.homeFolderLabel,
               isLast: _breadcrumb.isEmpty,
               onTap: () => _navigateUp(-1),
             );
@@ -187,6 +195,7 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
   }
 
   Widget _buildBody() {
+    final t = AppLocalizations.of(context)!;
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -202,7 +211,7 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadCurrentFolder,
-              child: const Text('Повторить'),
+              child: Text(t.retry),
             ),
           ],
         ),
@@ -216,7 +225,7 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
           children: [
             Icon(Icons.folder_open, size: 64, color: Colors.grey[300]),
             const SizedBox(height: 16),
-            Text('Папка пуста', style: TextStyle(color: Colors.grey[500])),
+            Text(t.folderEmpty, style: TextStyle(color: Colors.grey[500])),
           ],
         ),
       );
@@ -230,7 +239,6 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
         final isDisabled = widget.selectedFolders.contains(folder.id);
 
         return ListTile(
-          enabled: !isDisabled,
           leading: Container(
             width: 40,
             height: 40,
@@ -250,7 +258,9 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
             folder.name,
             style: TextStyle(
               fontWeight: FontWeight.w500,
-              color: isDisabled ? Colors.grey : Colors.black87,
+              color: isDisabled
+                  ? Theme.of(context).disabledColor
+                  : Theme.of(context).colorScheme.onSurface,
             ),
           ),
           trailing: const Icon(Icons.chevron_right, color: Colors.grey),
@@ -285,7 +295,9 @@ class _BreadcrumbItem extends StatelessWidget {
             style: TextStyle(
               fontSize: 15,
               fontWeight: isLast ? FontWeight.w600 : FontWeight.w500,
-              color: isLast ? Colors.black87 : Colors.blue,
+              color: isLast
+                  ? Theme.of(context).colorScheme.onSurface
+                  : Colors.blue,
             ),
           ),
         ),

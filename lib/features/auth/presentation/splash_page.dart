@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/errors/app_exception.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/services/app_initializer.dart';
 import '../../../core/services/language_notifier.dart';
+import '../../profile/data/profile_repository.dart';
 import 'login_page.dart';
-import 'register_page.dart';
 import '../../home/presentation/main_page.dart';
 
 // ─── Splash ──────────────────────────────────────────────────────────────────
@@ -56,13 +57,35 @@ class _SplashPageState extends State<SplashPage>
     if (!mounted) return;
 
     if (token != null && token.isNotEmpty) {
-      _go(const MainPage());
+      final valid = await _isSessionValid();
+      if (!mounted) return;
+      if (valid) {
+        _go(const MainPage());
+      } else {
+        await SecureStorage.clearTokens();
+        if (!mounted) return;
+        _go(const LoginPage());
+      }
     } else if (!langChosen) {
       _go(const LanguageSelectionPage());
     } else if (!onboardDone) {
       _go(const OnboardingPage());
     } else {
       _go(const LoginPage());
+    }
+  }
+
+  // Лёгкая проверка токена. 401/403 → сессия невалидна.
+  // Любая другая ошибка (нет сети, таймаут) → пускаем внутрь по кэшу,
+  // не блокируем оффлайн-вход.
+  Future<bool> _isSessionValid() async {
+    try {
+      await ProfileRepository().getMe(silent: true);
+      return true;
+    } on AppException catch (e) {
+      return e.statusCode != 401 && e.statusCode != 403;
+    } catch (_) {
+      return true;
     }
   }
 
@@ -80,10 +103,6 @@ class _SplashPageState extends State<SplashPage>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-<<<<<<< HEAD
-=======
-      backgroundColor: isDark ? const Color(0xFF000000) : const Color(0xFF1A73E8),
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -106,13 +125,8 @@ class _SplashPageState extends State<SplashPage>
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
-<<<<<<< HEAD
                       color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(28),
-=======
-                      color: Colors.white.withValues(alpha: isDark ? 0.1 : 0.2),
-                      borderRadius: BorderRadius.circular(24),
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(28),
@@ -216,13 +230,8 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-<<<<<<< HEAD
                     color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(22),
-=======
-                    color: Colors.white.withValues(alpha: isDark ? 0.1 : 0.15),
-                    borderRadius: BorderRadius.circular(32),
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(22),
@@ -251,6 +260,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
                     onTap: () => setState(() => _selected = lang['code']!),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOut,
                       margin: const EdgeInsets.only(bottom: 14),
                       padding: const EdgeInsets.symmetric(
                           vertical: 18, horizontal: 20),
@@ -309,35 +319,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
                             fontWeight: FontWeight.bold)),
                   ),
                 ),
-<<<<<<< HEAD
                 const SizedBox(height: 40),
-=======
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LoginPage()),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: BorderSide(
-                        color: Colors.white.withValues(alpha: isDark ? 0.3 : 0.5),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: const Text(
-                      'Log In',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")
               ],
             ),
           ),
@@ -345,7 +327,6 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
       ),
     );
   }
-<<<<<<< HEAD
 }
 
 // ─── Onboarding ───────────────────────────────────────────────────────────────
@@ -361,7 +342,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   int _page = 0;
 
   static final _slides = [
-    _Slide(
+    const _Slide(
       icon: Icons.cloud_upload_rounded,
       titles: {
         'uz': 'Barcha fayllar bir joyda',
@@ -375,7 +356,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       },
       gradient: [Color(0xFF1A73E8), Color(0xFF0D47A1)],
     ),
-    _Slide(
+    const _Slide(
       icon: Icons.sync_rounded,
       titles: {
         'uz': 'Avtomatik sinxronizatsiya',
@@ -389,7 +370,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       },
       gradient: [Color(0xFF0D47A1), Color(0xFF1565C0)],
     ),
-    _Slide(
+    const _Slide(
       icon: Icons.lock_rounded,
       titles: {
         'uz': 'Xavfsiz va tez',
@@ -431,12 +412,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   Widget build(BuildContext context) {
     final lang = LanguageNotifier.instance.locale.languageCode;
-    final skipLabel = lang == 'uz' ? "O'tkazib yuborish" : lang == 'ru' ? 'Пропустить' : 'Skip';
-    final startLabel = lang == 'uz' ? 'Boshlash' : lang == 'ru' ? 'Начать' : 'Get Started';
     final slide = _slides[_page];
     return Scaffold(
       body: AnimatedContainer(
-        duration: const Duration(milliseconds: 400),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: slide.gradient,
@@ -447,7 +427,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
         child: SafeArea(
           child: Column(
             children: [
-              // Skip button
               Align(
                 alignment: Alignment.topRight,
                 child: TextButton(
@@ -462,7 +441,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
               ),
 
-              // PageView
               Expanded(
                 child: PageView.builder(
                   controller: _ctrl,
@@ -472,16 +450,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
               ),
 
-              // Dots + Next button
               Padding(
                 padding: const EdgeInsets.fromLTRB(28, 0, 28, 40),
                 child: Row(
                   children: [
-                    // Dots
                     Row(
                       children: List.generate(_slides.length, (i) {
                         return AnimatedContainer(
                           duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeOut,
                           margin: const EdgeInsets.only(right: 8),
                           width: i == _page ? 24 : 8,
                           height: 8,
@@ -500,6 +477,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       onTap: _next,
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeOut,
                         width: _page == _slides.length - 1 ? 160 : 56,
                         height: 56,
                         decoration: BoxDecoration(
@@ -597,6 +575,3 @@ class _SlideWidget extends StatelessWidget {
     );
   }
 }
-=======
-}
->>>>>>> parent of 6d49955 (Revert "Fayllar sahifasi uchun pagination tizimini yangilandi")

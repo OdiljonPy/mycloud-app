@@ -1,13 +1,55 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/services/push_notification_service.dart';
+import '../../../core/services/language_notifier.dart';
+import '../../notifications/data/notifications_repository.dart';
 import '../../sync/auto_sync_service.dart';
 
 class AuthRepository {
   final Dio _dio = DioClient.instance;
+
+  /// Регистрирует текущий FCM-токен устройства на бэкенде. Вызывается
+  /// после успешного логина и при onTokenRefresh. Не критично — сбой не
+  /// должен ронять экран или логин-флоу.
+  static Future<void> registerCurrentDevice() async {
+    try {
+      final accessToken = await SecureStorage.getAccessToken();
+      if (accessToken == null) return;
+
+      final token = await PushNotificationService.ensureToken();
+      if (token == null) return;
+
+      final deviceId = await PushNotificationService.getDeviceId();
+      final language = LanguageNotifier.instance.locale.languageCode;
+
+      await NotificationsRepository().registerDevice(
+        token: token,
+        deviceId: deviceId,
+        isAndroid: Platform.isAndroid,
+        language: language,
+      );
+    } catch (e) {
+      debugPrint('[AuthRepository] registerCurrentDevice failed: $e');
+    }
+  }
+
+  /// Отписывает текущий FCM-токен устройства. Вызывается при логауте, до
+  /// очистки токенов доступа (запрос должен быть аутентифицирован).
+  static Future<void> unregisterCurrentDevice() async {
+    try {
+      final token = PushNotificationService.currentToken;
+      if (token == null) return;
+      await NotificationsRepository().unregisterDevice(token: token);
+    } catch (e) {
+      debugPrint('[AuthRepository] unregisterCurrentDevice failed: $e');
+    }
+  }
 
   String _extractError(dynamic data) {
     if (data == null) return 'Unknown error';
@@ -25,7 +67,6 @@ class AuthRepository {
     return data.toString();
   }
 
-  // LOGIN
   Future<void> login({
     required String phoneNumber,
     required String password,
@@ -52,6 +93,7 @@ class AuthRepository {
         accessToken: accessToken?.toString() ?? '',
         refreshToken: refreshToken?.toString() ?? '',
       );
+      DioClient.resetLogoutFlag();
       await AutoSyncService().onLogout();
 
       final me = await _dio.get('authentication/users/me/');
@@ -59,8 +101,9 @@ class AuthRepository {
           ? me.data['result']
           : me.data;
       if (meData is Map) {
-        if (meData.containsKey('id'))
+        if (meData.containsKey('id')) {
           await SecureStorage.saveUserId(meData['id'].toString());
+        }
         final fullName = meData['full_name']?.toString();
         if (fullName != null) await SecureStorage.saveFullName(fullName);
       }
@@ -70,6 +113,7 @@ class AuthRepository {
           AutoSyncService().startAutoSync().catchError((_) {});
         }
       }).catchError((_) {});
+      unawaited(registerCurrentDevice());
     } on DioException catch (e) {
       throw AppException(
         message: _extractError(e.response?.data) != 'Unknown error'
@@ -131,6 +175,7 @@ class AuthRepository {
           accessToken: accessToken.toString(),
           refreshToken: refreshToken?.toString() ?? '',
         );
+        DioClient.resetLogoutFlag();
         await AutoSyncService().onLogout();
 
         final me = await _dio.get('authentication/users/me/');
@@ -138,8 +183,9 @@ class AuthRepository {
             ? me.data['result']
             : me.data;
         if (meData is Map) {
-          if (meData.containsKey('id'))
+          if (meData.containsKey('id')) {
             await SecureStorage.saveUserId(meData['id'].toString());
+          }
           final fullName = meData['full_name']?.toString();
           if (fullName != null) await SecureStorage.saveFullName(fullName);
         }
@@ -149,6 +195,7 @@ class AuthRepository {
             AutoSyncService().startAutoSync().catchError((_) {});
           }
         }).catchError((_) {});
+        unawaited(registerCurrentDevice());
       }
     } on DioException catch (e) {
       throw AppException(
@@ -160,7 +207,6 @@ class AuthRepository {
     }
   }
 
-  // RESEND OTP
   Future<String> resendOtp({required String phoneNumber}) async {
     try {
       final response = await _dio.post(
@@ -276,7 +322,6 @@ class AuthRepository {
     }
   }
 
-  // LOGOUT
   Future<void> logout() async {
     await SecureStorage.clearTokens();
   }

@@ -34,4 +34,9 @@ abstract class SyncFacade {
 
   /// Initialize service: open DB, run cold start scan if needed.
   Future<void> initialize();
+
+  /// Removes queued-but-not-yet-uploaded files whose album isn't in the
+  /// current "selected albums" filter. Call after enabling/changing that
+  /// filter so stale full-sync leftovers don't upload in the background.
+  Future<void> purgeNonSelectedAlbums();
 }
