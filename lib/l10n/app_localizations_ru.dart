@@ -87,6 +87,17 @@ class AppLocalizationsRu extends AppLocalizations {
   String get cancel => 'Отмена';
 
   @override
+  String get transfersTitle => 'Передача файлов';
+
+  @override
+  String transfersSummary(int active, int queued, int done) {
+    return '$active активна · $queued в очереди · $done готово';
+  }
+
+  @override
+  String get statusQueued => 'В очереди';
+
+  @override
   String get create => 'Создать';
 
   @override

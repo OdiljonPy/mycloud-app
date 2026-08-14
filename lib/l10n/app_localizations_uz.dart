@@ -87,6 +87,17 @@ class AppLocalizationsUz extends AppLocalizations {
   String get cancel => 'Bekor qilish';
 
   @override
+  String get transfersTitle => 'Fayllar uzatilishi';
+
+  @override
+  String transfersSummary(int active, int queued, int done) {
+    return '$active faol · $queued navbatda · $done tayyor';
+  }
+
+  @override
+  String get statusQueued => 'Navbatda';
+
+  @override
   String get create => 'Yaratish';
 
   @override

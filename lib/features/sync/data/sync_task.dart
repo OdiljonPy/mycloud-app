@@ -1,5 +1,22 @@
 enum SyncStatus { pending, uploading, done, failed }
 
+/// Снимок очереди для глобальной панели передачи файлов.
+/// Суммы — из постоянного состояния SQLite (не из счётчиков сессии),
+/// поэтому процент не обнуляется при refresh/перезаходе.
+class UploadSnapshot {
+  final List<SyncTask> tasks; // активные (uploading+pending), ограниченный список
+  final int totalBytes; // done + pending + uploading (без failed)
+  final int doneBytes; // status = done (персистится)
+
+  const UploadSnapshot({
+    required this.tasks,
+    required this.totalBytes,
+    required this.doneBytes,
+  });
+
+  int get remainingBytes => (totalBytes - doneBytes).clamp(0, totalBytes);
+}
+
 class SyncTask {
   final int? id;
   final String localId;

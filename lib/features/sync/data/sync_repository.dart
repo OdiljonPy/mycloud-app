@@ -1,6 +1,7 @@
 import '../auto_sync_service.dart';
 import '../domain/sync_facade.dart';
 import '../sync_progress.dart';
+import 'sync_task.dart';
 
 /// Concrete implementation of SyncFacade.
 /// Delegates everything to AutoSyncService.
@@ -43,4 +44,12 @@ class SyncRepository implements SyncFacade {
 
   @override
   Future<void> purgeNonSelectedAlbums() => _service.purgeNonSelectedAlbums();
+
+  @override
+  Future<List<SyncTask>> getUploadQueue({int limit = 40}) =>
+      _service.getUploadQueue(limit: limit);
+
+  @override
+  Future<UploadSnapshot> getUploadSnapshot({int limit = 40}) =>
+      _service.getUploadSnapshot(limit: limit);
 }

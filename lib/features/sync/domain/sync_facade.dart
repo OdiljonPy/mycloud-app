@@ -1,3 +1,4 @@
+import '../data/sync_task.dart';
 import '../sync_progress.dart';
 
 /// Abstract interface for sync operations.
@@ -39,4 +40,10 @@ abstract class SyncFacade {
   /// current "selected albums" filter. Call after enabling/changing that
   /// filter so stale full-sync leftovers don't upload in the background.
   Future<void> purgeNonSelectedAlbums();
+
+  /// Активная очередь загрузки (uploading + pending) для глобальной панели.
+  Future<List<SyncTask>> getUploadQueue({int limit});
+
+  /// Снимок очереди + суммы байтов для глобальной панели передачи файлов.
+  Future<UploadSnapshot> getUploadSnapshot({int limit});
 }

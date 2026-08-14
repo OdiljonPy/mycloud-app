@@ -53,6 +53,12 @@ class AutoSyncService {
   int _syncSessionId = 0;
   bool _settingsChanged = false;
 
+  /// Токен владения циклом загрузки. Опоздавший finally старого
+  /// (остановленного) запуска не должен затирать _isRunning нового —
+  /// иначе после «Стоп→Старт» sync не запускался.
+  int _uploadRunCounter = 0;
+  int _uploadOwner = 0;
+
   Future<void> initialize() async {
     await _db.init();
 
@@ -210,9 +216,13 @@ class AutoSyncService {
     }
 
     _isRunning = true;
+    final myOwner = ++_uploadRunCounter;
+    _uploadOwner = myOwner;
     final sessionId = _syncSessionId;
     _totalInBatch = 0;
     _currentFileName = null;
+
+    bool isOwner() => _uploadOwner == myOwner && sessionId == _syncSessionId;
 
     // Сбрасываем зависшие uploading -> pending (после краша/стопа)
     await _db.resetStuckUploading();
@@ -274,9 +284,9 @@ class AutoSyncService {
       );
       final uploader = TusSyncUploader();
 
-      while (_isRunning && sessionId == _syncSessionId) {
+      while (_isRunning && isOwner()) {
         await _waitForWifiIfNeeded(sessionId);
-        if (!_isRunning || sessionId != _syncSessionId) break;
+        if (!_isRunning || !isOwner()) break;
 
         final tasks = await _db.getPendingOldestFirst(limit: 50);
         if (tasks.isEmpty) {
@@ -347,7 +357,7 @@ class AutoSyncService {
         }
 
         for (final task in resolvedTasks) {
-          if (!_isRunning || sessionId != _syncSessionId) break;
+          if (!_isRunning || !isOwner()) break;
           if (task.id == null) continue;
 
           Map<String, int> counts;
@@ -503,8 +513,13 @@ class AutoSyncService {
         }
       }
     } finally {
-      _isRunning = false;
-      _currentFileName = null;
+      // Чистим флаги только если мы всё ещё владелец — иначе опоздавший
+      // finally старого запуска затёр бы _isRunning нового (баг «Стоп→Старт»).
+      if (_uploadOwner == myOwner) {
+        _isRunning = false;
+        _currentFileName = null;
+        _uploadOwner = 0;
+      }
       final counts = await _db.getStatusCounts();
       _emit(_currentProgress.copyWith(
         pending: counts['pending'] ?? 0,
@@ -650,6 +665,24 @@ class AutoSyncService {
     await prefs.remove(_kColdStartKey);
     await prefs.remove(_kWatermarkKey);
     debugPrint('[AutoSync] Logout: queue cleared');
+  }
+
+  /// Активная очередь загрузки для UI (глобальная панель).
+  Future<List<SyncTask>> getUploadQueue({int limit = 40}) async {
+    await _db.init();
+    return _db.getActiveQueue(limit: limit);
+  }
+
+  /// Снимок очереди + суммы байтов для глобальной панели передачи файлов.
+  Future<UploadSnapshot> getUploadSnapshot({int limit = 40}) async {
+    await _db.init();
+    final tasks = await _db.getActiveQueue(limit: limit);
+    final bytes = await _db.getByteTotals();
+    return UploadSnapshot(
+      tasks: tasks,
+      totalBytes: bytes['total'] ?? 0,
+      doneBytes: bytes['done'] ?? 0,
+    );
   }
 
   Future<bool> isAutoSyncEnabled() async {

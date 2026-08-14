@@ -87,6 +87,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cancel => 'Cancel';
 
   @override
+  String get transfersTitle => 'Transfers';
+
+  @override
+  String transfersSummary(int active, int queued, int done) {
+    return '$active active · $queued queued · $done done';
+  }
+
+  @override
+  String get statusQueued => 'Queued';
+
+  @override
   String get create => 'Create';
 
   @override

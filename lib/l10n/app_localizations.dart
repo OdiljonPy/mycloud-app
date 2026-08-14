@@ -253,6 +253,24 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get cancel;
 
+  /// No description provided for @transfersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfers'**
+  String get transfersTitle;
+
+  /// No description provided for @transfersSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{active} active · {queued} queued · {done} done'**
+  String transfersSummary(int active, int queued, int done);
+
+  /// No description provided for @statusQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued'**
+  String get statusQueued;
+
   /// No description provided for @create.
   ///
   /// In en, this message translates to:

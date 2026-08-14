@@ -111,6 +111,46 @@ class SyncQueueDb {
     }
   }
 
+  /// Активная очередь для панели: сначала загружаемые, затем ожидающие.
+  Future<List<SyncTask>> getActiveQueue({int limit = 40}) async {
+    try {
+      final rows = await _database.rawQuery('''
+        SELECT * FROM sync_queue
+        WHERE status IN ('uploading', 'pending')
+        ORDER BY CASE status WHEN 'uploading' THEN 0 ELSE 1 END,
+                 COALESCE(asset_created_at, created_at) ASC
+        LIMIT ?
+      ''', [limit]);
+      return rows.map((r) => SyncTask.fromMap(r)).toList();
+    } catch (e) {
+      debugPrint('[SyncQueueDb] getActiveQueue failed: $e');
+      return [];
+    }
+  }
+
+  /// Суммы байтов из постоянного состояния: total = done+pending+uploading
+  /// (без failed), done = status='done'. Персистится между запусками.
+  Future<Map<String, int>> getByteTotals() async {
+    try {
+      final r = await _database.rawQuery('''
+        SELECT
+          COALESCE(SUM(CASE WHEN status IN ('done','pending','uploading')
+                            THEN file_size ELSE 0 END), 0) AS total,
+          COALESCE(SUM(CASE WHEN status = 'done'
+                            THEN file_size ELSE 0 END), 0) AS done
+        FROM sync_queue
+      ''');
+      final row = r.first;
+      return {
+        'total': (row['total'] as int?) ?? 0,
+        'done': (row['done'] as int?) ?? 0,
+      };
+    } catch (e) {
+      debugPrint('[SyncQueueDb] getByteTotals failed: $e');
+      return {'total': 0, 'done': 0};
+    }
+  }
+
   Future<List<SyncTask>> getPendingOldestFirst({int limit = 10}) async {
     try {
       final rows = await _database.query('sync_queue', where: 'status = ?', whereArgs: ['pending'], orderBy: 'COALESCE(asset_created_at, created_at) ASC', limit: limit);

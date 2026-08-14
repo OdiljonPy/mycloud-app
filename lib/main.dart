@@ -10,6 +10,7 @@ import 'core/services/language_notifier.dart';
 import 'core/services/navigation_service.dart';
 import 'core/services/push_notification_service.dart';
 import 'features/auth/presentation/splash_page.dart';
+import 'features/sync/presentation/transfers_overlay.dart';
 import 'l10n/app_localizations.dart';
 
 class ThemeNotifier extends ChangeNotifier {
@@ -126,6 +127,13 @@ class CloudApp extends StatelessWidget {
           ],
           supportedLocales: const [Locale('en'), Locale('ru'), Locale('uz')],
           home: const SplashPage(),
+          // Глобальная панель передачи файлов поверх всех экранов.
+          builder: (context, child) => Stack(
+            children: [
+              child ?? const SizedBox.shrink(),
+              const TransfersOverlay(),
+            ],
+          ),
         );
       },
     );
