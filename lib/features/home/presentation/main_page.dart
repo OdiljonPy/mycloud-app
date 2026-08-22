@@ -67,6 +67,7 @@ class _MainPageState extends State<MainPage> {
                 key: _homeKey,
                 onNavigateToFiles: () => setState(() => _currentIndex = 1),
                 onNavigateToShared: () => setState(() => _currentIndex = 2),
+                onNavigateToProfile: () => setState(() => _currentIndex = 3),
                 onToggleFavourites: () {
                   setState(() => _currentIndex = 1);
                   Future.delayed(const Duration(milliseconds: 100), () {
@@ -133,7 +134,7 @@ class _MainPageState extends State<MainPage> {
                 current: _currentIndex,
                 onTap: (i) {
                   if (i == 1) {
-                    _filesKey.currentState?.reloadContent();
+                    _filesKey.currentState?.resetToRoot();
                   }
                   setState(() => _currentIndex = i);
                 },

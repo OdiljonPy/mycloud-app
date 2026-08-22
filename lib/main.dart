@@ -14,6 +14,7 @@ import 'core/services/language_notifier.dart';
 import 'core/services/navigation_service.dart';
 import 'core/services/push_notification_service.dart';
 import 'features/auth/presentation/splash_page.dart';
+import 'features/sync/presentation/widgets/sync_status_bubble.dart';
 import 'l10n/app_localizations.dart';
 
 class ThemeNotifier extends ChangeNotifier {
@@ -104,11 +105,35 @@ void main() async {
 
   runApp(const ProviderScope(child: CloudApp()));
 
+  // Плавающая таблетка синка живёт в root Overlay (а не внутри MainPage),
+  // чтобы оставаться видимой поверх ЛЮБОГО экрана — включая UploadPage,
+  // который пушится поверх MainPage через обычный Navigator.push.
+  WidgetsBinding.instance.addPostFrameCallback((_) => _insertSyncStatusOverlay());
+
   // image_picker (Android) copies every picked file into a random-UUID
   // subfolder of the cache dir and never deletes it — safety net for cases
   // where the process was killed before UploadQueueNotifier could clean up
   // a picked file itself. Fire-and-forget so it never delays first frame.
   unawaited(_cleanupOrphanedImagePickerCache());
+}
+
+bool _syncOverlayInserted = false;
+
+void _insertSyncStatusOverlay() {
+  if (_syncOverlayInserted) return;
+  final overlay = NavigationService.navigatorKey.currentState?.overlay;
+  if (overlay == null) {
+    // Navigator ещё не успел создать свой Overlay к этому кадру — пробуем
+    // ещё раз на следующем.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _insertSyncStatusOverlay());
+    return;
+  }
+  try {
+    overlay.insert(OverlayEntry(builder: (_) => const SyncStatusBubble()));
+    _syncOverlayInserted = true;
+  } catch (e) {
+    debugPrint('[Main] Failed to insert sync status overlay: $e');
+  }
 }
 
 final RegExp _uuidDirName = RegExp(
