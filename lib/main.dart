@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +8,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:path_provider/path_provider.dart';
 import 'core/config/app_config.dart';
 import 'core/services/language_notifier.dart';
 import 'core/services/navigation_service.dart';
@@ -99,6 +103,35 @@ void main() async {
   }
 
   runApp(const ProviderScope(child: CloudApp()));
+
+  // image_picker (Android) copies every picked file into a random-UUID
+  // subfolder of the cache dir and never deletes it — safety net for cases
+  // where the process was killed before UploadQueueNotifier could clean up
+  // a picked file itself. Fire-and-forget so it never delays first frame.
+  unawaited(_cleanupOrphanedImagePickerCache());
+}
+
+final RegExp _uuidDirName = RegExp(
+  r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+);
+
+Future<void> _cleanupOrphanedImagePickerCache() async {
+  try {
+    final tempDir = await getTemporaryDirectory();
+    if (!await tempDir.exists()) return;
+    await for (final entry in tempDir.list()) {
+      if (entry is! Directory) continue;
+      final name = entry.uri.pathSegments.where((s) => s.isNotEmpty).last;
+      if (!_uuidDirName.hasMatch(name)) continue;
+      try {
+        await entry.delete(recursive: true);
+      } catch (e) {
+        debugPrint('[Main] Failed to delete orphaned picker cache dir $name: $e');
+      }
+    }
+  } catch (e) {
+    debugPrint('[Main] image_picker cache cleanup failed (non-critical): $e');
+  }
 }
 
 class CloudApp extends StatelessWidget {
