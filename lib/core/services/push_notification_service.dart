@@ -37,6 +37,7 @@ class PushNotificationService {
   static Future<String?> ensureToken() async {
     if (_currentToken != null) return _currentToken;
     try {
+      await _waitForApnsTokenIfNeeded();
       _currentToken = await _messaging.getToken();
     } catch (e) {
       debugPrint('[PushNotification] ensureToken failed: $e');
@@ -64,6 +65,7 @@ class PushNotificationService {
     await _requestPermission();
 
     try {
+      await _waitForApnsTokenIfNeeded();
       _currentToken = await _messaging.getToken();
     } catch (e) {
       debugPrint('[PushNotification] getToken failed: $e');
@@ -77,6 +79,30 @@ class PushNotificationService {
     // FCM не показывает системное уведомление сам, когда приложение в
     // foreground — делаем это вручную через flutter_local_notifications.
     FirebaseMessaging.onMessage.listen(_showForegroundNotification);
+  }
+
+  /// Ждёт APNs-токен на iOS перед запросом FCM-токена — без этого getToken()
+  /// на холодном старте может вернуть null/упасть, т.к. APNs-токен от ОС
+  /// ещё не пришёл. Верхняя граница ожидания жёсткая (5с), после неё
+  /// продолжаем без него — тот же паттерн "одна попытка, лог, дальше",
+  /// что и у остальных Firebase-вызовов в этом файле.
+  static Future<void> _waitForApnsTokenIfNeeded() async {
+    if (!Platform.isIOS) return;
+    const maxAttempts = 10;
+    const pollInterval = Duration(milliseconds: 500);
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        final apnsToken = await _messaging.getAPNSToken();
+        if (apnsToken != null) return;
+      } catch (e) {
+        debugPrint('[PushNotification] getAPNSToken check failed: $e');
+      }
+      await Future.delayed(pollInterval);
+    }
+    debugPrint(
+      '[PushNotification] APNs token not available after '
+      '${maxAttempts * pollInterval.inMilliseconds}ms, proceeding anyway',
+    );
   }
 
   static Future<void> _requestPermission() async {
