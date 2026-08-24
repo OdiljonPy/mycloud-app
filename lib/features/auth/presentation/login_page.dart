@@ -69,7 +69,10 @@ class _LoginPageState extends State<LoginPage> {
       );
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MainPage()),
+          MaterialPageRoute(
+            settings: const RouteSettings(name: 'main'),
+            builder: (_) => const MainPage(),
+          ),
         );
       }
     } on AppException catch (e) {
@@ -370,7 +373,7 @@ class _LoginPageState extends State<LoginPage> {
                       : _login,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: accentColor,
-                    disabledBackgroundColor: accentColor.withValues(alpha: 0.5),
+                    disabledBackgroundColor: Colors.grey.shade400,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),

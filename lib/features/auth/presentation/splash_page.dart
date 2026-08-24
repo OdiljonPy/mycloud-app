@@ -60,7 +60,7 @@ class _SplashPageState extends State<SplashPage>
       final valid = await _isSessionValid();
       if (!mounted) return;
       if (valid) {
-        _go(const MainPage());
+        _go(const MainPage(), settings: const RouteSettings(name: 'main'));
       } else {
         await SecureStorage.clearTokens();
         if (!mounted) return;
@@ -89,9 +89,9 @@ class _SplashPageState extends State<SplashPage>
     }
   }
 
-  void _go(Widget page) {
+  void _go(Widget page, {RouteSettings? settings}) {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => page),
+      MaterialPageRoute(settings: settings, builder: (_) => page),
     );
   }
 
@@ -314,8 +314,13 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16)),
                     ),
-                    child: const Text('Davom etish →',
-                        style: TextStyle(fontSize: 16,
+                    child: Text(
+                        _selected == 'uz'
+                            ? 'Davom etish →'
+                            : _selected == 'ru'
+                                ? 'Продолжить →'
+                                : 'Continue →',
+                        style: const TextStyle(fontSize: 16,
                             fontWeight: FontWeight.bold)),
                   ),
                 ),
@@ -486,9 +491,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         ),
                         child: Center(
                           child: _page == _slides.length - 1
-                              ? const Text(
-                                  'Boshlash',
-                                  style: TextStyle(
+                              ? Text(
+                                  lang == 'uz'
+                                      ? 'Boshlash'
+                                      : lang == 'ru'
+                                          ? 'Начать'
+                                          : 'Get Started',
+                                  style: const TextStyle(
                                     color: Color(0xFF1A73E8),
                                     fontWeight: FontWeight.bold,
                                     fontSize: 15,

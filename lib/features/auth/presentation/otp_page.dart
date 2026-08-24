@@ -96,7 +96,10 @@ class _OtpPageState extends State<OtpPage> {
       );
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MainPage()),
+          MaterialPageRoute(
+            settings: const RouteSettings(name: 'main'),
+            builder: (_) => const MainPage(),
+          ),
           (_) => false,
         );
       }
