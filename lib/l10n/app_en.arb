@@ -259,6 +259,36 @@
   "syncStatusFailed": "Errors",
   "syncStop": "Stop",
   "syncResumeButton": "Resume Sync",
+  "syncBubbleTitle": "Uploading files",
+  "syncBubbleSummary": "{active} active · {queued} queued · {done} done",
+  "@syncBubbleSummary": {
+    "placeholders": {
+      "active": { "type": "int" },
+      "queued": { "type": "int" },
+      "done": { "type": "int" }
+    }
+  },
+  "syncQueueFraction": "{count} / {total} files",
+  "@syncQueueFraction": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "syncQueueItemPending": "Queued",
+  "syncQueueItemPaused": "Paused",
+  "syncQueueItemCancelled": "Cancelled",
+  "syncPauseAllButton": "Pause all",
+  "syncResumeAllButton": "Resume all",
+  "syncCancelAllButton": "Cancel all",
+  "syncCancelAllConfirmTitle": "Cancel all?",
+  "syncCancelAllConfirmMessage": "{count} files will be removed from the sync queue. Files stay on your device.",
+  "@syncCancelAllConfirmMessage": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "syncCancelAllConfirmButton": "Yes, cancel all",
   "syncSelectedFiles": "Selected files",
   "syncSelectedFilesSubtitle": "Sync only selected",
   "syncSelectedCount": "{count} media selected",
@@ -420,6 +450,7 @@
   "planNamePlus": "Plus",
   "planNameFamily": "Family",
   "planNamePro": "Pro",
+  "planNameMax": "Max",
   "clearDoneButton": "Clear",
   "allUploadedStatus": "All uploaded!",
   "noNetworkWaiting": "No network — waiting...",
@@ -493,6 +524,12 @@
   "signInButton": "Sign In",
   "noAccountPrompt": "Don't have an account? ",
   "registerLink": "Register",
+  "createAccountTitle": "Create Account",
+  "createAccountSubtitle": "Register a new user with phone number",
+  "fullNameLabel": "Full Name",
+  "fullNameHint": "John Doe",
+  "nameRequiredError": "Enter your name",
+  "currentPasswordRequiredError": "Enter your current password",
   "enterOtpCodeTitle": "Enter OTP Code",
   "notifications": "Notifications",
   "noNotificationsYet": "No notifications yet",

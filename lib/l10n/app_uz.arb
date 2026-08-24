@@ -248,6 +248,36 @@
   "unpinLabel": "📌 Olib tashlash",
   "favourite": "Sevimli",
   "syncResumeButton": "Sinxronizatsiyani davom ettirish",
+  "syncBubbleTitle": "Fayllar uzatilishi",
+  "syncBubbleSummary": "{active} faol · {queued} navbatda · {done} tayyor",
+  "@syncBubbleSummary": {
+    "placeholders": {
+      "active": { "type": "int" },
+      "queued": { "type": "int" },
+      "done": { "type": "int" }
+    }
+  },
+  "syncQueueFraction": "{count} / {total} fayl",
+  "@syncQueueFraction": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "syncQueueItemPending": "Navbatda",
+  "syncQueueItemPaused": "Pauza qilindi",
+  "syncQueueItemCancelled": "Bekor qilindi",
+  "syncPauseAllButton": "Barchasini pauza",
+  "syncResumeAllButton": "Barchasini davom ettirish",
+  "syncCancelAllButton": "Barchasini bekor qilish",
+  "syncCancelAllConfirmTitle": "Barchasini bekor qilish?",
+  "syncCancelAllConfirmMessage": "{count} ta fayl navbatdan olib tashlanadi. Fayllar qurilmada saqlanib qoladi.",
+  "@syncCancelAllConfirmMessage": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "syncCancelAllConfirmButton": "Ha, bekor qilish",
   "fileTypes": "Fayl turlari",
   "viewAll": "Barchasi",
   "recentFiles": "Galereya fayllari",
@@ -394,6 +424,7 @@
   "planNamePlus": "Plus",
   "planNameFamily": "Oila",
   "planNamePro": "Pro",
+  "planNameMax": "Maks",
   "clearDoneButton": "Tozalash",
   "allUploadedStatus": "Barchasi yuklandi!",
   "noNetworkWaiting": "Tarmoq yo'q — kutilmoqda...",
@@ -467,6 +498,12 @@
   "signInButton": "Kirish",
   "noAccountPrompt": "Akkountingiz yo'qmi? ",
   "registerLink": "Ro'yxatdan o'tish",
+  "createAccountTitle": "Hisob yaratish",
+  "createAccountSubtitle": "Telefon raqami orqali ro'yxatdan o'ting",
+  "fullNameLabel": "To'liq ism",
+  "fullNameHint": "Aziz Aliyev",
+  "nameRequiredError": "Ismingizni kiriting",
+  "currentPasswordRequiredError": "Joriy parolni kiriting",
   "enterOtpCodeTitle": "Tasdiqlash kodini kiriting",
   "notifications": "Bildirishnomalar",
   "noNotificationsYet": "Hozircha bildirishnomalar yo'q",

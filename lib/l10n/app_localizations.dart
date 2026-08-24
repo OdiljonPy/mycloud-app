@@ -1183,6 +1183,78 @@ abstract class AppLocalizations {
   /// **'Resume Sync'**
   String get syncResumeButton;
 
+  /// No description provided for @syncBubbleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading files'**
+  String get syncBubbleTitle;
+
+  /// No description provided for @syncBubbleSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{active} active · {queued} queued · {done} done'**
+  String syncBubbleSummary(int active, int queued, int done);
+
+  /// No description provided for @syncQueueFraction.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} / {total} files'**
+  String syncQueueFraction(int count, int total);
+
+  /// No description provided for @syncQueueItemPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued'**
+  String get syncQueueItemPending;
+
+  /// No description provided for @syncQueueItemPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get syncQueueItemPaused;
+
+  /// No description provided for @syncQueueItemCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get syncQueueItemCancelled;
+
+  /// No description provided for @syncPauseAllButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause all'**
+  String get syncPauseAllButton;
+
+  /// No description provided for @syncResumeAllButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume all'**
+  String get syncResumeAllButton;
+
+  /// No description provided for @syncCancelAllButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel all'**
+  String get syncCancelAllButton;
+
+  /// No description provided for @syncCancelAllConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel all?'**
+  String get syncCancelAllConfirmTitle;
+
+  /// No description provided for @syncCancelAllConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} files will be removed from the sync queue. Files stay on your device.'**
+  String syncCancelAllConfirmMessage(int count);
+
+  /// No description provided for @syncCancelAllConfirmButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, cancel all'**
+  String get syncCancelAllConfirmButton;
+
   /// No description provided for @syncSelectedFiles.
   ///
   /// In en, this message translates to:
@@ -1825,6 +1897,12 @@ abstract class AppLocalizations {
   /// **'Pro'**
   String get planNamePro;
 
+  /// No description provided for @planNameMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Max'**
+  String get planNameMax;
+
   /// No description provided for @clearDoneButton.
   ///
   /// In en, this message translates to:
@@ -2118,6 +2196,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Register'**
   String get registerLink;
+
+  /// No description provided for @createAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Account'**
+  String get createAccountTitle;
+
+  /// No description provided for @createAccountSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Register a new user with phone number'**
+  String get createAccountSubtitle;
+
+  /// No description provided for @fullNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Name'**
+  String get fullNameLabel;
+
+  /// No description provided for @fullNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'John Doe'**
+  String get fullNameHint;
+
+  /// No description provided for @nameRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your name'**
+  String get nameRequiredError;
+
+  /// No description provided for @currentPasswordRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your current password'**
+  String get currentPasswordRequiredError;
 
   /// No description provided for @enterOtpCodeTitle.
   ///

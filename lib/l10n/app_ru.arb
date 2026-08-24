@@ -267,6 +267,36 @@
   "syncStatusFailed": "Ошибки",
   "syncStop": "Остановить",
   "syncResumeButton": "Продолжить синк",
+  "syncBubbleTitle": "Загрузка файлов",
+  "syncBubbleSummary": "{active} активно · {queued} в очереди · {done} готово",
+  "@syncBubbleSummary": {
+    "placeholders": {
+      "active": { "type": "int" },
+      "queued": { "type": "int" },
+      "done": { "type": "int" }
+    }
+  },
+  "syncQueueFraction": "{count} / {total} файлов",
+  "@syncQueueFraction": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "syncQueueItemPending": "В очереди",
+  "syncQueueItemPaused": "На паузе",
+  "syncQueueItemCancelled": "Отменено",
+  "syncPauseAllButton": "Пауза всех",
+  "syncResumeAllButton": "Продолжить все",
+  "syncCancelAllButton": "Отменить все",
+  "syncCancelAllConfirmTitle": "Отменить все?",
+  "syncCancelAllConfirmMessage": "{count} файлов будет удалено из очереди синка. Сами файлы на телефоне останутся.",
+  "@syncCancelAllConfirmMessage": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "syncCancelAllConfirmButton": "Да, отменить все",
   "syncSelectedFiles": "Выбранные файлы",
   "syncSelectedFilesSubtitle": "Синхронизировать только выбранные",
   "syncSelectedCount": "{count} медиа выбрано",
@@ -428,6 +458,7 @@
   "planNamePlus": "Плюс",
   "planNameFamily": "Семья",
   "planNamePro": "Про",
+  "planNameMax": "Макс",
   "clearDoneButton": "Очистить",
   "allUploadedStatus": "Всё загружено!",
   "noNetworkWaiting": "Нет сети — ожидание...",
@@ -501,6 +532,12 @@
   "signInButton": "Войти",
   "noAccountPrompt": "Нет аккаунта? ",
   "registerLink": "Регистрация",
+  "createAccountTitle": "Создать аккаунт",
+  "createAccountSubtitle": "Зарегистрируйтесь по номеру телефона",
+  "fullNameLabel": "Полное имя",
+  "fullNameHint": "Иван Иванов",
+  "nameRequiredError": "Введите имя",
+  "currentPasswordRequiredError": "Введите текущий пароль",
   "enterOtpCodeTitle": "Введите код подтверждения",
   "notifications": "Уведомления",
   "noNotificationsYet": "Пока нет уведомлений",

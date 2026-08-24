@@ -576,6 +576,48 @@ class AppLocalizationsRu extends AppLocalizations {
   String get syncResumeButton => 'Продолжить синк';
 
   @override
+  String get syncBubbleTitle => 'Загрузка файлов';
+
+  @override
+  String syncBubbleSummary(int active, int queued, int done) {
+    return '$active активно · $queued в очереди · $done готово';
+  }
+
+  @override
+  String syncQueueFraction(int count, int total) {
+    return '$count / $total файлов';
+  }
+
+  @override
+  String get syncQueueItemPending => 'В очереди';
+
+  @override
+  String get syncQueueItemPaused => 'На паузе';
+
+  @override
+  String get syncQueueItemCancelled => 'Отменено';
+
+  @override
+  String get syncPauseAllButton => 'Пауза всех';
+
+  @override
+  String get syncResumeAllButton => 'Продолжить все';
+
+  @override
+  String get syncCancelAllButton => 'Отменить все';
+
+  @override
+  String get syncCancelAllConfirmTitle => 'Отменить все?';
+
+  @override
+  String syncCancelAllConfirmMessage(int count) {
+    return '$count файлов будет удалено из очереди синка. Сами файлы на телефоне останутся.';
+  }
+
+  @override
+  String get syncCancelAllConfirmButton => 'Да, отменить все';
+
+  @override
   String get syncSelectedFiles => 'Выбранные файлы';
 
   @override
@@ -919,6 +961,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get planNamePro => 'Про';
 
   @override
+  String get planNameMax => 'Макс';
+
+  @override
   String get clearDoneButton => 'Очистить';
 
   @override
@@ -1076,6 +1121,24 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get registerLink => 'Регистрация';
+
+  @override
+  String get createAccountTitle => 'Создать аккаунт';
+
+  @override
+  String get createAccountSubtitle => 'Зарегистрируйтесь по номеру телефона';
+
+  @override
+  String get fullNameLabel => 'Полное имя';
+
+  @override
+  String get fullNameHint => 'Иван Иванов';
+
+  @override
+  String get nameRequiredError => 'Введите имя';
+
+  @override
+  String get currentPasswordRequiredError => 'Введите текущий пароль';
 
   @override
   String get enterOtpCodeTitle => 'Введите код подтверждения';

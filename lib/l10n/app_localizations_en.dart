@@ -576,6 +576,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncResumeButton => 'Resume Sync';
 
   @override
+  String get syncBubbleTitle => 'Uploading files';
+
+  @override
+  String syncBubbleSummary(int active, int queued, int done) {
+    return '$active active · $queued queued · $done done';
+  }
+
+  @override
+  String syncQueueFraction(int count, int total) {
+    return '$count / $total files';
+  }
+
+  @override
+  String get syncQueueItemPending => 'Queued';
+
+  @override
+  String get syncQueueItemPaused => 'Paused';
+
+  @override
+  String get syncQueueItemCancelled => 'Cancelled';
+
+  @override
+  String get syncPauseAllButton => 'Pause all';
+
+  @override
+  String get syncResumeAllButton => 'Resume all';
+
+  @override
+  String get syncCancelAllButton => 'Cancel all';
+
+  @override
+  String get syncCancelAllConfirmTitle => 'Cancel all?';
+
+  @override
+  String syncCancelAllConfirmMessage(int count) {
+    return '$count files will be removed from the sync queue. Files stay on your device.';
+  }
+
+  @override
+  String get syncCancelAllConfirmButton => 'Yes, cancel all';
+
+  @override
   String get syncSelectedFiles => 'Selected files';
 
   @override
@@ -919,6 +961,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get planNamePro => 'Pro';
 
   @override
+  String get planNameMax => 'Max';
+
+  @override
   String get clearDoneButton => 'Clear';
 
   @override
@@ -1076,6 +1121,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get registerLink => 'Register';
+
+  @override
+  String get createAccountTitle => 'Create Account';
+
+  @override
+  String get createAccountSubtitle => 'Register a new user with phone number';
+
+  @override
+  String get fullNameLabel => 'Full Name';
+
+  @override
+  String get fullNameHint => 'John Doe';
+
+  @override
+  String get nameRequiredError => 'Enter your name';
+
+  @override
+  String get currentPasswordRequiredError => 'Enter your current password';
 
   @override
   String get enterOtpCodeTitle => 'Enter OTP Code';

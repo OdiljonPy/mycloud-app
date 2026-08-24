@@ -576,6 +576,48 @@ class AppLocalizationsUz extends AppLocalizations {
   String get syncResumeButton => 'Sinxronizatsiyani davom ettirish';
 
   @override
+  String get syncBubbleTitle => 'Fayllar uzatilishi';
+
+  @override
+  String syncBubbleSummary(int active, int queued, int done) {
+    return '$active faol · $queued navbatda · $done tayyor';
+  }
+
+  @override
+  String syncQueueFraction(int count, int total) {
+    return '$count / $total fayl';
+  }
+
+  @override
+  String get syncQueueItemPending => 'Navbatda';
+
+  @override
+  String get syncQueueItemPaused => 'Pauza qilindi';
+
+  @override
+  String get syncQueueItemCancelled => 'Bekor qilindi';
+
+  @override
+  String get syncPauseAllButton => 'Barchasini pauza';
+
+  @override
+  String get syncResumeAllButton => 'Barchasini davom ettirish';
+
+  @override
+  String get syncCancelAllButton => 'Barchasini bekor qilish';
+
+  @override
+  String get syncCancelAllConfirmTitle => 'Barchasini bekor qilish?';
+
+  @override
+  String syncCancelAllConfirmMessage(int count) {
+    return '$count ta fayl navbatdan olib tashlanadi. Fayllar qurilmada saqlanib qoladi.';
+  }
+
+  @override
+  String get syncCancelAllConfirmButton => 'Ha, bekor qilish';
+
+  @override
   String get syncSelectedFiles => 'Tanlangan fayllar';
 
   @override
@@ -919,6 +961,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get planNamePro => 'Pro';
 
   @override
+  String get planNameMax => 'Maks';
+
+  @override
   String get clearDoneButton => 'Tozalash';
 
   @override
@@ -1076,6 +1121,24 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get registerLink => 'Ro\'yxatdan o\'tish';
+
+  @override
+  String get createAccountTitle => 'Hisob yaratish';
+
+  @override
+  String get createAccountSubtitle => 'Telefon raqami orqali ro\'yxatdan o\'ting';
+
+  @override
+  String get fullNameLabel => 'To\'liq ism';
+
+  @override
+  String get fullNameHint => 'Aziz Aliyev';
+
+  @override
+  String get nameRequiredError => 'Ismingizni kiriting';
+
+  @override
+  String get currentPasswordRequiredError => 'Joriy parolni kiriting';
 
   @override
   String get enterOtpCodeTitle => 'Tasdiqlash kodini kiriting';
