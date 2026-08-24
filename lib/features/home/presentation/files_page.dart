@@ -13,6 +13,7 @@ import '../data/download_repository.dart';
 import '../data/models/folder_model.dart';
 import '../data/models/file_model.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/services/thumbnail_cache_manager.dart';
 import '../../../core/utils/error_localizer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/storage/secure_storage.dart';
@@ -29,6 +30,7 @@ import '../../profile/data/profile_repository.dart';
 import '../../../shared/widgets/shimmer_placeholders.dart';
 import '../../../shared/widgets/staggered_list_item.dart';
 import '../../../shared/widgets/media_thumbnail.dart';
+import '../../../shared/widgets/media_grid_card.dart';
 import '../../../core/utils/media_type_helper.dart';
 import '../../../core/utils/page_transitions.dart';
 import '../../../core/utils/safe_action_mixin.dart';
@@ -488,11 +490,37 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
     for (final f in _files.take(8)) {
       final thumb = f.thumbnailPath;
       if (thumb == null || thumb.isEmpty) continue;
-      precacheImage(CachedNetworkImageProvider(thumb), context);
+      precacheImage(
+        CachedNetworkImageProvider(
+          thumb,
+          cacheManager: ThumbnailCacheManager.instance,
+        ),
+        context,
+      );
     }
   }
 
   void reloadContent() => _loadContent();
+
+  // Same reset performed by tapping "Home" in the breadcrumb (see
+  // _buildBreadcrumb) — exposed here so the bottom-nav "Files" tab can pop
+  // back to root when tapped while already deep inside nested folders.
+  void resetToRoot() {
+    final needsReload = _showFavourites || _breadcrumb.isNotEmpty;
+    setState(() {
+      if (_showFavourites) {
+        _exitFavourites(restore: false);
+      } else {
+        _breadcrumb.clear();
+        _folderPage = 0;
+        _activeFilter = _FilterType.all;
+      }
+    });
+    if (needsReload) {
+      widget.onFolderChanged?.call(null);
+      _loadContent();
+    }
+  }
 
   bool handleBackNavigation() {
     if (_showFavourites) {
@@ -901,7 +929,7 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => _InfoBottomSheet(
+      builder: (ctx) => InfoBottomSheet(
         id: id,
         type: type,
         name: name,
@@ -3388,6 +3416,23 @@ class _FileGridCard extends StatelessWidget {
     final hasPreview = thumb != null && thumb.isNotEmpty;
     final isMedia = MediaTypeHelper.isImage(mime) || MediaTypeHelper.isVideo(mime);
 
+    if (isMedia && hasPreview) {
+      return MediaGridCard(
+        mimeType: file.mimeType,
+        thumbnailPath: file.thumbnailPath,
+        cacheKey: file.id,
+        heroTag: 'file_hero_${file.id}',
+        isFavourite: file.isFavourite,
+        isSelected: isSelected,
+        isSelectionMode: isSelectionMode,
+        playBadgeColor: Colors.black.withValues(alpha: 0.5),
+        onTap: onTap,
+        onSelectTap: onSelectTap,
+        onFavouriteTap: onFavouriteTap,
+        onMenuTap: onMenuTap,
+      );
+    }
+
     return RepaintBoundary(child: GestureDetector(
       onTap: isSelectionMode ? onSelectTap : onTap,
       onLongPress: onSelectTap,
@@ -3524,7 +3569,7 @@ class _FileGridCard extends StatelessWidget {
 }
 
 // ── Info Bottom Sheet ─────────────────────────────────────────────────────────
-class _InfoBottomSheet extends StatefulWidget {
+class InfoBottomSheet extends StatefulWidget {
   final String id;
   final String type;
   final String name;
@@ -3535,7 +3580,8 @@ class _InfoBottomSheet extends StatefulWidget {
   final Future<Map<String, dynamic>> Function() fetchInfo;
   final String Function(dynamic) fmt;
 
-  const _InfoBottomSheet({
+  const InfoBottomSheet({
+    super.key,
     required this.id,
     required this.type,
     required this.name,
@@ -3548,10 +3594,10 @@ class _InfoBottomSheet extends StatefulWidget {
   });
 
   @override
-  State<_InfoBottomSheet> createState() => _InfoBottomSheetState();
+  State<InfoBottomSheet> createState() => _InfoBottomSheetState();
 }
 
-class _InfoBottomSheetState extends State<_InfoBottomSheet> {
+class _InfoBottomSheetState extends State<InfoBottomSheet> {
   Map<String, dynamic>? _info;
   bool _isLoading = true;
   String? _error;
