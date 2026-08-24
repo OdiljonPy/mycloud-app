@@ -2,6 +2,7 @@ import 'package:cloud_app/features/sync/sync_providers.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 import 'home_page.dart';
 import 'files_page.dart';
@@ -11,6 +12,10 @@ import '../../auth/data/auth_repository.dart';
 import '../../auth/presentation/login_page.dart';
 import '../../profile/presentation/profile_page.dart';
 
+/// Real rendered height of MainPage's bottom nav bar, measured after layout.
+/// Default is a fallback estimate used before the first measurement lands.
+final bottomNavBarHeightProvider = StateProvider<double>((ref) => 66.0);
+
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
 
@@ -18,12 +23,48 @@ class MainPage extends StatefulWidget {
   State<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage> {
+class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
   int _currentIndex = 0;
   DateTime? _lastBackPress;
 
   final _homeKey = GlobalKey<HomePageState>();
   final _filesKey = GlobalKey<FilesPageState>();
+  final _bottomNavKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measureBottomNavHeight());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measureBottomNavHeight());
+  }
+
+  @override
+  void didChangeTextScaleFactor() {
+    super.didChangeTextScaleFactor();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measureBottomNavHeight());
+  }
+
+  void _measureBottomNavHeight() {
+    if (!mounted) return;
+    final renderBox =
+        _bottomNavKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null || !renderBox.hasSize) return;
+    ProviderScope.containerOf(context, listen: false)
+        .read(bottomNavBarHeightProvider.notifier)
+        .state = renderBox.size.height;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,6 +145,7 @@ class _MainPageState extends State<MainPage> {
     final t = AppLocalizations.of(context)!;
     
     return Container(
+      key: _bottomNavKey,
       decoration: BoxDecoration(
         color: cs.surface,
         boxShadow: [

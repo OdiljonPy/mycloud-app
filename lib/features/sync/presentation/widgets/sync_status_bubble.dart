@@ -3,12 +3,20 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_app/core/services/main_page_visibility_observer.dart';
+import 'package:cloud_app/features/home/presentation/main_page.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 
 import '../../data/sync_task.dart';
 import '../../domain/sync_facade.dart';
 import '../../sync_progress.dart';
 import '../../sync_providers.dart';
+
+// Upload FAB на FilesPage (files_page.dart, _buildFABs()) — стандартный
+// endFloat: 56×56, отступ от края Scaffold'а 16px. Используется, чтобы
+// развёрнутый попап синка не перекрывал его, когда MainPage на вершине стека.
+const double _kFabSize = 56;
+const double _kFabMargin = 16;
 
 const _kSyncBlue = Color(0xFF1A73E8);
 
@@ -77,11 +85,21 @@ class _SyncStatusBubbleState extends ConsumerState<SyncStatusBubble> {
         _hiddenAtSession != null && _hiddenAtSession == repo.sessionId;
     if (hiddenByUser) return const SizedBox.shrink();
 
+    final safeAreaBottom = MediaQuery.paddingOf(context).bottom;
+    final isMainTopmost = ref.watch(isMainPageTopmostProvider);
+    final navBarHeight = ref.watch(bottomNavBarHeightProvider);
+
+    // Пока MainPage на вершине стека — держимся выше её нижнего нав-бара И
+    // выше Upload FAB (тот же bottom-right якорь) в обоих состояниях, иначе
+    // collapsed-таблетка перекрывает FAB; на любой другой странице (её
+    // нав-бар и FAB не видны) — просто отступ от safe area.
+    final bottomInset = isMainTopmost
+        ? safeAreaBottom + navBarHeight + _kFabSize + _kFabMargin + 16
+        : safeAreaBottom + 16;
+
     return Positioned(
       right: 16,
-      // expanded попап анкорится выше, чтобы не перекрывать Upload FAB
-      // (files_page.dart, endFloat, тоже bottom-right ~16px).
-      bottom: _view == _BubbleView.expanded ? 88 : 16,
+      bottom: bottomInset,
       child: _view == _BubbleView.collapsed
           ? _CollapsedPill(
               progress: progress,

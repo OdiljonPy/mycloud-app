@@ -11,6 +11,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:path_provider/path_provider.dart';
 import 'core/config/app_config.dart';
 import 'core/services/language_notifier.dart';
+import 'core/services/main_page_visibility_observer.dart';
 import 'core/services/navigation_service.dart';
 import 'core/services/push_notification_service.dart';
 import 'features/auth/presentation/splash_page.dart';
@@ -117,6 +118,8 @@ void main() async {
   unawaited(_cleanupOrphanedImagePickerCache());
 }
 
+final mainPageVisibilityObserver = MainPageVisibilityObserver();
+
 bool _syncOverlayInserted = false;
 
 void _insertSyncStatusOverlay() {
@@ -129,7 +132,12 @@ void _insertSyncStatusOverlay() {
     return;
   }
   try {
-    overlay.insert(OverlayEntry(builder: (_) => const SyncStatusBubble()));
+    overlay.insert(OverlayEntry(
+      builder: (_) => const Material(
+        type: MaterialType.transparency,
+        child: SyncStatusBubble(),
+      ),
+    ));
     _syncOverlayInserted = true;
   } catch (e) {
     debugPrint('[Main] Failed to insert sync status overlay: $e');
@@ -171,6 +179,7 @@ class CloudApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           navigatorKey: NavigationService.navigatorKey,
           scaffoldMessengerKey: NavigationService.scaffoldMessengerKey,
+          navigatorObservers: [mainPageVisibilityObserver],
           title: 'Bulutcha',
           theme: _lightTheme,
           darkTheme: _darkTheme,
