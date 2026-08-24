@@ -116,6 +116,27 @@ class NotificationsRepository {
     }
   }
 
+  Map<String, dynamic> _unwrapNotification(dynamic data) {
+    if (data is Map && data['result'] is Map) {
+      return Map<String, dynamic>.from(data['result'] as Map);
+    }
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  Future<NotificationModel> getNotificationDetail(String id) async {
+    try {
+      final response = await _dio.get('/notifications/$id/');
+      return NotificationModel.fromJson(_unwrapNotification(response.data));
+    } on DioException catch (e) {
+      throw AppException(
+        message: _extractError(e.response?.data) == 'Unknown error'
+            ? 'Не удалось загрузить уведомление'
+            : _extractError(e.response?.data),
+        statusCode: e.response?.statusCode,
+      );
+    }
+  }
+
   /// Поля подтверждены реальной Swagger-схемой (DeviceRegister):
   /// token*, device_id, platform (android|ios|web), language (en|ru|uz).
   Future<void> registerDevice({
