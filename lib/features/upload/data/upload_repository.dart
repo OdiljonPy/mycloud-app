@@ -59,6 +59,23 @@ class UploadRepository {
 
   static const _knownMediaExtensions = {'cr2', 'nef', 'arw', 'ts', 'mts'};
 
+  // Загрузка в UploadPage тоже строго последовательная (см. _startUploadAll
+  // там — await на каждом файле), поэтому активный клиент — ровно один.
+  TusClient? _activeClient;
+  bool _abortIsCancel = false;
+
+  /// Прерывает текущую активную заливку, если она есть — иначе no-op.
+  /// [isCancel]=false — пауза (resumable state в сторе остаётся, следующая
+  /// заливка этого файла продолжится с того же байтового оффсета).
+  /// [isCancel]=true — отмена (resumable state будет вычищен внутри
+  /// [uploadFile] после того как заливка фактически остановится).
+  void requestAbort({required bool isCancel}) {
+    final client = _activeClient;
+    if (client == null) return;
+    _abortIsCancel = isCancel;
+    client.pause();
+  }
+
   static bool isAllowed(String fileName) {
     final mime = lookupMimeType(fileName) ?? '';
     if (mime.isEmpty) {
@@ -106,6 +123,7 @@ class UploadRepository {
       metadata: metadata,
       maxChunkSize: 512 * 1024,
     );
+    _activeClient = client;
 
     bool isCompleted = false;
     StreamSubscription? connectivitySub;
@@ -139,8 +157,24 @@ class UploadRepository {
             onComplete?.call();
           },
         );
-        // Если upload() вернулся без onComplete — значит пауза или ошибка
-        // Просто выходим из while, onComplete уже вызван или нет
+
+        // upload() вернулся без исключения и без onComplete — единственная
+        // причина: requestAbort() вызвал client.pause() извне (пауза или
+        // отмена юзером конкретного файла). Сетевая ошибка сюда не попадает
+        // — она уходит в catch ниже.
+        if (!isCompleted) {
+          final isCancel = _abortIsCancel;
+          _abortIsCancel = false;
+          connectivitySub.cancel();
+          if (isCancel) {
+            // Чистим resumable-URL — следующая заливка этого файла должна
+            // начаться с нуля, а не резюмиться на отменённый upload.
+            await store.remove(client.fingerprint);
+            onStatusChange?.call('cancelled');
+          } else {
+            onStatusChange?.call('pausedByUser');
+          }
+        }
         break;
       } catch (e) {
         // Сеть пропала — ждём connectivity и повторяем
@@ -155,6 +189,7 @@ class UploadRepository {
       }
     }
 
+    _activeClient = null;
     connectivitySub.cancel();
   }
 
