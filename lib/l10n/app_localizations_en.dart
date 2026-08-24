@@ -1168,6 +1168,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get allNotificationsMarkedRead => 'All notifications marked as read';
 
   @override
+  String get notificationAccessDenied => 'You no longer have access to this.';
+
+  @override
+  String get notificationTooManyRequests => 'Too many requests. Please wait a moment.';
+
+  @override
+  String get notificationActionFailed => 'Something went wrong. Please try again.';
+
+  @override
   String get notifTypeSubscriptionExpiryWarning => 'Subscription expiring soon';
 
   @override

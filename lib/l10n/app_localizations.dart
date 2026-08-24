@@ -2287,6 +2287,24 @@ abstract class AppLocalizations {
   /// **'All notifications marked as read'**
   String get allNotificationsMarkedRead;
 
+  /// No description provided for @notificationAccessDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'You no longer have access to this.'**
+  String get notificationAccessDenied;
+
+  /// No description provided for @notificationTooManyRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many requests. Please wait a moment.'**
+  String get notificationTooManyRequests;
+
+  /// No description provided for @notificationActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get notificationActionFailed;
+
   /// No description provided for @notifTypeSubscriptionExpiryWarning.
   ///
   /// In en, this message translates to:

@@ -11,11 +11,19 @@ final _firstPageProvider = FutureProvider.autoDispose<PaginatedNotifications>((r
   return ref.watch(notificationsRepositoryProvider).getNotifications(page: 1);
 });
 
-class NotificationsPage extends ConsumerWidget {
+class NotificationsPage extends ConsumerStatefulWidget {
   const NotificationsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NotificationsPage> createState() => _NotificationsPageState();
+}
+
+class _NotificationsPageState extends ConsumerState<NotificationsPage> {
+  bool _markingAllRead = false;
+  bool _markAllReadCooldown = false;
+
+  @override
+  Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
     final firstPageAsync = ref.watch(_firstPageProvider);
 
@@ -27,6 +35,8 @@ class NotificationsPage extends ConsumerWidget {
             icon: const Icon(Icons.done_all),
             tooltip: t.markAllAsRead,
             onPressed: () async {
+              if (_markingAllRead || _markAllReadCooldown) return;
+              setState(() => _markingAllRead = true);
               try {
                 await ref.read(notificationsRepositoryProvider).markAllRead();
                 ref.invalidate(_firstPageProvider);
@@ -36,7 +46,41 @@ class NotificationsPage extends ConsumerWidget {
                     SnackBar(content: Text(t.allNotificationsMarkedRead)),
                   );
                 }
-              } catch (_) {}
+              } catch (e) {
+                if (e is AppException) {
+                  if (e.statusCode == 403) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(t.notificationAccessDenied)),
+                      );
+                    }
+                  } else if (e.statusCode == 429) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(t.notificationTooManyRequests)),
+                      );
+                    }
+                    setState(() => _markAllReadCooldown = true);
+                    Future.delayed(const Duration(seconds: 10), () {
+                      if (mounted) setState(() => _markAllReadCooldown = false);
+                    });
+                  } else {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(t.notificationActionFailed)),
+                      );
+                    }
+                  }
+                } else {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(t.notificationActionFailed)),
+                    );
+                  }
+                }
+              } finally {
+                if (mounted) setState(() => _markingAllRead = false);
+              }
             },
           ),
         ],
@@ -114,8 +158,14 @@ class _NotificationsListState extends ConsumerState<_NotificationsList> {
         _currentPage++;
         _isLoadingMore = false;
       });
-    } catch (_) {
+    } catch (e) {
       if (mounted) setState(() => _isLoadingMore = false);
+      if (mounted && e is AppException && e.statusCode == 403) {
+        final t = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t.notificationAccessDenied)),
+        );
+      }
     }
   }
 
@@ -127,8 +177,27 @@ class _NotificationsListState extends ConsumerState<_NotificationsList> {
     try {
       await ref.read(notificationsRepositoryProvider).markRead(item.id.toString());
       ref.invalidate(unreadCountProvider);
-    } catch (_) {
-      if (mounted) setState(() => _items[idx] = item);
+    } catch (e) {
+      if (e is AppException && e.statusCode == 409) {
+        // Spec: on conflict, keep one canonical item and refetch rather than
+        // reverting to the stale pre-optimistic-update value.
+        try {
+          final canonical = await ref
+              .read(notificationsRepositoryProvider)
+              .getNotificationDetail(item.id);
+          if (mounted) setState(() => _items[idx] = canonical);
+        } catch (_) {
+          if (mounted) setState(() => _items[idx] = item);
+        }
+      } else {
+        if (mounted) setState(() => _items[idx] = item);
+      }
+      if (mounted && e is AppException && e.statusCode == 403) {
+        final t = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t.notificationAccessDenied)),
+        );
+      }
     }
   }
 
@@ -161,8 +230,24 @@ class _NotificationsListState extends ConsumerState<_NotificationsList> {
           .read(notificationsRepositoryProvider)
           .deleteNotification(item.id.toString());
       if (!item.isRead) ref.invalidate(unreadCountProvider);
-    } catch (_) {
-      // Не критично: список освежится при следующем открытии экрана.
+    } catch (e) {
+      if (e is AppException) {
+        if (e.statusCode == 404) {
+          // Already deleted server-side — optimistic removal was correct,
+          // nothing further to do.
+          return;
+        }
+        if (e.statusCode == 403 && mounted) {
+          final t = AppLocalizations.of(context)!;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(t.notificationAccessDenied)),
+          );
+          return;
+        }
+      }
+      // Other errors: keep existing behavior — item stays removed from the
+      // local list; it will reappear on next screen open if the delete
+      // didn't actually succeed server-side.
     }
   }
 

@@ -1168,6 +1168,15 @@ class AppLocalizationsRu extends AppLocalizations {
   String get allNotificationsMarkedRead => 'Все уведомления отмечены прочитанными';
 
   @override
+  String get notificationAccessDenied => 'У вас больше нет доступа к этому.';
+
+  @override
+  String get notificationTooManyRequests => 'Слишком много запросов. Подождите немного.';
+
+  @override
+  String get notificationActionFailed => 'Что-то пошло не так. Попробуйте ещё раз.';
+
+  @override
   String get notifTypeSubscriptionExpiryWarning => 'Подписка скоро истекает';
 
   @override

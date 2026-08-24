@@ -1168,6 +1168,15 @@ class AppLocalizationsUz extends AppLocalizations {
   String get allNotificationsMarkedRead => 'Barcha bildirishnomalar o\'qilgan deb belgilandi';
 
   @override
+  String get notificationAccessDenied => 'Sizda bunga endi kirish huquqi yo\'q.';
+
+  @override
+  String get notificationTooManyRequests => 'So\'rovlar juda ko\'p. Birozdan keyin urinib ko\'ring.';
+
+  @override
+  String get notificationActionFailed => 'Nimadir xato ketdi. Qaytadan urinib ko\'ring.';
+
+  @override
   String get notifTypeSubscriptionExpiryWarning => 'Obuna muddati tugayapti';
 
   @override
