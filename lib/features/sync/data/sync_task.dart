@@ -1,4 +1,4 @@
-enum SyncStatus { pending, uploading, done, failed }
+enum SyncStatus { pending, uploading, done, failed, paused, cancelled }
 
 class SyncTask {
   final int? id;

@@ -12,8 +12,7 @@ part of 'sync_settings_state.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
-);
+    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
 /// @nodoc
 mixin _$SyncSettingsState {
@@ -33,17 +32,15 @@ mixin _$SyncSettingsState {
 /// @nodoc
 abstract class $SyncSettingsStateCopyWith<$Res> {
   factory $SyncSettingsStateCopyWith(
-    SyncSettingsState value,
-    $Res Function(SyncSettingsState) then,
-  ) = _$SyncSettingsStateCopyWithImpl<$Res, SyncSettingsState>;
+          SyncSettingsState value, $Res Function(SyncSettingsState) then) =
+      _$SyncSettingsStateCopyWithImpl<$Res, SyncSettingsState>;
   @useResult
-  $Res call({
-    bool autoSyncEnabled,
-    bool wifiOnly,
-    bool useSelectedFiles,
-    List<String> selectedFiles,
-    bool isLoading,
-  });
+  $Res call(
+      {bool autoSyncEnabled,
+      bool wifiOnly,
+      bool useSelectedFiles,
+      List<String> selectedFiles,
+      bool isLoading});
 }
 
 /// @nodoc
@@ -67,60 +64,54 @@ class _$SyncSettingsStateCopyWithImpl<$Res, $Val extends SyncSettingsState>
     Object? selectedFiles = null,
     Object? isLoading = null,
   }) {
-    return _then(
-      _value.copyWith(
-            autoSyncEnabled: null == autoSyncEnabled
-                ? _value.autoSyncEnabled
-                : autoSyncEnabled // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            wifiOnly: null == wifiOnly
-                ? _value.wifiOnly
-                : wifiOnly // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            useSelectedFiles: null == useSelectedFiles
-                ? _value.useSelectedFiles
-                : useSelectedFiles // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            selectedFiles: null == selectedFiles
-                ? _value.selectedFiles
-                : selectedFiles // ignore: cast_nullable_to_non_nullable
-                      as List<String>,
-            isLoading: null == isLoading
-                ? _value.isLoading
-                : isLoading // ignore: cast_nullable_to_non_nullable
-                      as bool,
-          )
-          as $Val,
-    );
+    return _then(_value.copyWith(
+      autoSyncEnabled: null == autoSyncEnabled
+          ? _value.autoSyncEnabled
+          : autoSyncEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      wifiOnly: null == wifiOnly
+          ? _value.wifiOnly
+          : wifiOnly // ignore: cast_nullable_to_non_nullable
+              as bool,
+      useSelectedFiles: null == useSelectedFiles
+          ? _value.useSelectedFiles
+          : useSelectedFiles // ignore: cast_nullable_to_non_nullable
+              as bool,
+      selectedFiles: null == selectedFiles
+          ? _value.selectedFiles
+          : selectedFiles // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      isLoading: null == isLoading
+          ? _value.isLoading
+          : isLoading // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ) as $Val);
   }
 }
 
 /// @nodoc
 abstract class _$$SyncSettingsStateImplCopyWith<$Res>
     implements $SyncSettingsStateCopyWith<$Res> {
-  factory _$$SyncSettingsStateImplCopyWith(
-    _$SyncSettingsStateImpl value,
-    $Res Function(_$SyncSettingsStateImpl) then,
-  ) = __$$SyncSettingsStateImplCopyWithImpl<$Res>;
+  factory _$$SyncSettingsStateImplCopyWith(_$SyncSettingsStateImpl value,
+          $Res Function(_$SyncSettingsStateImpl) then) =
+      __$$SyncSettingsStateImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({
-    bool autoSyncEnabled,
-    bool wifiOnly,
-    bool useSelectedFiles,
-    List<String> selectedFiles,
-    bool isLoading,
-  });
+  $Res call(
+      {bool autoSyncEnabled,
+      bool wifiOnly,
+      bool useSelectedFiles,
+      List<String> selectedFiles,
+      bool isLoading});
 }
 
 /// @nodoc
 class __$$SyncSettingsStateImplCopyWithImpl<$Res>
     extends _$SyncSettingsStateCopyWithImpl<$Res, _$SyncSettingsStateImpl>
     implements _$$SyncSettingsStateImplCopyWith<$Res> {
-  __$$SyncSettingsStateImplCopyWithImpl(
-    _$SyncSettingsStateImpl _value,
-    $Res Function(_$SyncSettingsStateImpl) _then,
-  ) : super(_value, _then);
+  __$$SyncSettingsStateImplCopyWithImpl(_$SyncSettingsStateImpl _value,
+      $Res Function(_$SyncSettingsStateImpl) _then)
+      : super(_value, _then);
 
   /// Create a copy of SyncSettingsState
   /// with the given fields replaced by the non-null parameter values.
@@ -133,43 +124,41 @@ class __$$SyncSettingsStateImplCopyWithImpl<$Res>
     Object? selectedFiles = null,
     Object? isLoading = null,
   }) {
-    return _then(
-      _$SyncSettingsStateImpl(
-        autoSyncEnabled: null == autoSyncEnabled
-            ? _value.autoSyncEnabled
-            : autoSyncEnabled // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        wifiOnly: null == wifiOnly
-            ? _value.wifiOnly
-            : wifiOnly // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        useSelectedFiles: null == useSelectedFiles
-            ? _value.useSelectedFiles
-            : useSelectedFiles // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        selectedFiles: null == selectedFiles
-            ? _value._selectedFiles
-            : selectedFiles // ignore: cast_nullable_to_non_nullable
-                  as List<String>,
-        isLoading: null == isLoading
-            ? _value.isLoading
-            : isLoading // ignore: cast_nullable_to_non_nullable
-                  as bool,
-      ),
-    );
+    return _then(_$SyncSettingsStateImpl(
+      autoSyncEnabled: null == autoSyncEnabled
+          ? _value.autoSyncEnabled
+          : autoSyncEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      wifiOnly: null == wifiOnly
+          ? _value.wifiOnly
+          : wifiOnly // ignore: cast_nullable_to_non_nullable
+              as bool,
+      useSelectedFiles: null == useSelectedFiles
+          ? _value.useSelectedFiles
+          : useSelectedFiles // ignore: cast_nullable_to_non_nullable
+              as bool,
+      selectedFiles: null == selectedFiles
+          ? _value._selectedFiles
+          : selectedFiles // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      isLoading: null == isLoading
+          ? _value.isLoading
+          : isLoading // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
   }
 }
 
 /// @nodoc
 
 class _$SyncSettingsStateImpl implements _SyncSettingsState {
-  const _$SyncSettingsStateImpl({
-    this.autoSyncEnabled = false,
-    this.wifiOnly = false,
-    this.useSelectedFiles = false,
-    final List<String> selectedFiles = const <String>[],
-    this.isLoading = true,
-  }) : _selectedFiles = selectedFiles;
+  const _$SyncSettingsStateImpl(
+      {this.autoSyncEnabled = false,
+      this.wifiOnly = false,
+      this.useSelectedFiles = false,
+      final List<String> selectedFiles = const <String>[],
+      this.isLoading = true})
+      : _selectedFiles = selectedFiles;
 
   @override
   @JsonKey()
@@ -209,23 +198,20 @@ class _$SyncSettingsStateImpl implements _SyncSettingsState {
                 other.wifiOnly == wifiOnly) &&
             (identical(other.useSelectedFiles, useSelectedFiles) ||
                 other.useSelectedFiles == useSelectedFiles) &&
-            const DeepCollectionEquality().equals(
-              other._selectedFiles,
-              _selectedFiles,
-            ) &&
+            const DeepCollectionEquality()
+                .equals(other._selectedFiles, _selectedFiles) &&
             (identical(other.isLoading, isLoading) ||
                 other.isLoading == isLoading));
   }
 
   @override
   int get hashCode => Object.hash(
-    runtimeType,
-    autoSyncEnabled,
-    wifiOnly,
-    useSelectedFiles,
-    const DeepCollectionEquality().hash(_selectedFiles),
-    isLoading,
-  );
+      runtimeType,
+      autoSyncEnabled,
+      wifiOnly,
+      useSelectedFiles,
+      const DeepCollectionEquality().hash(_selectedFiles),
+      isLoading);
 
   /// Create a copy of SyncSettingsState
   /// with the given fields replaced by the non-null parameter values.
@@ -234,19 +220,16 @@ class _$SyncSettingsStateImpl implements _SyncSettingsState {
   @pragma('vm:prefer-inline')
   _$$SyncSettingsStateImplCopyWith<_$SyncSettingsStateImpl> get copyWith =>
       __$$SyncSettingsStateImplCopyWithImpl<_$SyncSettingsStateImpl>(
-        this,
-        _$identity,
-      );
+          this, _$identity);
 }
 
 abstract class _SyncSettingsState implements SyncSettingsState {
-  const factory _SyncSettingsState({
-    final bool autoSyncEnabled,
-    final bool wifiOnly,
-    final bool useSelectedFiles,
-    final List<String> selectedFiles,
-    final bool isLoading,
-  }) = _$SyncSettingsStateImpl;
+  const factory _SyncSettingsState(
+      {final bool autoSyncEnabled,
+      final bool wifiOnly,
+      final bool useSelectedFiles,
+      final List<String> selectedFiles,
+      final bool isLoading}) = _$SyncSettingsStateImpl;
 
   @override
   bool get autoSyncEnabled;

@@ -243,6 +243,22 @@ class SyncQueueDb {
     }
   }
 
+  /// То же самое что markDoneWithSession, но БЕЗ инкремента session_uploaded.
+  /// Нужно для recheck уже стоящих в очереди pending-файлов (см.
+  /// UploadSyncCoordinator) — такие файлы юзер не грузил через сам синк-путь,
+  /// инкремент исказил бы счётчик "загружено в этой сессии".
+  Future<void> markDoneWithoutSessionIncrement(int id, String marker) async {
+    try {
+      await _database.update('sync_queue', {
+        'status': SyncStatus.done.name,
+        'server_uuid': marker,
+        'updated_at': DateTime.now().millisecondsSinceEpoch,
+      }, where: 'id = ?', whereArgs: [id]);
+    } catch (e) {
+      debugPrint('[SyncQueueDb] markDoneWithoutSessionIncrement failed: $e');
+    }
+  }
+
   /// Сколько файлов загружено в текущей сессии.
   Future<int> countSessionUploaded() async {
     try {
@@ -378,6 +394,105 @@ class SyncQueueDb {
       );
     } catch (e) {
       debugPrint('[SyncQueueDb] updatePathAndSize failed: $e');
+    }
+  }
+
+  // ─── Ручное управление отдельными задачами (UI: таблетка/попап синка) ────
+
+  /// Список задач для попапа очереди — вся история, без фильтра по статусу
+  /// (юзеру нужно видеть и уже done/failed файлы, не только активные).
+  /// Сортировка: сначала всё НЕ-done (pending/uploading/paused/cancelled/
+  /// failed) в обычном порядке заливки, done — после, тем же порядком —
+  /// иначе давно накопленные done-записи вытеснили бы актуальные paused/
+  /// cancelled файлы с первой страницы (limit).
+  Future<List<SyncTask>> getQueueItems({int limit = 50, int offset = 0}) async {
+    try {
+      final rows = await _database.query(
+        'sync_queue',
+        orderBy:
+            "CASE WHEN status = 'done' THEN 1 ELSE 0 END ASC, COALESCE(asset_created_at, created_at) ASC",
+        limit: limit,
+        offset: offset,
+      );
+      return rows.map((r) => SyncTask.fromMap(r)).toList();
+    } catch (e) {
+      debugPrint('[SyncQueueDb] getQueueItems failed: $e');
+      return [];
+    }
+  }
+
+  /// Ставит на паузу ТОЛЬКО активно грузящуюся задачу — гард по статусу
+  /// защищает от гонки (юзер тапнул паузу, а файл уже успел стать done/failed).
+  Future<void> markPaused(int id) async {
+    try {
+      final count = await _database.update(
+        'sync_queue',
+        {'status': SyncStatus.paused.name, 'updated_at': DateTime.now().millisecondsSinceEpoch},
+        where: 'id = ? AND status = ?',
+        whereArgs: [id, SyncStatus.uploading.name],
+      );
+      if (count == 0) {
+        debugPrint('[SyncQueueDb] markPaused no-op (id=$id not uploading anymore)');
+      }
+    } catch (e) {
+      debugPrint('[SyncQueueDb] markPaused failed: $e');
+    }
+  }
+
+  /// Отменяет задачу из очереди — файл на устройстве не трогается.
+  /// Гард по статусу: нельзя отменить то, что уже done/failed/cancelled.
+  Future<void> markCancelled(int id) async {
+    try {
+      final count = await _database.update(
+        'sync_queue',
+        {'status': SyncStatus.cancelled.name, 'updated_at': DateTime.now().millisecondsSinceEpoch},
+        where: 'id = ? AND status IN (?, ?, ?)',
+        whereArgs: [id, SyncStatus.pending.name, SyncStatus.uploading.name, SyncStatus.paused.name],
+      );
+      if (count == 0) {
+        debugPrint('[SyncQueueDb] markCancelled no-op (id=$id not cancellable anymore)');
+      }
+    } catch (e) {
+      debugPrint('[SyncQueueDb] markCancelled failed: $e');
+    }
+  }
+
+  /// Возвращает paused/cancelled задачу обратно в очередь (status=pending).
+  /// Один метод для обоих случаев: "продолжить" и "восстановить после
+  /// случайной отмены" — семантически это одно и то же действие.
+  Future<void> requeueTask(int id) async {
+    try {
+      final count = await _database.update(
+        'sync_queue',
+        {'status': SyncStatus.pending.name, 'updated_at': DateTime.now().millisecondsSinceEpoch},
+        where: 'id = ? AND status IN (?, ?)',
+        whereArgs: [id, SyncStatus.paused.name, SyncStatus.cancelled.name],
+      );
+      if (count == 0) {
+        debugPrint('[SyncQueueDb] requeueTask no-op (id=$id not paused/cancelled)');
+      }
+    } catch (e) {
+      debugPrint('[SyncQueueDb] requeueTask failed: $e');
+    }
+  }
+
+  /// Массовая отмена: всё, что сейчас в очереди (pending/uploading/paused) —
+  /// в cancelled. done и failed не трогает. Активную сетевую заливку это
+  /// само по себе не останавливает — вызывающий код должен отдельно
+  /// прервать текущий TusClient (см. TusSyncUploader.requestAbort).
+  Future<int> cancelAllPending() async {
+    try {
+      final count = await _database.update(
+        'sync_queue',
+        {'status': SyncStatus.cancelled.name, 'updated_at': DateTime.now().millisecondsSinceEpoch},
+        where: 'status IN (?, ?, ?)',
+        whereArgs: [SyncStatus.pending.name, SyncStatus.uploading.name, SyncStatus.paused.name],
+      );
+      debugPrint('[SyncQueueDb] cancelAllPending: $count задач -> cancelled');
+      return count;
+    } catch (e) {
+      debugPrint('[SyncQueueDb] cancelAllPending failed: $e');
+      return 0;
     }
   }
 }

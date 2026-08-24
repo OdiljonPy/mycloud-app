@@ -12,8 +12,7 @@ part of 'sync_progress.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
-);
+    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
 /// @nodoc
 mixin _$SyncProgress {
@@ -21,6 +20,8 @@ mixin _$SyncProgress {
   int get uploading => throw _privateConstructorUsedError;
   int get done => throw _privateConstructorUsedError;
   int get failed => throw _privateConstructorUsedError;
+  int get paused => throw _privateConstructorUsedError;
+  int get cancelled => throw _privateConstructorUsedError;
   double get currentFileProgress => throw _privateConstructorUsedError;
   String? get currentFileName => throw _privateConstructorUsedError;
   int get totalInBatch => throw _privateConstructorUsedError;
@@ -39,23 +40,23 @@ mixin _$SyncProgress {
 /// @nodoc
 abstract class $SyncProgressCopyWith<$Res> {
   factory $SyncProgressCopyWith(
-    SyncProgress value,
-    $Res Function(SyncProgress) then,
-  ) = _$SyncProgressCopyWithImpl<$Res, SyncProgress>;
+          SyncProgress value, $Res Function(SyncProgress) then) =
+      _$SyncProgressCopyWithImpl<$Res, SyncProgress>;
   @useResult
-  $Res call({
-    int pending,
-    int uploading,
-    int done,
-    int failed,
-    double currentFileProgress,
-    String? currentFileName,
-    int totalInBatch,
-    int scannedCount,
-    bool isScanning,
-    int sessionUploaded,
-    int deviceTotal,
-  });
+  $Res call(
+      {int pending,
+      int uploading,
+      int done,
+      int failed,
+      int paused,
+      int cancelled,
+      double currentFileProgress,
+      String? currentFileName,
+      int totalInBatch,
+      int scannedCount,
+      bool isScanning,
+      int sessionUploaded,
+      int deviceTotal});
 }
 
 /// @nodoc
@@ -77,6 +78,8 @@ class _$SyncProgressCopyWithImpl<$Res, $Val extends SyncProgress>
     Object? uploading = null,
     Object? done = null,
     Object? failed = null,
+    Object? paused = null,
+    Object? cancelled = null,
     Object? currentFileProgress = null,
     Object? currentFileName = freezed,
     Object? totalInBatch = null,
@@ -85,55 +88,60 @@ class _$SyncProgressCopyWithImpl<$Res, $Val extends SyncProgress>
     Object? sessionUploaded = null,
     Object? deviceTotal = null,
   }) {
-    return _then(
-      _value.copyWith(
-            pending: null == pending
-                ? _value.pending
-                : pending // ignore: cast_nullable_to_non_nullable
-                      as int,
-            uploading: null == uploading
-                ? _value.uploading
-                : uploading // ignore: cast_nullable_to_non_nullable
-                      as int,
-            done: null == done
-                ? _value.done
-                : done // ignore: cast_nullable_to_non_nullable
-                      as int,
-            failed: null == failed
-                ? _value.failed
-                : failed // ignore: cast_nullable_to_non_nullable
-                      as int,
-            currentFileProgress: null == currentFileProgress
-                ? _value.currentFileProgress
-                : currentFileProgress // ignore: cast_nullable_to_non_nullable
-                      as double,
-            currentFileName: freezed == currentFileName
-                ? _value.currentFileName
-                : currentFileName // ignore: cast_nullable_to_non_nullable
-                      as String?,
-            totalInBatch: null == totalInBatch
-                ? _value.totalInBatch
-                : totalInBatch // ignore: cast_nullable_to_non_nullable
-                      as int,
-            scannedCount: null == scannedCount
-                ? _value.scannedCount
-                : scannedCount // ignore: cast_nullable_to_non_nullable
-                      as int,
-            isScanning: null == isScanning
-                ? _value.isScanning
-                : isScanning // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            sessionUploaded: null == sessionUploaded
-                ? _value.sessionUploaded
-                : sessionUploaded // ignore: cast_nullable_to_non_nullable
-                      as int,
-            deviceTotal: null == deviceTotal
-                ? _value.deviceTotal
-                : deviceTotal // ignore: cast_nullable_to_non_nullable
-                      as int,
-          )
-          as $Val,
-    );
+    return _then(_value.copyWith(
+      pending: null == pending
+          ? _value.pending
+          : pending // ignore: cast_nullable_to_non_nullable
+              as int,
+      uploading: null == uploading
+          ? _value.uploading
+          : uploading // ignore: cast_nullable_to_non_nullable
+              as int,
+      done: null == done
+          ? _value.done
+          : done // ignore: cast_nullable_to_non_nullable
+              as int,
+      failed: null == failed
+          ? _value.failed
+          : failed // ignore: cast_nullable_to_non_nullable
+              as int,
+      paused: null == paused
+          ? _value.paused
+          : paused // ignore: cast_nullable_to_non_nullable
+              as int,
+      cancelled: null == cancelled
+          ? _value.cancelled
+          : cancelled // ignore: cast_nullable_to_non_nullable
+              as int,
+      currentFileProgress: null == currentFileProgress
+          ? _value.currentFileProgress
+          : currentFileProgress // ignore: cast_nullable_to_non_nullable
+              as double,
+      currentFileName: freezed == currentFileName
+          ? _value.currentFileName
+          : currentFileName // ignore: cast_nullable_to_non_nullable
+              as String?,
+      totalInBatch: null == totalInBatch
+          ? _value.totalInBatch
+          : totalInBatch // ignore: cast_nullable_to_non_nullable
+              as int,
+      scannedCount: null == scannedCount
+          ? _value.scannedCount
+          : scannedCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      isScanning: null == isScanning
+          ? _value.isScanning
+          : isScanning // ignore: cast_nullable_to_non_nullable
+              as bool,
+      sessionUploaded: null == sessionUploaded
+          ? _value.sessionUploaded
+          : sessionUploaded // ignore: cast_nullable_to_non_nullable
+              as int,
+      deviceTotal: null == deviceTotal
+          ? _value.deviceTotal
+          : deviceTotal // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
   }
 }
 
@@ -141,24 +149,24 @@ class _$SyncProgressCopyWithImpl<$Res, $Val extends SyncProgress>
 abstract class _$$SyncProgressImplCopyWith<$Res>
     implements $SyncProgressCopyWith<$Res> {
   factory _$$SyncProgressImplCopyWith(
-    _$SyncProgressImpl value,
-    $Res Function(_$SyncProgressImpl) then,
-  ) = __$$SyncProgressImplCopyWithImpl<$Res>;
+          _$SyncProgressImpl value, $Res Function(_$SyncProgressImpl) then) =
+      __$$SyncProgressImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({
-    int pending,
-    int uploading,
-    int done,
-    int failed,
-    double currentFileProgress,
-    String? currentFileName,
-    int totalInBatch,
-    int scannedCount,
-    bool isScanning,
-    int sessionUploaded,
-    int deviceTotal,
-  });
+  $Res call(
+      {int pending,
+      int uploading,
+      int done,
+      int failed,
+      int paused,
+      int cancelled,
+      double currentFileProgress,
+      String? currentFileName,
+      int totalInBatch,
+      int scannedCount,
+      bool isScanning,
+      int sessionUploaded,
+      int deviceTotal});
 }
 
 /// @nodoc
@@ -166,9 +174,8 @@ class __$$SyncProgressImplCopyWithImpl<$Res>
     extends _$SyncProgressCopyWithImpl<$Res, _$SyncProgressImpl>
     implements _$$SyncProgressImplCopyWith<$Res> {
   __$$SyncProgressImplCopyWithImpl(
-    _$SyncProgressImpl _value,
-    $Res Function(_$SyncProgressImpl) _then,
-  ) : super(_value, _then);
+      _$SyncProgressImpl _value, $Res Function(_$SyncProgressImpl) _then)
+      : super(_value, _then);
 
   /// Create a copy of SyncProgress
   /// with the given fields replaced by the non-null parameter values.
@@ -179,6 +186,8 @@ class __$$SyncProgressImplCopyWithImpl<$Res>
     Object? uploading = null,
     Object? done = null,
     Object? failed = null,
+    Object? paused = null,
+    Object? cancelled = null,
     Object? currentFileProgress = null,
     Object? currentFileName = freezed,
     Object? totalInBatch = null,
@@ -187,73 +196,80 @@ class __$$SyncProgressImplCopyWithImpl<$Res>
     Object? sessionUploaded = null,
     Object? deviceTotal = null,
   }) {
-    return _then(
-      _$SyncProgressImpl(
-        pending: null == pending
-            ? _value.pending
-            : pending // ignore: cast_nullable_to_non_nullable
-                  as int,
-        uploading: null == uploading
-            ? _value.uploading
-            : uploading // ignore: cast_nullable_to_non_nullable
-                  as int,
-        done: null == done
-            ? _value.done
-            : done // ignore: cast_nullable_to_non_nullable
-                  as int,
-        failed: null == failed
-            ? _value.failed
-            : failed // ignore: cast_nullable_to_non_nullable
-                  as int,
-        currentFileProgress: null == currentFileProgress
-            ? _value.currentFileProgress
-            : currentFileProgress // ignore: cast_nullable_to_non_nullable
-                  as double,
-        currentFileName: freezed == currentFileName
-            ? _value.currentFileName
-            : currentFileName // ignore: cast_nullable_to_non_nullable
-                  as String?,
-        totalInBatch: null == totalInBatch
-            ? _value.totalInBatch
-            : totalInBatch // ignore: cast_nullable_to_non_nullable
-                  as int,
-        scannedCount: null == scannedCount
-            ? _value.scannedCount
-            : scannedCount // ignore: cast_nullable_to_non_nullable
-                  as int,
-        isScanning: null == isScanning
-            ? _value.isScanning
-            : isScanning // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        sessionUploaded: null == sessionUploaded
-            ? _value.sessionUploaded
-            : sessionUploaded // ignore: cast_nullable_to_non_nullable
-                  as int,
-        deviceTotal: null == deviceTotal
-            ? _value.deviceTotal
-            : deviceTotal // ignore: cast_nullable_to_non_nullable
-                  as int,
-      ),
-    );
+    return _then(_$SyncProgressImpl(
+      pending: null == pending
+          ? _value.pending
+          : pending // ignore: cast_nullable_to_non_nullable
+              as int,
+      uploading: null == uploading
+          ? _value.uploading
+          : uploading // ignore: cast_nullable_to_non_nullable
+              as int,
+      done: null == done
+          ? _value.done
+          : done // ignore: cast_nullable_to_non_nullable
+              as int,
+      failed: null == failed
+          ? _value.failed
+          : failed // ignore: cast_nullable_to_non_nullable
+              as int,
+      paused: null == paused
+          ? _value.paused
+          : paused // ignore: cast_nullable_to_non_nullable
+              as int,
+      cancelled: null == cancelled
+          ? _value.cancelled
+          : cancelled // ignore: cast_nullable_to_non_nullable
+              as int,
+      currentFileProgress: null == currentFileProgress
+          ? _value.currentFileProgress
+          : currentFileProgress // ignore: cast_nullable_to_non_nullable
+              as double,
+      currentFileName: freezed == currentFileName
+          ? _value.currentFileName
+          : currentFileName // ignore: cast_nullable_to_non_nullable
+              as String?,
+      totalInBatch: null == totalInBatch
+          ? _value.totalInBatch
+          : totalInBatch // ignore: cast_nullable_to_non_nullable
+              as int,
+      scannedCount: null == scannedCount
+          ? _value.scannedCount
+          : scannedCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      isScanning: null == isScanning
+          ? _value.isScanning
+          : isScanning // ignore: cast_nullable_to_non_nullable
+              as bool,
+      sessionUploaded: null == sessionUploaded
+          ? _value.sessionUploaded
+          : sessionUploaded // ignore: cast_nullable_to_non_nullable
+              as int,
+      deviceTotal: null == deviceTotal
+          ? _value.deviceTotal
+          : deviceTotal // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
   }
 }
 
 /// @nodoc
 
 class _$SyncProgressImpl implements _SyncProgress {
-  const _$SyncProgressImpl({
-    this.pending = 0,
-    this.uploading = 0,
-    this.done = 0,
-    this.failed = 0,
-    this.currentFileProgress = 0.0,
-    this.currentFileName,
-    this.totalInBatch = 0,
-    this.scannedCount = 0,
-    this.isScanning = false,
-    this.sessionUploaded = 0,
-    this.deviceTotal = 0,
-  });
+  const _$SyncProgressImpl(
+      {this.pending = 0,
+      this.uploading = 0,
+      this.done = 0,
+      this.failed = 0,
+      this.paused = 0,
+      this.cancelled = 0,
+      this.currentFileProgress = 0.0,
+      this.currentFileName,
+      this.totalInBatch = 0,
+      this.scannedCount = 0,
+      this.isScanning = false,
+      this.sessionUploaded = 0,
+      this.deviceTotal = 0});
 
   @override
   @JsonKey()
@@ -267,6 +283,12 @@ class _$SyncProgressImpl implements _SyncProgress {
   @override
   @JsonKey()
   final int failed;
+  @override
+  @JsonKey()
+  final int paused;
+  @override
+  @JsonKey()
+  final int cancelled;
   @override
   @JsonKey()
   final double currentFileProgress;
@@ -290,7 +312,7 @@ class _$SyncProgressImpl implements _SyncProgress {
 
   @override
   String toString() {
-    return 'SyncProgress(pending: $pending, uploading: $uploading, done: $done, failed: $failed, currentFileProgress: $currentFileProgress, currentFileName: $currentFileName, totalInBatch: $totalInBatch, scannedCount: $scannedCount, isScanning: $isScanning, sessionUploaded: $sessionUploaded, deviceTotal: $deviceTotal)';
+    return 'SyncProgress(pending: $pending, uploading: $uploading, done: $done, failed: $failed, paused: $paused, cancelled: $cancelled, currentFileProgress: $currentFileProgress, currentFileName: $currentFileName, totalInBatch: $totalInBatch, scannedCount: $scannedCount, isScanning: $isScanning, sessionUploaded: $sessionUploaded, deviceTotal: $deviceTotal)';
   }
 
   @override
@@ -303,6 +325,9 @@ class _$SyncProgressImpl implements _SyncProgress {
                 other.uploading == uploading) &&
             (identical(other.done, done) || other.done == done) &&
             (identical(other.failed, failed) || other.failed == failed) &&
+            (identical(other.paused, paused) || other.paused == paused) &&
+            (identical(other.cancelled, cancelled) ||
+                other.cancelled == cancelled) &&
             (identical(other.currentFileProgress, currentFileProgress) ||
                 other.currentFileProgress == currentFileProgress) &&
             (identical(other.currentFileName, currentFileName) ||
@@ -321,19 +346,20 @@ class _$SyncProgressImpl implements _SyncProgress {
 
   @override
   int get hashCode => Object.hash(
-    runtimeType,
-    pending,
-    uploading,
-    done,
-    failed,
-    currentFileProgress,
-    currentFileName,
-    totalInBatch,
-    scannedCount,
-    isScanning,
-    sessionUploaded,
-    deviceTotal,
-  );
+      runtimeType,
+      pending,
+      uploading,
+      done,
+      failed,
+      paused,
+      cancelled,
+      currentFileProgress,
+      currentFileName,
+      totalInBatch,
+      scannedCount,
+      isScanning,
+      sessionUploaded,
+      deviceTotal);
 
   /// Create a copy of SyncProgress
   /// with the given fields replaced by the non-null parameter values.
@@ -345,19 +371,20 @@ class _$SyncProgressImpl implements _SyncProgress {
 }
 
 abstract class _SyncProgress implements SyncProgress {
-  const factory _SyncProgress({
-    final int pending,
-    final int uploading,
-    final int done,
-    final int failed,
-    final double currentFileProgress,
-    final String? currentFileName,
-    final int totalInBatch,
-    final int scannedCount,
-    final bool isScanning,
-    final int sessionUploaded,
-    final int deviceTotal,
-  }) = _$SyncProgressImpl;
+  const factory _SyncProgress(
+      {final int pending,
+      final int uploading,
+      final int done,
+      final int failed,
+      final int paused,
+      final int cancelled,
+      final double currentFileProgress,
+      final String? currentFileName,
+      final int totalInBatch,
+      final int scannedCount,
+      final bool isScanning,
+      final int sessionUploaded,
+      final int deviceTotal}) = _$SyncProgressImpl;
 
   @override
   int get pending;
@@ -367,6 +394,10 @@ abstract class _SyncProgress implements SyncProgress {
   int get done;
   @override
   int get failed;
+  @override
+  int get paused;
+  @override
+  int get cancelled;
   @override
   double get currentFileProgress;
   @override

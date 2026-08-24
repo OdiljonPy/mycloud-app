@@ -9,6 +9,8 @@ class SyncProgress with _$SyncProgress {
     @Default(0) int uploading,
     @Default(0) int done,
     @Default(0) int failed,
+    @Default(0) int paused,
+    @Default(0) int cancelled,
     @Default(0.0) double currentFileProgress,
     String? currentFileName,
     @Default(0) int totalInBatch,

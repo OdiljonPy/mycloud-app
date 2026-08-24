@@ -42,6 +42,9 @@ class AutoSyncService {
   static const String _kSelectedAlbumsKey = 'selected_albums';
 
   final SyncQueueDb _db = SyncQueueDb();
+  // Один инстанс на весь синглтон — заливка последовательная, всегда не
+  // больше одного активного TusClient (см. TusSyncUploader.requestAbort).
+  final TusSyncUploader _uploader = TusSyncUploader();
   final StreamController<SyncProgress> _progressController =
   StreamController<SyncProgress>.broadcast();
 
@@ -51,7 +54,14 @@ class AutoSyncService {
   bool _isScanning = false;
   bool get isScanning => _isScanning;
   int _syncSessionId = 0;
+  // Меняется на startAutoSync/stopSync/onLogout — UI (таблетка синка)
+  // сверяется с этим значением, чтобы понять "начался новый синк/пауза/
+  // рестарт", и автоматически снять свой ручной hidden-флаг ("x").
+  int get sessionId => _syncSessionId;
   bool _settingsChanged = false;
+  // id задачи, которая прямо сейчас грузится — pauseTask разрешён только
+  // для неё (пауза не имеет смысла для ещё не начатого файла).
+  int? _currentUploadingTaskId;
 
   Future<void> initialize() async {
     await _db.init();
@@ -221,6 +231,14 @@ class AutoSyncService {
     _sessionUploadedCount = 0;
     await _db.resetSessionCounter();
 
+    // Подчищаем орфанные temp-файлы photo_manager, оставшиеся от прошлой
+    // сессии, убитой/крашнувшейся до markDoneWithSession по её файлам.
+    try {
+      await PhotoManager.clearFileCache();
+    } catch (e) {
+      debugPrint('[Sync] clearFileCache failed (non-critical): $e');
+    }
+
     try {
       final repo = HomeRepository();
       final syncFolder = await repo.resolveSyncFolder();
@@ -272,7 +290,6 @@ class AutoSyncService {
         baseUrl: AppConfig.instance.baseUrl,
         token: token,
       );
-      final uploader = TusSyncUploader();
 
       while (_isRunning && sessionId == _syncSessionId) {
         await _waitForWifiIfNeeded(sessionId);
@@ -452,12 +469,13 @@ class AutoSyncService {
             totalInBatch: _totalInBatch,
           ));
 
+          _currentUploadingTaskId = task.id;
           try {
             final uploadTask = resolvedPath != task.filePath
                 ? task.copyWith(filePath: resolvedPath)
                 : task;
 
-            final serverUuid = await uploader.upload(
+            final serverUuid = await _uploader.upload(
               uploadTask,
               folderId: taskFolderIds[task.id!] ?? syncFolderUuid,
               onProgress: (progress) {
@@ -467,12 +485,31 @@ class AutoSyncService {
             await _db.markDoneWithSession(task.id!, serverUuid);
             _sessionUploadedCount++;
             debugPrint('[Sync] Uploaded: ${task.fileName} -> $serverUuid (session: $_sessionUploadedCount)');
+            try {
+              if (file.existsSync()) {
+                file.deleteSync();
+              }
+            } catch (e) {
+              debugPrint('[Sync] Failed to delete temp file after upload: $resolvedPath — $e');
+            }
+          } on TusUploadAbortedException catch (e) {
+            // Прервано вручную через pauseTask/cancelTask/cancelAllPending —
+            // это не ошибка, отдельная ветка, чтобы не улетело в retry/failed.
+            if (e.isCancel) {
+              await _db.markCancelled(task.id!);
+              debugPrint('[Sync] Cancelled by user: ${task.fileName}');
+            } else {
+              await _db.markPaused(task.id!);
+              debugPrint('[Sync] Paused by user: ${task.fileName}');
+            }
           } on TusUploadException catch (e) {
             await _db.markFailed(task.id!);
             debugPrint('[Sync][ERROR] Upload failed: ${task.fileName} — $e');
           } catch (e) {
             await _db.markFailed(task.id!);
             debugPrint('[Sync][ERROR] Unexpected: ${task.fileName} — $e');
+          } finally {
+            _currentUploadingTaskId = null;
           }
 
           counts = await _db.getStatusCounts();
@@ -481,6 +518,12 @@ class AutoSyncService {
             uploading: counts['uploading'] ?? 0,
             done: counts['done'] ?? 0,
             failed: counts['failed'] ?? 0,
+            // Единственное место в главном цикле, где статус задачи мог
+            // реально стать paused/cancelled (см. catch TusUploadAbortedException
+            // выше) — остальные emit-точки в файле эти поля не трогают,
+            // copyWith сохраняет последнее известное значение.
+            paused: counts['paused'] ?? 0,
+            cancelled: counts['cancelled'] ?? 0,
             sessionUploaded: _sessionUploadedCount,
             scannedCount: _scannedCount,
             isScanning: _isScanning,
@@ -639,6 +682,85 @@ class AutoSyncService {
     _isRunning = false;
     _syncSessionId++;
     debugPrint('[AutoSync] Sync stopped (session invalidated)');
+  }
+
+  // ─── Управление отдельными задачами (UI: таблетка/попап очереди) ─────────
+
+  Future<void> _emitQueueCounts() async {
+    final counts = await _db.getStatusCounts();
+    _emit(_currentProgress.copyWith(
+      pending: counts['pending'] ?? 0,
+      uploading: counts['uploading'] ?? 0,
+      done: counts['done'] ?? 0,
+      failed: counts['failed'] ?? 0,
+      // Используется cancelTask/resumeTask/cancelAllPending — те самые
+      // действия, которые меняют paused/cancelled. Без этого "Отменить
+      // всех" не обновлял бы эти счётчики немедленно, и SyncStatusBubble
+      // могла бы скрыться раньше, чем следующий per-task emit в главном
+      // цикле их подтянет.
+      paused: counts['paused'] ?? 0,
+      cancelled: counts['cancelled'] ?? 0,
+      sessionUploaded: _sessionUploadedCount,
+      scannedCount: _scannedCount,
+      isScanning: _isScanning,
+      currentFileName: _currentFileName,
+      totalInBatch: _totalInBatch,
+    ));
+  }
+
+  /// Публичная обёртка над _emitQueueCounts — для внешних координаторов
+  /// (см. UploadSyncCoordinator), которым нужно протолкнуть свежие counts
+  /// в progressStream после того как они поменяли статусы задач напрямую
+  /// через SyncQueueDb, в обход основного цикла startSync().
+  Future<void> refreshQueueCounts() => _emitQueueCounts();
+
+  /// Ставит на паузу текущий активно грузящийся файл. No-op для файла,
+  /// который ещё не начал грузиться — пауза применима только к активной
+  /// заливке (UI показывает кнопку паузы только у неё).
+  Future<void> pauseTask(int id) async {
+    if (id != _currentUploadingTaskId) return;
+    _uploader.requestAbort(isCancel: false);
+  }
+
+  /// Отменяет конкретный файл из очереди — сам файл на устройстве не
+  /// трогает. Если это активная заливка — обрывает сеть через
+  /// TusClient.pause(); markCancelled применится в startSync() после
+  /// того как заливка реально остановится (см. TusUploadAbortedException).
+  Future<void> cancelTask(int id) async {
+    if (id == _currentUploadingTaskId) {
+      _uploader.requestAbort(isCancel: true);
+      return;
+    }
+    await _db.markCancelled(id);
+    await _emitQueueCounts();
+  }
+
+  /// Возвращает paused/cancelled файл обратно в очередь. Если движок сейчас
+  /// простаивает (очередь была пуста, цикл вышел) — перезапускает синк,
+  /// иначе файл подхватится уже идущим циклом на следующей итерации.
+  Future<void> resumeTask(int id) async {
+    await _db.requeueTask(id);
+    await _emitQueueCounts();
+    if (!_isRunning) {
+      unawaited(startAutoSync());
+    }
+  }
+
+  /// Массовая отмена всей текущей очереди (pending/uploading/paused).
+  /// done и failed не трогает. Если что-то грузится прямо сейчас —
+  /// дополнительно обрывает сеть, иначе эта запись осталась бы в uploading
+  /// до следующего resetStuckUploading вместо cancelled.
+  Future<void> cancelAllPending() async {
+    if (_currentUploadingTaskId != null) {
+      _uploader.requestAbort(isCancel: true);
+    }
+    await _db.cancelAllPending();
+    await _emitQueueCounts();
+  }
+
+  /// Список задач для попапа очереди синка (pending/uploading/paused/cancelled).
+  Future<List<SyncTask>> getQueueItems({int limit = 50, int offset = 0}) {
+    return _db.getQueueItems(limit: limit, offset: offset);
   }
 
   Future<void> onLogout() async {
