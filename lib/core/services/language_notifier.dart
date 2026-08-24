@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../features/auth/data/auth_repository.dart';
 
 class LanguageNotifier extends ChangeNotifier {
   LanguageNotifier._();
@@ -25,6 +29,7 @@ class LanguageNotifier extends ChangeNotifier {
     SharedPreferences.getInstance().then((p) {
       p.setString(_key, languageCode);
     });
+    unawaited(AuthRepository.registerCurrentDevice());
   }
 
   void toggleLanguage() {
