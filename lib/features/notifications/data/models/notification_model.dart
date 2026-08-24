@@ -1,5 +1,5 @@
 class NotificationModel {
-  final int id;
+  final String id;
   final String type;
   final Map<String, dynamic> body;
   final bool isRead;
@@ -19,9 +19,7 @@ class NotificationModel {
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(
-      id: json['id'] is int
-          ? json['id'] as int
-          : int.tryParse(json['id'].toString()) ?? 0,
+      id: json['id']?.toString() ?? '',
       type: (json['type'] ?? '').toString(),
       body: json['body'] is Map
           ? Map<String, dynamic>.from(json['body'] as Map)
