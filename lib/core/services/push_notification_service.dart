@@ -53,6 +53,12 @@ class PushNotificationService {
   /// строка "type" из data пейлоада FCM). Роутинг вешает Этап 7.
   static void Function(String? payload)? onLocalNotificationTapped;
 
+  /// FCM data содержит notification_id — сигнал вызывающей стороне
+  /// подтянуть канонический объект через REST и освежить бейдж непрочитанных.
+  /// Колбэк, а не прямой импорт репозитория — этот сервис не должен знать
+  /// про NotificationsRepository напрямую (тот же принцип, что у onTokenRefreshed).
+  static void Function(String notificationId)? onNotificationIdReceived;
+
   static Future<void> initialize() async {
     await _initLocalNotifications();
     await _requestPermission();
@@ -105,6 +111,15 @@ class PushNotificationService {
   static Future<void> _showForegroundNotification(RemoteMessage message) async {
     final notification = message.notification;
     if (notification == null) return;
+
+    final notificationId = message.data['notification_id'] as String?;
+    if (notificationId != null && notificationId.isNotEmpty) {
+      try {
+        onNotificationIdReceived?.call(notificationId);
+      } catch (e) {
+        debugPrint('[PushNotification] onNotificationIdReceived failed: $e');
+      }
+    }
 
     try {
       await _localNotifications.show(
