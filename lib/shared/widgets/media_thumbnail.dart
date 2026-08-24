@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../core/services/thumbnail_cache_manager.dart';
 import '../../core/utils/media_type_helper.dart';
 import 'shimmer_placeholders.dart';
 
@@ -69,6 +70,7 @@ class MediaThumbnail extends StatelessWidget {
           CachedNetworkImage(
             imageUrl: thumbnailPath!,
             cacheKey: (cacheKey != null && cacheKey!.isNotEmpty) ? cacheKey : null,
+            cacheManager: ThumbnailCacheManager.instance,
             fit: fit,
             memCacheWidth: memCacheWidth,
             memCacheHeight: memCacheHeight,
