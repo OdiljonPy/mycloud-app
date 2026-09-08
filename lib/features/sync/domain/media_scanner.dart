@@ -33,7 +33,12 @@ class MediaScanner {
   });
 
   /// Быстро считает общее кол-во файлов в галерее без сканирования.
-  Future<int> countTotal() async {
+  ///
+  /// [selectedAlbumIds] — та же семантика, что у поля [MediaScanner.selectedAlbumIds]
+  /// в scanAndEnqueue(): null = фильтр выключен, считаем через "All";
+  /// непустой Set = сумма assetCount по каждому выбранному альбому;
+  /// пустой Set = 0 (как purgeNonSelectedPending на пустом выборе).
+  Future<int> countTotal({Set<String>? selectedAlbumIds}) async {
     try {
       final permission = await PhotoManager.requestPermissionExtend();
       if (!permission.isAuth) return 0;
@@ -42,6 +47,20 @@ class MediaScanner {
         hasAll: true,
       );
       if (albums.isEmpty) return 0;
+
+      if (selectedAlbumIds != null) {
+        if (selectedAlbumIds.isEmpty) return 0;
+        int total = 0;
+        for (final album in albums) {
+          // "All" — виртуальный агрегат, в выборе быть не может; пропускаем,
+          // чтобы не задвоить.
+          if (album.isAll) continue;
+          if (!selectedAlbumIds.contains(album.id)) continue;
+          total += await album.assetCountAsync;
+        }
+        return total;
+      }
+
       // Берём только "All" альбом чтобы не дублировать
       final allAlbum = albums.firstWhere(
         (a) => a.isAll,
@@ -56,7 +75,7 @@ class MediaScanner {
 
   /// Scans device gallery, deduplicates, and enqueues new items.
   /// Returns count of newly added pending items.
-  Future<int> scanAndEnqueue() async {
+  Future<int> scanAndEnqueue({bool Function()? isCancelled}) async {
     try {
       final permission = await PhotoManager.requestPermissionExtend();
       if (!permission.isAuth) {
@@ -94,6 +113,11 @@ class MediaScanner {
         // Load assets in batches of 100 to avoid memory issues
         const batchSize = 100;
         for (int offset = 0; offset < assetCount; offset += batchSize) {
+          if (isCancelled?.call() ?? false) {
+            debugPrint('[MediaScanner] Scan cancelled early: $enqueued items enqueued before cancel');
+            return enqueued;
+          }
+
           final remaining = assetCount - offset;
           final count = remaining < batchSize ? remaining : batchSize;
           final assets = await album.getAssetListRange(

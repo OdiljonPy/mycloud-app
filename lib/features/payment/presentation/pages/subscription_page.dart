@@ -1,8 +1,13 @@
+import 'dart:async';
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../data/models/payment_models.dart';
 import '../../data/repository/payment_repository.dart';
 import '../../../profile/data/profile_repository.dart';
+import '../../../../core/services/payment_deep_link_service.dart';
 import '../bloc/payment_bloc.dart';
 import '../bloc/payment_event.dart';
 import '../bloc/payment_state.dart';
@@ -10,6 +15,7 @@ import 'add_card_page.dart';
 import '../widgets/card_preview_widget.dart';
 import '../../../../core/utils/plan_localizer.dart';
 import '../../../../core/utils/plan_style.dart';
+import '../../../../core/errors/app_exception.dart';
 import '../../../../core/utils/error_localizer.dart';
 import '../../../../core/utils/format_bytes.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -36,14 +42,24 @@ class _SubscriptionView extends StatefulWidget {
   State<_SubscriptionView> createState() => _SubscriptionViewState();
 }
 
-class _SubscriptionViewState extends State<_SubscriptionView> {
+class _SubscriptionViewState extends State<_SubscriptionView>
+    with WidgetsBindingObserver {
   final _profileRepo = ProfileRepository();
+  final _paymentRepo = PaymentRepository();
 
   PaymentDataLoaded? _paymentData;
   List<Plan> _plans = [];
+  bool _plansLoaded = false;
+  bool _loadSettled = false;
   int? _selectedPlanId;
+  String? _selectedPeriod;
   int _usedStorageBytes = 0;
   bool _isLoadingStorage = false;
+
+  // iOS-only payment-link flow: plan being purchased via the browser link,
+  // pending confirmation from a deep link return or a resumed app lifecycle.
+  int? _pendingIOSPlanId;
+  StreamSubscription<Uri>? _paymentReturnSub;
 
   static const _accent = Color(0xFF1A73E8);
   static const _green = Color(0xFF22C55E);
@@ -52,6 +68,46 @@ class _SubscriptionViewState extends State<_SubscriptionView> {
   void initState() {
     super.initState();
     _loadStorage();
+    WidgetsBinding.instance.addObserver(this);
+    _paymentReturnSub =
+        PaymentDeepLinkService.paymentReturnStream.listen((_) {
+      _verifyPendingIOSPurchase();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _paymentReturnSub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _pendingIOSPlanId != null) {
+      _verifyPendingIOSPurchase();
+    }
+  }
+
+  Future<void> _verifyPendingIOSPurchase() async {
+    final pendingPlanId = _pendingIOSPlanId;
+    if (pendingPlanId == null) return;
+    try {
+      final subscription = await _paymentRepo.getCurrentSubscription();
+      if (!mounted) return;
+      if (subscription?.planId == pendingPlanId) {
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.updatePlan), backgroundColor: _green),
+        );
+        context.read<PaymentBloc>().add(const LoadPaymentData());
+        _loadStorage();
+      }
+    } catch (_) {
+      // Best-effort verification only — user can still pull-to-refresh.
+    } finally {
+      if (mounted) setState(() => _pendingIOSPlanId = null);
+    }
   }
 
   Future<void> _loadStorage() async {
@@ -118,9 +174,99 @@ class _SubscriptionViewState extends State<_SubscriptionView> {
 
     if (isDowngrade && _usedStorageBytes > plan.storage) {
       _showDowngradeWarning(plan);
+    } else if (_isFreePlan(plan)) {
+      _confirmAndDispatchFreePlan(plan);
     } else {
-      context.read<PaymentBloc>().add(PurchasePlanEvent(plan.id));
+      _confirmAndDispatchPurchase(plan);
     }
+  }
+
+  void _confirmAndDispatchFreePlan(Plan plan) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(l10n.confirmFreePlanTitle),
+        content: Text(
+          l10n.confirmFreePlanMessage(
+            PlanLocalizer.localize(plan.name, l10n),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _dispatchPurchase(plan.id);
+            },
+            child: Text(l10n.confirmButton),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmAndDispatchPurchase(Plan plan) {
+    final l10n = AppLocalizations.of(context)!;
+    final period = plan.billingPeriod.toLowerCase();
+    final isYearly = period == 'yearly' || period == 'annual';
+    final periodText =
+        isYearly ? l10n.planPeriodYearly : l10n.planPeriodMonthly;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(l10n.confirmPurchaseTitle),
+        content: Text(
+          l10n.confirmPurchaseMessage(
+            PlanLocalizer.localize(plan.name, l10n),
+            _formatPrice(plan.price),
+            periodText,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _dispatchPurchase(plan.id);
+            },
+            child: Text(l10n.confirmButton),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _dispatchPurchase(int planId) {
+    if (Platform.isIOS) {
+      context.read<PaymentBloc>().add(PurchasePlanLinkEvent(planId));
+    } else {
+      context.read<PaymentBloc>().add(PurchasePlanEvent(planId));
+    }
+  }
+
+  Future<void> _handlePlanLinkGenerated(
+      PaymentLinkResponse response, AppLocalizations l10n) async {
+    final link = response.paymentLink;
+    if (link == null || link.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            response.message.isNotEmpty ? response.message : l10n.updatePlan,
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    _pendingIOSPlanId = response.planId;
+    await launchUrl(Uri.parse(link), mode: LaunchMode.externalApplication);
   }
 
   void _showDowngradeWarning(Plan plan) {
@@ -144,7 +290,7 @@ class _SubscriptionViewState extends State<_SubscriptionView> {
           FilledButton(
             onPressed: () {
               Navigator.pop(context);
-              context.read<PaymentBloc>().add(PurchasePlanEvent(plan.id));
+              _dispatchPurchase(plan.id);
             },
             child: Text(l10n.continueAnyway),
           ),
@@ -162,14 +308,27 @@ class _SubscriptionViewState extends State<_SubscriptionView> {
         centerTitle: true,
       ),
       body: BlocConsumer<PaymentBloc, PaymentState>(
+        listenWhen: (previous, current) {
+          if (current is PaymentError) {
+            return ModalRoute.of(context)?.isCurrent ?? true;
+          }
+          return true;
+        },
         listener: (context, state) {
           if (state is PaymentDataLoaded) {
             setState(() {
               _paymentData = state;
               _selectedPlanId ??= state.subscription?.planId;
+              _selectedPeriod ??=
+                  state.subscription?.billingPeriod == 'yearly'
+                      ? 'yearly'
+                      : 'monthly';
             });
           } else if (state is PlansLoaded) {
-            setState(() => _plans = state.plans);
+            setState(() {
+              _plans = state.plans;
+              _plansLoaded = true;
+            });
           } else if (state is PlanPurchased) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -183,6 +342,8 @@ class _SubscriptionViewState extends State<_SubscriptionView> {
             );
             context.read<PaymentBloc>().add(const LoadPaymentData());
             _loadStorage();
+          } else if (state is PlanLinkGenerated) {
+            _handlePlanLinkGenerated(state.response, l10n);
           } else if (state is CardDeleted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(l10n.cardDeleted)),
@@ -194,18 +355,28 @@ class _SubscriptionViewState extends State<_SubscriptionView> {
             );
             context.read<PaymentBloc>().add(const LoadPaymentData());
           } else if (state is PaymentError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(ErrorLocalizer.forException(state.error, l10n)),
-                backgroundColor: Colors.red,
-              ),
-            );
+            setState(() => _loadSettled = true);
+            final error = state.error;
+            if (Platform.isAndroid &&
+                error is AppException &&
+                error.messageKey == 'verified_default_card_not_found') {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(l10n.noCardsLinked)),
+              );
+              _openAddCard();
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(ErrorLocalizer.forException(state.error, l10n)),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
           }
         },
         builder: (context, state) {
-          final stillLoading = _paymentData == null &&
-              _plans.isEmpty &&
-              (state is PaymentLoading || state is PaymentInitial);
+          final stillLoading = !_loadSettled &&
+              (_paymentData == null || !_plansLoaded);
           if (stillLoading) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -213,7 +384,11 @@ class _SubscriptionViewState extends State<_SubscriptionView> {
           final cards = _paymentData?.cards ?? [];
           final subscription = _paymentData?.subscription;
           final busy = state is PaymentLoading;
-          final paidPlans = _plans.where((p) => !_isFreePlan(p)).toList();
+          final showCardSection = !Platform.isIOS;
+          final selectedPeriod = _selectedPeriod ?? 'monthly';
+          final paidPlans = _plans
+              .where((p) => !_isFreePlan(p) && p.billingPeriod == selectedPeriod)
+              .toList();
           final freePlans = _plans.where(_isFreePlan).toList();
 
           return RefreshIndicator(
@@ -227,47 +402,57 @@ class _SubscriptionViewState extends State<_SubscriptionView> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                _PrimaryCardWidget(card: _primaryCard(cards), onTap: _openAddCard)
-                    .animate()
-                    .fadeIn(duration: 350.ms),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      l10n.myCards,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    TextButton.icon(
-                      onPressed: _openAddCard,
-                      icon: const Icon(Icons.add),
-                      label: Text(l10n.addCard),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                if (cards.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    child: Center(
-                      child: Text(l10n.noCardsLinked,
-                          style: const TextStyle(color: Colors.grey)),
-                    ),
-                  )
-                else
-                  ...List.generate(
-                    cards.length,
-                    (i) => _CardTile(card: cards[i], disabled: busy),
+                if (showCardSection) ...[
+                  _PrimaryCardWidget(card: _primaryCard(cards), onTap: _openAddCard)
+                      .animate()
+                      .fadeIn(duration: 350.ms),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        l10n.myCards,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      TextButton.icon(
+                        onPressed: _openAddCard,
+                        icon: const Icon(Icons.add),
+                        label: Text(l10n.addCard),
+                      ),
+                    ],
                   ),
-                const SizedBox(height: 24),
-                const Divider(),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 8),
+                  if (cards.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: Text(l10n.noCardsLinked,
+                            style: const TextStyle(color: Colors.grey)),
+                      ),
+                    )
+                  else
+                    ...List.generate(
+                      cards.length,
+                      (i) => _CardTile(card: cards[i], disabled: busy),
+                    ),
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                ],
                 Text(
                   l10n.plansTitle,
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
-                if (_plans.isEmpty)
+                if (_plans.isNotEmpty) ...[
+                  _PeriodTabBar(
+                    selected: selectedPeriod,
+                    onChanged: (period) =>
+                        setState(() => _selectedPeriod = period),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (_plans.isEmpty || (paidPlans.isEmpty && freePlans.isEmpty))
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 24),
                     child: Center(
@@ -388,6 +573,96 @@ class _PrimaryCardWidget extends StatelessWidget {
             child: Icon(Icons.star, color: Colors.white, size: 18),
           ),
       ],
+    );
+  }
+}
+
+class _PeriodTabBar extends StatelessWidget {
+  final String selected;
+  final ValueChanged<String> onChanged;
+
+  const _PeriodTabBar({required this.selected, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final trackColor = isDark ? const Color(0xFF0D1117) : const Color(0xFFF1F5F9);
+
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: trackColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _PeriodTabItem(
+              label: l10n.billingMonthly,
+              isSelected: selected == 'monthly',
+              onTap: () => onChanged('monthly'),
+            ),
+          ),
+          Expanded(
+            child: _PeriodTabItem(
+              label: l10n.billingYearly,
+              isSelected: selected == 'yearly',
+              onTap: () => onChanged('yearly'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PeriodTabItem extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  static const _accent = Color(0xFF1A73E8);
+
+  const _PeriodTabItem({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final activeColor = isDark ? const Color(0xFF161B22) : Colors.white;
+    final inactiveText = isDark ? const Color(0xFF8B949E) : const Color(0xFF64748B);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? activeColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: isSelected && !isDark
+              ? const [
+                  BoxShadow(
+                      color: Color(0x14000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 1)),
+                ]
+              : null,
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isSelected ? _accent : inactiveText,
+          ),
+        ),
+      ),
     );
   }
 }

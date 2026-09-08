@@ -132,6 +132,12 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
   Widget build(BuildContext context) {
     final progressAsync = ref.watch(syncProgressProvider);
     final progress = progressAsync.valueOrNull ?? const SyncProgress();
+    // База для строк статуса — размер очереди, не deviceTotal
+    // (единый формат "done / total" с sync_status_bubble.dart).
+    final queueTotal = progress.pending +
+        progress.uploading +
+        progress.done +
+        progress.failed;
 
     final repo = ref.watch(syncRepositoryProvider);
     final isSyncing = repo.isRunning || repo.isScanning;
@@ -236,7 +242,7 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
                 children: [
                   _buildStatRow(
                     label: t.syncStatusTitle,
-                    value: '${progress.deviceTotal}/${progress.done}',
+                    value: '${progress.done}/$queueTotal',
                     valueColor: iosBlue,
                     textColor: textColor,
                     separatorColor: separatorColor,
@@ -245,7 +251,7 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
                   ),
                   _buildStatRow(
                     label: t.syncTotal,
-                    value: progress.deviceTotal.toString(),
+                    value: queueTotal.toString(),
                     valueColor: textColor,
                     textColor: textColor,
                     separatorColor: separatorColor,
@@ -296,7 +302,7 @@ class _AutoSyncSettingsPageState extends ConsumerState<AutoSyncSettingsPage> {
     required Color iosRed,
     required AppLocalizations t,
   }) {
-    if (isSyncing) {
+    if (isSyncing && !_paused) {
       // State 2 — running
       return _button(
         label: t.syncStop,

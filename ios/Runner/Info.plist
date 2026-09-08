@@ -6,6 +6,17 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>bulutcha</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>com.bulutcha.app.payment</string>
+		</dict>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>Bulutcha</string>
 	<key>CFBundleExecutable</key>

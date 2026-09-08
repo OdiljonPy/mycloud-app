@@ -7,6 +7,7 @@ import '../bloc/payment_state.dart';
 import '../../data/models/payment_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/utils/error_localizer.dart';
+import '../../../../core/errors/app_exception.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class VerifyCardPage extends StatefulWidget {
@@ -21,10 +22,59 @@ class VerifyCardPage extends StatefulWidget {
 class _VerifyCardPageState extends State<VerifyCardPage> {
   final _smsCtrl = TextEditingController();
 
+  // Server-side error for the SMS code field. Cleared on the next edit.
+  String? _smsCodeServerError;
+
   @override
   void dispose() {
     _smsCtrl.dispose();
     super.dispose();
+  }
+
+  /// Extracts a single user-facing string from a DRF-style errors map entry
+  /// (either `"field": "msg"` or `"field": ["msg", ...]`).
+  static String? _serverFieldError(Map<String, dynamic> errors, String key) {
+    final value = errors[key];
+    if (value == null) return null;
+    if (value is List) {
+      if (value.isEmpty) return null;
+      final first = value.first?.toString().trim();
+      return (first == null || first.isEmpty) ? null : first;
+    }
+    final text = value.toString().trim();
+    return text.isEmpty ? null : text;
+  }
+
+  void _onPaymentError(Object error, AppLocalizations l10n) {
+    if (error is AppException) {
+      final errors = error.errors;
+      switch (error.messageKey) {
+        case 'validation_error':
+          final smsErr =
+              errors == null ? null : _serverFieldError(errors, 'sms_code');
+          if (smsErr != null) {
+            setState(() => _smsCodeServerError = smsErr);
+            return;
+          }
+          break;
+        case 'click_card_verify_error':
+          setState(() => _smsCodeServerError = l10n.invalidVerificationCode);
+          return;
+        case 'card_not_found':
+          _showError(l10n.cardVerificationExpired);
+          return;
+      }
+    }
+    _showError(ErrorLocalizer.forException(error, l10n));
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   void _verify() {
@@ -39,6 +89,8 @@ class _VerifyCardPageState extends State<VerifyCardPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.verifyCardTitle),
@@ -55,14 +107,8 @@ class _VerifyCardPageState extends State<VerifyCardPage> {
             );
             // AddCardPage used pushReplacement — only one pop needed to return to SubscriptionPage
             Navigator.of(context).pop();
-            context.read<PaymentBloc>().add(const LoadPaymentData());
           } else if (state is PaymentError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(ErrorLocalizer.forException(state.error, l10n)),
-                backgroundColor: Colors.red,
-              ),
-            );
+            _onPaymentError(state.error, l10n);
           }
         },
         child: BlocBuilder<PaymentBloc, PaymentState>(
@@ -118,7 +164,20 @@ class _VerifyCardPageState extends State<VerifyCardPage> {
                       border: OutlineInputBorder(),
                     ),
                     autofocus: true,
+                    onChanged: (_) {
+                      if (_smsCodeServerError != null) {
+                        setState(() => _smsCodeServerError = null);
+                      }
+                    },
                   ).animate(delay: 200.ms).fadeIn(duration: 300.ms).slideY(begin: 0.08, curve: Curves.easeOut),
+                  if (_smsCodeServerError != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      _smsCodeServerError!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: errorColor, fontSize: 12),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: isLoading ? null : _verify,

@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 /// Push route that slides the new page up from the bottom of the screen —
 /// used for modal-like flows (subscription, upload, settings).
-Route<T> slideUpRoute<T>(Widget page) {
+Route<T> slideUpRoute<T>(Widget page, {RouteSettings? settings}) {
   return PageRouteBuilder<T>(
+    settings: settings,
     pageBuilder: (context, animation, secondaryAnimation) => page,
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       final tween = Tween(begin: const Offset(0, 1), end: Offset.zero)

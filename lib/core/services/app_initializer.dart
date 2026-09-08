@@ -85,7 +85,14 @@ class AppInitializer {
     () async {
       try {
         final service = AutoSyncService();
+        final context = NavigationService.navigatorKey.currentContext;
+        if (context != null) {
+          service.attachContainer(ProviderScope.containerOf(context, listen: false));
+        }
         await service.initialize();
+        // Чистка старых failed/cancelled + VACUUM — fire-and-forget, старт
+        // не ждёт (тот же паттерн, что _cleanupOrphanedImagePickerCache).
+        unawaited(service.pruneQueueHistory());
         final autoEnabled = await service.isAutoSyncEnabled();
         if (autoEnabled) {
           unawaited(service.startAutoSync());

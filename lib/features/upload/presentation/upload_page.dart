@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/utils/error_localizer.dart';
+import '../../sync/sync_providers.dart';
 import '../../sync/upload_sync_coordinator.dart';
 import '../data/upload_queue_state.dart';
 import '../data/upload_repository.dart';
@@ -25,10 +26,15 @@ class UploadPage extends ConsumerStatefulWidget {
 
 class _UploadPageState extends ConsumerState<UploadPage> {
   final _repo = UploadRepository();
-  final _syncCoordinator = UploadSyncCoordinator();
+  late final UploadSyncCoordinator _syncCoordinator;
   bool _isUploading = false;
   bool _allDone = false;
-  int _currentIndex = 0;
+  // Счётчики ТЕКУЩЕГО батча для текста "Загрузка X из Y". Считаются
+  // только по элементам, которые были waiting на момент старта батча —
+  // done/error/cancelled из прошлых батчей (не очищенные вручную) остаются
+  // в списке, но в X/Y не попадают.
+  int _currentBatchTotal = 0;
+  int _currentBatchProcessed = 0;
   // "Пауза всех" — блокирует старт СЛЕДУЮЩЕГО файла в _startUploadAll,
   // не трогая текущий цикл напрямую (см. проверку в начале for).
   bool _batchPaused = false;
@@ -37,10 +43,26 @@ class _UploadPageState extends ConsumerState<UploadPage> {
   // иначе либо нечего резюмить, либо это уже сделал normal-path.
   bool _batchStarted = false;
   bool _batchSettled = false;
+  // Future текущей заливки файла (см. _startUploadAll) — dispose() дожидается
+  // именно её перед резюмом автосинка, чтобы не столкнуть их за сеть.
+  Future<void>? _inFlightUpload;
+  // Завершается по окончании beforeManualUpload() (успех ИЛИ исключение).
+  // dispose() дожидается его перед afterManualUploadComplete(): иначе, если
+  // юзер уйдёт со страницы, пока before-хук ещё внутри await (getUserId /
+  // stopSync), after-хук отработает ДО того, как координатор выставит
+  // _pausedBySystem — и автосинк останется "на паузе системой" навсегда.
+  Completer<void>? _beforeHookCompleter;
 
   @override
   void initState() {
     super.initState();
+    // Корневой ProviderContainer (main.dart — один ProviderScope на всё
+    // приложение), а не WidgetRef этой страницы: afterManualUploadComplete()
+    // может сработать уже после dispose() (см. dispose() ниже), когда
+    // WidgetRef этой страницы уже недействителен.
+    _syncCoordinator = UploadSyncCoordinator(
+      container: ProviderScope.containerOf(context, listen: false),
+    );
     if (widget.initialFiles != null && widget.initialFiles!.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _loadInitialFiles());
     }
@@ -69,7 +91,25 @@ class _UploadPageState extends ConsumerState<UploadPage> {
     // остаться на паузе навсегда. Резюмим здесь молча, fire-and-forget:
     // dispose() не может быть async, контекста для SnackBar тоже уже нет.
     if (_batchStarted && !_batchSettled) {
-      unawaited(_syncCoordinator.afterManualUploadComplete());
+      final beforeHook = _beforeHookCompleter;
+      final inFlight = _inFlightUpload;
+      unawaited(() async {
+        // Сначала — гарантия, что beforeManualUpload() реально отработал
+        // (см. комментарий у _beforeHookCompleter), иначе after-хук
+        // обгонит выставление _pausedBySystem в координаторе.
+        if (beforeHook != null && !beforeHook.isCompleted) {
+          await beforeHook.future;
+        }
+        if (inFlight != null) {
+          // Файл всё ещё грузится — дожидаемся его фактического завершения
+          // (успех ИЛИ ошибка) прежде чем резюмить автосинк, иначе они на
+          // пару секунд столкнутся за сеть.
+          try {
+            await inFlight;
+          } catch (_) {}
+        }
+        await _syncCoordinator.afterManualUploadComplete();
+      }());
     }
     super.dispose();
   }
@@ -104,12 +144,28 @@ class _UploadPageState extends ConsumerState<UploadPage> {
 
   Future<void> _startUploadAll() async {
     _batchStarted = true;
+    // Синхронно с _batchStarted, до первого await — чтобы dispose() уже видел,
+    // что before-хук "в процессе", и дождался его.
+    final beforeHook = Completer<void>();
+    _beforeHookCompleter = beforeHook;
     // Capture folder ID at batch start — in-progress uploads keep their target
     final targetFolderId = widget.parentId;
     final notifier = ref.read(uploadQueueProvider.notifier);
 
-    final userId = await SecureStorage.getUserId();
+    final String? userId;
+    try {
+      userId = await SecureStorage.getUserId();
+    } catch (_) {
+      // Исключение ДО beforeManualUpload() — снимаем ожидание, иначе dispose()
+      // повис бы на beforeHook.future навсегда. Саму ошибку не глотаем:
+      // она и раньше уходила наружу из _startUploadAll.
+      beforeHook.complete();
+      rethrow;
+    }
     if (userId == null) {
+      // До beforeManualUpload() не дошли — снимаем ожидание, иначе dispose()
+      // повис бы на beforeHook.future навсегда.
+      beforeHook.complete();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -123,13 +179,25 @@ class _UploadPageState extends ConsumerState<UploadPage> {
 
     setState(() {
       _isUploading = true;
-      _currentIndex = 0;
+      _currentBatchProcessed = 0;
+      // cancelRequested-элементы цикл ниже переводит в cancelled, не грузя —
+      // в знаменатель их не берём, иначе X никогда не дойдёт до Y.
+      _currentBatchTotal = ref
+          .read(uploadQueueProvider)
+          .where((f) => f.status == UploadFileStatus.waiting && !f.cancelRequested)
+          .length;
     });
 
     // Автосинк не должен параллельно грузить фон, пока юзер грузит вручную —
     // иначе оба конкурируют за сеть/TusClient. Резюмится в конце этого
     // метода, но только если поставили на паузу мы сами (см. координатор).
-    final syncWasPaused = await _syncCoordinator.beforeManualUpload();
+    final bool syncWasPaused;
+    try {
+      syncWasPaused = await _syncCoordinator.beforeManualUpload();
+    } finally {
+      // Успех ИЛИ исключение — dispose() в любом случае должен отвиснуть.
+      beforeHook.complete();
+    }
     if (syncWasPaused && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -158,44 +226,59 @@ class _UploadPageState extends ConsumerState<UploadPage> {
         }
 
         if (mounted) {
-          setState(() => _currentIndex = i);
+          setState(() {
+            _currentBatchProcessed++;
+            // Элемент стал waiting уже ПОСЛЕ старта батча (restoreFile /
+            // resumeAllUploads во время загрузки) и цикл его подхватил —
+            // не даём X обогнать Y.
+            if (_currentBatchProcessed > _currentBatchTotal) {
+              _currentBatchTotal = _currentBatchProcessed;
+            }
+          });
           notifier.startItem(item.id);
         }
 
+        // Захватываем Future ДО await — если юзер уйдёт со страницы прямо
+        // сейчас, dispose() должен дождаться именно этой заливки перед
+        // резюмом автосинка (см. dispose()), а не резюмить его параллельно.
+        final uploadFuture = _repo.uploadFile(
+          file: item.file,
+          parentId: targetFolderId,
+          userId: userId,
+          onProgress: (progress) {
+            if (!mounted) return;
+            if (item.cancelRequested) return;
+            notifier.updateItemProgress(item.id, progress);
+          },
+          onComplete: () {
+            if (!mounted) return;
+            notifier.completeItem(item.id);
+          },
+          onStatusChange: (status) {
+            if (!mounted) return;
+            if (status == 'paused') {
+              notifier.updateItemStatus(item.id, UploadFileStatus.paused);
+            } else if (status == 'uploading' || status == 'resumed') {
+              notifier.updateItemStatus(item.id, UploadFileStatus.uploading);
+            } else if (status == 'pausedByUser') {
+              notifier.updateItemStatus(item.id, UploadFileStatus.pausedByUser);
+            } else if (status == 'cancelled') {
+              notifier.updateItemStatus(item.id, UploadFileStatus.cancelled);
+            }
+          },
+        );
+        _inFlightUpload = uploadFuture;
         try {
           // ✅ await здесь — цикл стоит пока этот файл не закончится
           // включая все паузы/resume при потере сети
-          await _repo.uploadFile(
-            file: item.file,
-            parentId: targetFolderId,
-            userId: userId,
-            onProgress: (progress) {
-              if (!mounted) return;
-              if (item.cancelRequested) return;
-              notifier.updateItemProgress(item.id, progress);
-            },
-            onComplete: () {
-              if (!mounted) return;
-              notifier.completeItem(item.id);
-            },
-            onStatusChange: (status) {
-              if (!mounted) return;
-              if (status == 'paused') {
-                notifier.updateItemStatus(item.id, UploadFileStatus.paused);
-              } else if (status == 'uploading' || status == 'resumed') {
-                notifier.updateItemStatus(item.id, UploadFileStatus.uploading);
-              } else if (status == 'pausedByUser') {
-                notifier.updateItemStatus(item.id, UploadFileStatus.pausedByUser);
-              } else if (status == 'cancelled') {
-                notifier.updateItemStatus(item.id, UploadFileStatus.cancelled);
-              }
-            },
-          );
+          await uploadFuture;
         } catch (e) {
           if (mounted) {
             final l10n = AppLocalizations.of(context)!;
             notifier.failItem(item.id, ErrorLocalizer.forException(e, l10n));
           }
+        } finally {
+          _inFlightUpload = null;
         }
         // ✅ Только здесь переходим к следующему файлу
       }
@@ -312,26 +395,36 @@ class _UploadPageState extends ConsumerState<UploadPage> {
     if (cancellable.isEmpty) return;
 
     final t = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(t.syncCancelAllConfirmTitle),
-        content: Text(t.syncCancelAllConfirmMessage(cancellable.length)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(t.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(
-              t.syncCancelAllConfirmButton,
-              style: const TextStyle(color: Colors.red),
+    // Скрываем SyncStatusBubble на время диалога: она живёт сырым
+    // OverlayEntry в root Overlay и Navigator.rearrange поднимает её
+    // поверх барьера. Контроллер берём до await — State может отмонтироваться.
+    final dialogFlag = ref.read(isModalDialogOpenProvider.notifier);
+    dialogFlag.state = true;
+    bool? confirmed;
+    try {
+      confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(t.syncCancelAllConfirmTitle),
+          content: Text(t.syncCancelAllConfirmMessage(cancellable.length)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(t.cancel),
             ),
-          ),
-        ],
-      ),
-    );
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(
+                t.syncCancelAllConfirmButton,
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      dialogFlag.state = false;
+    }
     if (confirmed != true || !mounted) return;
 
     final hasActiveUpload =
@@ -467,8 +560,14 @@ class _UploadPageState extends ConsumerState<UploadPage> {
                                 : pausedCount > 0
                                 ? AppLocalizations.of(context)!.noNetworkWaiting
                                 : _isUploading
+                                // 1-индексный: инкремент идёт при старте
+                                // элемента. До старта первого (await
+                                // beforeManualUpload) показываем 1, как раньше.
                                 ? AppLocalizations.of(context)!.uploadingProgress(
-                                    _currentIndex + 1, queue.length)
+                                    _currentBatchProcessed < 1
+                                        ? 1
+                                        : _currentBatchProcessed,
+                                    _currentBatchTotal)
                                 : AppLocalizations.of(context)!.tapToSelectFiles,
                             style: TextStyle(
                               fontSize: 15,

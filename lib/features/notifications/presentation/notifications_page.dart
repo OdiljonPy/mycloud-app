@@ -274,7 +274,9 @@ class _NotificationsListState extends ConsumerState<_NotificationsList> {
         }
 
         final item = _items[index];
-        final label = NotificationTypeMapper.labelFor(t, item.type);
+        // REST уже отдаёт body как разобранный объект (в отличие от FCM
+        // data, где body — JSON-строка) — decode здесь не нужен.
+        final text = NotificationTextBuilder.buildText(t, item.type, item.body);
         final dateStr = item.createdAt != null
             ? DateFormat('dd.MM.yyyy HH:mm').format(item.createdAt!)
             : '';
@@ -296,12 +298,22 @@ class _NotificationsListState extends ConsumerState<_NotificationsList> {
               color: item.isRead ? Colors.grey : Theme.of(context).colorScheme.primary,
             ),
             title: Text(
-              label,
+              text.title,
               style: TextStyle(
                 fontWeight: item.isRead ? FontWeight.normal : FontWeight.bold,
               ),
             ),
-            subtitle: dateStr.isNotEmpty ? Text(dateStr) : null,
+            subtitle: (text.body.isNotEmpty || dateStr.isNotEmpty)
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (text.body.isNotEmpty) Text(text.body),
+                      if (dateStr.isNotEmpty)
+                        Text(dateStr, style: Theme.of(context).textTheme.bodySmall),
+                    ],
+                  )
+                : null,
             trailing: item.isRead
                 ? null
                 : Container(

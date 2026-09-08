@@ -22,6 +22,7 @@ class PaymentBloc extends Bloc<PaymentEvent, PaymentState> {
     on<VerifyCardEvent>(_onVerifyCard);
     on<LoadPlansEvent>(_onLoadPlans);
     on<PurchasePlanEvent>(_onPurchasePlan);
+    on<PurchasePlanLinkEvent>(_onPurchasePlanLink);
   }
 
   Future<void> _onLoadPaymentData(
@@ -121,6 +122,21 @@ class PaymentBloc extends Bloc<PaymentEvent, PaymentState> {
     try {
       final response = await _repository.purchasePlan(event.planId);
       emit(PlanPurchased(response));
+    } catch (e) {
+      emit(PaymentError(e));
+    } finally {
+      _mutationInFlight = false;
+    }
+  }
+
+  Future<void> _onPurchasePlanLink(
+      PurchasePlanLinkEvent event, Emitter<PaymentState> emit) async {
+    if (_mutationInFlight) return;
+    _mutationInFlight = true;
+    emit(const PaymentLoading());
+    try {
+      final response = await _repository.purchasePlanLink(event.planId);
+      emit(PlanLinkGenerated(response));
     } catch (e) {
       emit(PaymentError(e));
     } finally {

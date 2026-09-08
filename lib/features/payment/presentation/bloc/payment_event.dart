@@ -43,3 +43,9 @@ class PurchasePlanEvent extends PaymentEvent {
 
   const PurchasePlanEvent(this.planId);
 }
+
+class PurchasePlanLinkEvent extends PaymentEvent {
+  final int planId;
+
+  const PurchasePlanLinkEvent(this.planId);
+}

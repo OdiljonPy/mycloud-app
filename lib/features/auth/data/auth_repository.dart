@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/errors/app_exception.dart';
@@ -14,10 +15,26 @@ import '../../sync/auto_sync_service.dart';
 class AuthRepository {
   final Dio _dio = DioClient.instance;
 
+  static Future<void>? _registerInFlight;
+
   /// Регистрирует текущий FCM-токен устройства на бэкенде. Вызывается
-  /// после успешного логина и при onTokenRefresh. Не критично — сбой не
-  /// должен ронять экран или логин-флоу.
-  static Future<void> registerCurrentDevice() async {
+  /// после успешного логина, при onTokenRefresh и при смене языка. Не
+  /// критично — сбой не должен ронять экран или логин-флоу.
+  ///
+  /// Single-flight: конкурентные вызовы (логин + refresh токена + смена
+  /// языка могут сработать одновременно) переиспользуют один и тот же
+  /// in-flight запрос вместо дублирования POST /notifications/devices/register/.
+  static Future<void> registerCurrentDevice() {
+    final inFlight = _registerInFlight;
+    if (inFlight != null) return inFlight;
+
+    final future = _registerCurrentDeviceInternal();
+    _registerInFlight = future;
+    future.whenComplete(() => _registerInFlight = null);
+    return future;
+  }
+
+  static Future<void> _registerCurrentDeviceInternal() async {
     try {
       final accessToken = await SecureStorage.getAccessToken();
       if (accessToken == null) return;
@@ -94,18 +111,31 @@ class AuthRepository {
         refreshToken: refreshToken?.toString() ?? '',
       );
       DioClient.resetLogoutFlag();
-      await AutoSyncService().onLogout();
 
       final me = await _dio.get('authentication/users/me/');
       final meData = me.data is Map && (me.data as Map).containsKey('result')
           ? me.data['result']
           : me.data;
+      String? newUserId;
       if (meData is Map) {
         if (meData.containsKey('id')) {
-          await SecureStorage.saveUserId(meData['id'].toString());
+          newUserId = meData['id'].toString();
+          await SecureStorage.saveUserId(newUserId);
         }
         final fullName = meData['full_name']?.toString();
         if (fullName != null) await SecureStorage.saveFullName(fullName);
+      }
+
+      // Форс-релогин того же аккаунта (сессия протухла в dio_client.dart) —
+      // не сбрасываем sync_queue/coldStart/watermark, иначе получаем
+      // повторный cold-start скан и риск дублей при fail-open реаплоаде.
+      final prefs = await SharedPreferences.getInstance();
+      final lastUserIdBeforeForcedLogout =
+          prefs.getString(DioClient.kLastKnownUserIdBeforeForcedLogoutKey);
+      await prefs.remove(DioClient.kLastKnownUserIdBeforeForcedLogoutKey);
+      if (lastUserIdBeforeForcedLogout == null ||
+          lastUserIdBeforeForcedLogout != newUserId) {
+        await AutoSyncService().onLogout();
       }
 
       AutoSyncService().initialize().then((_) async {
@@ -176,18 +206,31 @@ class AuthRepository {
           refreshToken: refreshToken?.toString() ?? '',
         );
         DioClient.resetLogoutFlag();
-        await AutoSyncService().onLogout();
 
         final me = await _dio.get('authentication/users/me/');
         final meData = me.data is Map && (me.data as Map).containsKey('result')
             ? me.data['result']
             : me.data;
+        String? newUserId;
         if (meData is Map) {
           if (meData.containsKey('id')) {
-            await SecureStorage.saveUserId(meData['id'].toString());
+            newUserId = meData['id'].toString();
+            await SecureStorage.saveUserId(newUserId);
           }
           final fullName = meData['full_name']?.toString();
           if (fullName != null) await SecureStorage.saveFullName(fullName);
+        }
+
+        // Форс-релогин того же аккаунта (сессия протухла в dio_client.dart) —
+        // не сбрасываем sync_queue/coldStart/watermark, иначе получаем
+        // повторный cold-start скан и риск дублей при fail-open реаплоаде.
+        final prefs = await SharedPreferences.getInstance();
+        final lastUserIdBeforeForcedLogout =
+            prefs.getString(DioClient.kLastKnownUserIdBeforeForcedLogoutKey);
+        await prefs.remove(DioClient.kLastKnownUserIdBeforeForcedLogoutKey);
+        if (lastUserIdBeforeForcedLogout == null ||
+            lastUserIdBeforeForcedLogout != newUserId) {
+          await AutoSyncService().onLogout();
         }
 
         AutoSyncService().initialize().then((_) async {

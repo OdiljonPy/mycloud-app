@@ -1,11 +1,17 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../features/notifications/notification_type_mapper.dart';
+import '../../l10n/app_localizations.dart';
 
 // Должен быть top-level (вне класса) и с этой аннотацией — иначе Android
 // не найдёт entry point для background isolate, и пуши в background/killed
@@ -14,6 +20,65 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   debugPrint('[PushNotification] Background message: ${message.messageId}, data: ${message.data}');
+
+  // FCM data payload: {key/type, body: <JSON-строка>, notification_id, priority}
+  // — своего title/body тут нет, текст строим сами через NotificationTextBuilder.
+  final type = message.data['type'] as String?;
+  final rawBody = message.data['body'] as String?;
+  if (type == null || rawBody == null) {
+    debugPrint(
+      '[PushNotification] Background message dropped: missing type/body '
+      'in data (type=$type, rawBody=$rawBody)',
+    );
+    return;
+  }
+
+  Map<String, dynamic> decodedBody;
+  try {
+    decodedBody = jsonDecode(rawBody) as Map<String, dynamic>;
+  } catch (e) {
+    debugPrint('[PushNotification] background body decode failed: $e');
+    return;
+  }
+
+  final l10n = await PushNotificationService._loadLocalizations();
+  final text = NotificationTextBuilder.buildText(l10n, type, decodedBody);
+
+  // Background isolate — отдельный от того, что проинициализирован в
+  // PushNotificationService.initialize() (это разные isolate'ы, состояние
+  // между ними не расшарено), поэтому плагин и канал поднимаем заново.
+  final plugin = FlutterLocalNotificationsPlugin();
+  const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const iosInit = DarwinInitializationSettings();
+  await plugin.initialize(
+    const InitializationSettings(android: androidInit, iOS: iosInit),
+  );
+  if (Platform.isAndroid) {
+    await plugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(PushNotificationService._androidChannel);
+  }
+
+  try {
+    await plugin.show(
+      (message.data['notification_id'] as String? ?? type).hashCode,
+      text.title,
+      text.body,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          PushNotificationService._androidChannel.id,
+          PushNotificationService._androidChannel.name,
+          channelDescription: PushNotificationService._androidChannel.description,
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: const DarwinNotificationDetails(),
+      ),
+      payload: type,
+    );
+  } catch (e) {
+    debugPrint('[PushNotification] show background notification failed: $e');
+  }
 }
 
 class PushNotificationService {
@@ -134,9 +199,22 @@ class PushNotificationService {
     }
   }
 
+  /// Локаль без BuildContext — читает язык, сохранённый LanguageNotifier
+  /// (core/services/language_notifier.dart, ключ 'language_code'), напрямую
+  /// из SharedPreferences. Нужен и здесь (foreground), и в background
+  /// isolate, где BuildContext не существует в принципе.
+  static Future<AppLocalizations> _loadLocalizations() async {
+    final prefs = await SharedPreferences.getInstance();
+    final languageCode = prefs.getString('language_code') ?? 'en';
+    return AppLocalizations.delegate.load(Locale(languageCode));
+  }
+
   static Future<void> _showForegroundNotification(RemoteMessage message) async {
-    final notification = message.notification;
-    if (notification == null) return;
+    debugPrint(
+      '[PushNotification] Foreground message: ${message.messageId}, '
+      'data: ${message.data}, notification: '
+      '${message.notification?.title}/${message.notification?.body}',
+    );
 
     final notificationId = message.data['notification_id'] as String?;
     if (notificationId != null && notificationId.isNotEmpty) {
@@ -147,11 +225,39 @@ class PushNotificationService {
       }
     }
 
+    // Подтверждённый контракт: у FCM data-пейлоада нет notification-блока
+    // (title/body), только {type, body: <JSON-строка>, ...} — поэтому
+    // notification здесь почти всегда null, и текст строим из data сами.
+    String? title = message.notification?.title;
+    String? body = message.notification?.body;
+
+    final type = message.data['type'] as String?;
+    final rawBody = message.data['body'] as String?;
+    if ((title == null || body == null) && type != null && rawBody != null) {
+      try {
+        final decodedBody = jsonDecode(rawBody) as Map<String, dynamic>;
+        final l10n = await _loadLocalizations();
+        final text = NotificationTextBuilder.buildText(l10n, type, decodedBody);
+        title ??= text.title;
+        body ??= text.body;
+      } catch (e) {
+        debugPrint('[PushNotification] foreground body decode failed: $e');
+      }
+    }
+
+    if (title == null || body == null) {
+      debugPrint(
+        '[PushNotification] Foreground message dropped: no title/body '
+        '(type=$type, rawBody=$rawBody)',
+      );
+      return;
+    }
+
     try {
       await _localNotifications.show(
-        notification.hashCode,
-        notification.title,
-        notification.body,
+        (notificationId ?? type ?? 'notification').hashCode,
+        title,
+        body,
         NotificationDetails(
           android: AndroidNotificationDetails(
             _androidChannel.id,
@@ -162,7 +268,7 @@ class PushNotificationService {
           ),
           iOS: const DarwinNotificationDetails(),
         ),
-        payload: message.data['type'] as String?,
+        payload: type,
       );
     } catch (e) {
       debugPrint('[PushNotification] show foreground notification failed: $e');

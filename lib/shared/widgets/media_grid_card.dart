@@ -98,13 +98,16 @@ class MediaGridCard extends StatelessWidget {
                   right: 6,
                   child: GestureDetector(
                     onTap: onFavouriteTap,
-                    child: _badge(
-                      Icon(
+                    behavior: HitTestBehavior.opaque,
+                    child: SizedBox(
+                      width: 26,
+                      height: 26,
+                      child: Icon(
                         isFavourite
                             ? Icons.star_rounded
                             : Icons.star_border_rounded,
                         color: Colors.white,
-                        size: 16,
+                        size: 20,
                       ),
                     ),
                   ),

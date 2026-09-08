@@ -184,7 +184,8 @@ class HomeRepository {
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final map = _readAlbumFolderMap(prefs);
-    final cachedFolderId = map[albumId];
+    final cachedEntry = map[albumId];
+    final cachedFolderId = cachedEntry?.folderId;
 
     final syncRoot = await resolveSyncFolder();
     final result = await getContent(parentId: syncRoot.id);
@@ -192,14 +193,49 @@ class HomeRepository {
 
     if (cachedFolderId != null) {
       final cachedMatch = folders.where((f) => f.id == cachedFolderId);
-      if (cachedMatch.isNotEmpty) return cachedMatch.first;
+      if (cachedMatch.isNotEmpty) {
+        final cached = cachedMatch.first;
+        final storedName = cachedEntry!.albumName;
+
+        if (storedName == null) {
+          // Старый формат кэша (только folderId) — имя альбома неизвестно.
+          // Мигрируем запись на новый формат без обращения к серверу.
+          await _saveAlbumFolderMapping(
+            prefs, map, albumId, cachedFolderId, albumName,
+          );
+          return cached;
+        }
+
+        if (storedName == albumName) return cached;
+
+        // Альбом переименован на телефоне — переименовываем удалённую папку.
+        // Fail-soft: неудачный rename никогда не блокирует sync — кэш не
+        // трогаем, возвращаем прежнюю папку.
+        debugPrint(
+          '[HomeRepo] Album "$storedName" renamed to "$albumName" on device, '
+          'renaming remote folder $cachedFolderId...',
+        );
+        try {
+          await renameItem(type: 'folder', id: cachedFolderId, name: albumName);
+          await _saveAlbumFolderMapping(
+            prefs, map, albumId, cachedFolderId, albumName,
+          );
+          return cached.copyWith(name: albumName);
+        } catch (e) {
+          debugPrint(
+            '[HomeRepo] Rename remote folder $cachedFolderId to "$albumName" '
+            'failed (keeping old name): $e',
+          );
+          return cached;
+        }
+      }
       // Папка пропала на сервере (удалена/переименована мимо приложения) —
       // забываем маппинг и ищем/создаём заново ниже.
     }
 
     for (final folder in folders) {
       if (folder.name == albumName) {
-        await _saveAlbumFolderMapping(prefs, map, albumId, folder.id);
+        await _saveAlbumFolderMapping(prefs, map, albumId, folder.id, albumName);
         return folder;
       }
     }
@@ -207,7 +243,7 @@ class HomeRepository {
     debugPrint('[HomeRepo] No subfolder for album "$albumName" under Sync, creating...');
     try {
       final created = await createFolder(name: albumName, parentId: syncRoot.id);
-      await _saveAlbumFolderMapping(prefs, map, albumId, created.id);
+      await _saveAlbumFolderMapping(prefs, map, albumId, created.id, albumName);
       return created;
     } catch (e) {
       debugPrint('[HomeRepo] Create subfolder for album "$albumName" failed: $e');
@@ -215,12 +251,28 @@ class HomeRepository {
     }
   }
 
-  Map<String, String> _readAlbumFolderMap(SharedPreferences prefs) {
+  /// Формат записи: albumId → {"folderId": "...", "albumName": "..."}.
+  /// Старый формат (albumId → "folderId" строкой) читается как запись с
+  /// albumName == null и мигрируется при следующем resolve.
+  Map<String, _AlbumFolderEntry> _readAlbumFolderMap(SharedPreferences prefs) {
     final raw = prefs.getString(_kAlbumFolderMapKey);
     if (raw == null) return {};
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
-      return decoded.map((key, value) => MapEntry(key, value.toString()));
+      final map = <String, _AlbumFolderEntry>{};
+      decoded.forEach((key, value) {
+        if (value is String) {
+          map[key] = _AlbumFolderEntry(folderId: value);
+        } else if (value is Map) {
+          final folderId = value['folderId']?.toString();
+          if (folderId == null || folderId.isEmpty) return;
+          map[key] = _AlbumFolderEntry(
+            folderId: folderId,
+            albumName: value['albumName']?.toString(),
+          );
+        }
+      });
+      return map;
     } catch (e) {
       debugPrint('[HomeRepo] Album folder map decode failed: $e');
       return {};
@@ -229,12 +281,16 @@ class HomeRepository {
 
   Future<void> _saveAlbumFolderMapping(
     SharedPreferences prefs,
-    Map<String, String> map,
+    Map<String, _AlbumFolderEntry> map,
     String albumId,
     String folderId,
+    String albumName,
   ) async {
-    map[albumId] = folderId;
-    await prefs.setString(_kAlbumFolderMapKey, jsonEncode(map));
+    map[albumId] = _AlbumFolderEntry(folderId: folderId, albumName: albumName);
+    await prefs.setString(
+      _kAlbumFolderMapKey,
+      jsonEncode(map.map((key, value) => MapEntry(key, value.toJson()))),
+    );
   }
 
   Future<void> renameItem({
@@ -620,4 +676,20 @@ class HomeRepository {
       );
     }
   }
+}
+
+/// Запись кэша albumId → удалённая папка (см. [HomeRepository._readAlbumFolderMap]).
+class _AlbumFolderEntry {
+  final String folderId;
+
+  /// Имя альбома на момент создания/последнего использования папки.
+  /// null — запись из старого формата кэша (имя неизвестно).
+  final String? albumName;
+
+  const _AlbumFolderEntry({required this.folderId, this.albumName});
+
+  Map<String, dynamic> toJson() => {
+        'folderId': folderId,
+        if (albumName != null) 'albumName': albumName,
+      };
 }

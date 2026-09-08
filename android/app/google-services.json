@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "169688711238",
-    "project_id": "bulutcha",
-    "storage_bucket": "bulutcha.firebasestorage.app"
+    "project_number": "853904703908",
+    "project_id": "mycloud-test-d5d74",
+    "storage_bucket": "mycloud-test-d5d74.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:169688711238:android:1bf8fbc3360c5cce13ca47",
+        "mobilesdk_app_id": "1:853904703908:android:a05ca07b43473806eec131",
         "android_client_info": {
           "package_name": "com.bulutcha.app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDveYaS4ju_jG72_XCaWTQpbZG2wX75z3o"
+          "current_key": "AIzaSyAviMQOA9lQQCt2UstUyd5Tb4pn7S0hefo"
         }
       ],
       "services": {

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../storage/secure_storage.dart';
 import '../services/navigation_service.dart';
@@ -13,6 +14,13 @@ class DioClient {
 
   // Предотвращает параллельные редиректы на login при нескольких 401 одновременно.
   static bool _isLoggingOut = false;
+
+  // Ключ маркера "тот же юзер, форс-релогин" — пишется в _forceLogout()
+  // перед clearTokens(), читается в AuthRepository.login()/verifyOtp(),
+  // чтобы не гонять AutoSyncService().onLogout() при релогине того же
+  // аккаунта после истечения сессии.
+  static const kLastKnownUserIdBeforeForcedLogoutKey =
+      'last_known_user_id_before_forced_logout';
 
   static Dio get instance {
     _dio ??= _createDio();
@@ -186,6 +194,15 @@ class _AuthInterceptor extends Interceptor {
     if (silent) return;
     if (DioClient._isLoggingOut) return;
     DioClient._isLoggingOut = true;
+
+    final lastUserId = await SecureStorage.getUserId();
+    if (lastUserId != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        DioClient.kLastKnownUserIdBeforeForcedLogoutKey,
+        lastUserId,
+      );
+    }
 
     await SecureStorage.clearTokens();
     DioClient.reset();

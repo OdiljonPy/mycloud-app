@@ -250,6 +250,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shareRequestsSubtitle => 'Manage links and access';
 
   @override
+  String get privacyPolicy => 'Privacy Policy';
+
+  @override
   String get shareRequestDetails => 'Share request details';
 
   @override
@@ -584,8 +587,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get syncPausedDuringUpload => 'Sync paused during upload — will resume automatically';
+
+  @override
   String syncQueueFraction(int count, int total) {
     return '$count / $total files';
+  }
+
+  @override
+  String syncFailedCount(int count) {
+    return '$count failed';
   }
 
   @override
@@ -616,6 +627,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncCancelAllConfirmButton => 'Yes, cancel all';
+
+  @override
+  String syncQueueShowingPartial(int shown, int total) {
+    return 'Showing $shown of $total';
+  }
 
   @override
   String get syncSelectedFiles => 'Selected files';
@@ -847,6 +863,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cardAddedSuccess => 'Card added successfully';
 
   @override
+  String get cardAlreadyExists => 'This card is already added.';
+
+  @override
+  String get cardTokenError => 'Failed to add card. Please try again.';
+
+  @override
+  String get paymentGatewayUnavailable => 'Payment service is temporarily unavailable. Please try again later.';
+
+  @override
+  String get cardVerificationExpired => 'Card verification session expired. Please add the card again.';
+
+  @override
+  String get invalidVerificationCode => 'Invalid verification code.';
+
+  @override
   String get confirmButton => 'Confirm';
 
   @override
@@ -861,6 +892,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String confirmPurchaseMessage(String name, String price, String period) {
     return 'Subscribe to «$name» for $price UZS / $period?';
+  }
+
+  @override
+  String get confirmFreePlanTitle => 'Return to free plan?';
+
+  @override
+  String confirmFreePlanMessage(String name) {
+    return 'You will switch back to the «$name» plan. Continue?';
   }
 
   @override
@@ -1222,5 +1261,96 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifTypeStorageFull => 'Storage full';
 
   @override
+  String get notifTypeStorageDeletionWarning => 'Storage cleanup scheduled';
+
+  @override
   String get notifTypeUnknown => 'New notification';
+
+  @override
+  String notifBodySubscriptionExpiryWarning(String plan, String days) {
+    return 'Your $plan plan expires in $days days';
+  }
+
+  @override
+  String notifBodySubscriptionExpired(String plan) {
+    return 'Your $plan plan has expired';
+  }
+
+  @override
+  String notifBodySubscriptionRenewed(String plan) {
+    return 'Your $plan plan has been renewed';
+  }
+
+  @override
+  String notifBodySubscriptionDowngraded(String plan) {
+    return 'Your plan has been downgraded to $plan';
+  }
+
+  @override
+  String notifBodyPaymentSuccess(String amount, String plan) {
+    return 'Payment of $amount for the $plan plan was successful';
+  }
+
+  @override
+  String notifBodyPaymentFailed(String amount, String plan, String error) {
+    return 'Payment of $amount for the $plan plan failed: $error';
+  }
+
+  @override
+  String notifBodyCardDeclined(String last4, String plan) {
+    return 'Card ending in $last4 was declined for the $plan plan';
+  }
+
+  @override
+  String notifBodyFileSharedSingle(String sharedBy, String name) {
+    return '$sharedBy shared \"$name\" with you';
+  }
+
+  @override
+  String notifBodyFileSharedMultiple(String sharedBy, String count) {
+    return '$sharedBy shared $count items with you';
+  }
+
+  @override
+  String notifBodyFileShareRevokedSingle(String sharedBy, String name) {
+    return '$sharedBy revoked your access to \"$name\"';
+  }
+
+  @override
+  String notifBodyFileShareRevokedMultiple(String sharedBy, String count) {
+    return '$sharedBy revoked your access to $count items';
+  }
+
+  @override
+  String notifBodyShareRequestReceived(String requester, String itemName) {
+    return '$requester requested access to \"$itemName\"';
+  }
+
+  @override
+  String notifBodyShareRequestApproved(String itemName) {
+    return 'Your request for \"$itemName\" was approved';
+  }
+
+  @override
+  String notifBodyShareRequestRejected(String itemName) {
+    return 'Your request for \"$itemName\" was rejected';
+  }
+
+  @override
+  String notifBodyStorageWarning(String usedPercent) {
+    return 'You\'ve used $usedPercent% of your storage';
+  }
+
+  @override
+  String notifBodyStorageFull(String usedBytes, String limitBytes) {
+    return 'Your storage is full ($usedBytes of $limitBytes used)';
+  }
+
+  @override
+  String notifBodyStorageDeletionWarning(String deletionDate, String daysLeft) {
+    return 'Files will be deleted on $deletionDate ($daysLeft days left)';
+  }
+
+  @override
+  String get notifBodySystemAnnouncementFallback => 'Check the app for details';
 }

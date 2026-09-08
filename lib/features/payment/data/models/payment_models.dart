@@ -144,3 +144,34 @@ class PurchasePlanResponse {
         endsAt: json['ends_at'] as String?,
       );
 }
+
+class PaymentLinkResponse {
+  final String? paymentLink;
+  final String? merchantTransId;
+  final String? amount;
+  final int planId;
+  final String planName;
+  final int? transactionId;
+  final String message;
+
+  const PaymentLinkResponse({
+    this.paymentLink,
+    this.merchantTransId,
+    this.amount,
+    required this.planId,
+    required this.planName,
+    this.transactionId,
+    required this.message,
+  });
+
+  factory PaymentLinkResponse.fromJson(Map<String, dynamic> json) =>
+      PaymentLinkResponse(
+        paymentLink: json['payment_link'] as String?,
+        merchantTransId: json['merchant_trans_id'] as String?,
+        amount: json['amount'] as String?,
+        planId: json['plan_id'] as int? ?? 0,
+        planName: json['plan_name'] as String? ?? '',
+        transactionId: json['transaction_id'] as int?,
+        message: json['message'] as String? ?? '',
+      );
+}

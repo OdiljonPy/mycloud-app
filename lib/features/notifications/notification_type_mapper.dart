@@ -1,8 +1,13 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/services/navigation_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../payment/presentation/pages/subscription_page.dart';
 import '../payment/presentation/pages/add_card_page.dart';
+import '../payment/presentation/bloc/payment_bloc.dart';
+import '../payment/data/repository/payment_repository.dart';
 import '../share/presentation/share_requests_page.dart';
 import '../home/presentation/shared_page.dart';
 import '../profile/presentation/profile_page.dart';
@@ -22,7 +27,15 @@ class NotificationTypeMapper {
     'subscription_downgraded': (_) => const SubscriptionPage(),
     'payment_success': (_) => const SubscriptionPage(),
     'payment_failed': (_) => const SubscriptionPage(),
-    'card_declined': (_) => const AddCardPage(),
+    // iOS: ввод карты внутри приложения запрещён (App Store 3.1.1) — платёж
+    // идёт только через внешнюю ссылку Click Shop, поэтому открываем
+    // SubscriptionPage. Android — прежнее поведение, AddCardPage.
+    'card_declined': (_) => Platform.isIOS
+        ? const SubscriptionPage()
+        : BlocProvider<PaymentBloc>(
+            create: (_) => PaymentBloc(PaymentRepository()),
+            child: const AddCardPage(),
+          ),
     'file_shared': (_) => const SharedPage(),
     'file_share_revoked': (_) => const SharedPage(),
     'share_request_received': (_) => const ShareRequestsPage(),
@@ -93,5 +106,162 @@ class NotificationTypeMapper {
     }
 
     navigator.push(MaterialPageRoute(builder: builder));
+  }
+}
+
+/// Чистая функция (l10n, type, body) → (title, body) с интерполяцией
+/// реальных полей body. Отдельный класс от NotificationTypeMapper, чтобы не
+/// смешивать ответственность "текст" с ответственностью "роутинг по тапу"
+/// (labelFor/handleTap/_routes) в одном классе.
+///
+/// Не зависит от BuildContext — единственная причина существования этого
+/// класса: должен одинаково работать и в UI (список уведомлений), и в
+/// background isolate FCM, где BuildContext в принципе недоступен.
+class NotificationTextBuilder {
+  NotificationTextBuilder._();
+
+  static String _s(dynamic value) => value?.toString() ?? '';
+
+  static List<dynamic> _list(dynamic value) => value is List ? value : const [];
+
+  static ({String title, String body}) buildText(
+    AppLocalizations l10n,
+    String type,
+    Map<String, dynamic> body,
+  ) {
+    switch (type) {
+      case 'subscription_expiry_warning':
+        return (
+          title: l10n.notifTypeSubscriptionExpiryWarning,
+          body: l10n.notifBodySubscriptionExpiryWarning(
+            _s(body['plan']),
+            _s(body['days']),
+          ),
+        );
+      case 'subscription_expired':
+        return (
+          title: l10n.notifTypeSubscriptionExpired,
+          body: l10n.notifBodySubscriptionExpired(_s(body['plan'])),
+        );
+      case 'subscription_renewed':
+        return (
+          title: l10n.notifTypeSubscriptionRenewed,
+          body: l10n.notifBodySubscriptionRenewed(_s(body['plan'])),
+        );
+      case 'subscription_downgraded':
+        return (
+          title: l10n.notifTypeSubscriptionDowngraded,
+          body: l10n.notifBodySubscriptionDowngraded(_s(body['plan'])),
+        );
+      case 'payment_success':
+        return (
+          title: l10n.notifTypePaymentSuccess,
+          body: l10n.notifBodyPaymentSuccess(_s(body['amount']), _s(body['plan'])),
+        );
+      case 'payment_failed':
+        return (
+          title: l10n.notifTypePaymentFailed,
+          body: l10n.notifBodyPaymentFailed(
+            _s(body['amount']),
+            _s(body['plan']),
+            _s(body['error']),
+          ),
+        );
+      case 'card_declined':
+        return (
+          title: l10n.notifTypeCardDeclined,
+          body: l10n.notifBodyCardDeclined(_s(body['last4']), _s(body['plan'])),
+        );
+      case 'file_shared':
+        return (
+          title: l10n.notifTypeFileShared,
+          body: _fileSharedBody(l10n, body, revoked: false),
+        );
+      case 'file_share_revoked':
+        return (
+          title: l10n.notifTypeFileShareRevoked,
+          body: _fileSharedBody(l10n, body, revoked: true),
+        );
+      case 'share_request_received':
+        return (
+          title: l10n.notifTypeShareRequestReceived,
+          body: l10n.notifBodyShareRequestReceived(
+            _s(body['requester']),
+            _s(body['item_name']),
+          ),
+        );
+      case 'share_request_approved':
+        return (
+          title: l10n.notifTypeShareRequestApproved,
+          body: l10n.notifBodyShareRequestApproved(_s(body['item_name'])),
+        );
+      case 'share_request_rejected':
+        return (
+          title: l10n.notifTypeShareRequestRejected,
+          body: l10n.notifBodyShareRequestRejected(_s(body['item_name'])),
+        );
+      case 'storage_warning':
+        return (
+          title: l10n.notifTypeStorageWarning,
+          body: l10n.notifBodyStorageWarning(_s(body['used_percent'])),
+        );
+      case 'storage_full':
+        return (
+          title: l10n.notifTypeStorageFull,
+          body: l10n.notifBodyStorageFull(
+            _s(body['used_bytes']),
+            _s(body['limit_bytes']),
+          ),
+        );
+      case 'storage_deletion_warning':
+        // Нет в исходных 15 типах _routes/labelFor — своего роута/лейбла не
+        // было, поэтому заголовок берём из нового ключа, а не переиспользуем
+        // чужой label.
+        return (
+          title: l10n.notifTypeStorageDeletionWarning,
+          body: l10n.notifBodyStorageDeletionWarning(
+            _s(body['deletion_date']),
+            _s(body['days_left']),
+          ),
+        );
+      case 'system_announcement':
+        // Единственный тип, где сам бэкенд может прислать готовый
+        // человекочитаемый текст в body — используем его как есть, без
+        // l10n-интерполяции, если он есть.
+        final title = body['title'] as String?;
+        final message = body['message'] as String?;
+        return (
+          title: (title != null && title.isNotEmpty)
+              ? title
+              : l10n.notifTypeSystemAnnouncement,
+          body: (message != null && message.isNotEmpty)
+              ? message
+              : l10n.notifBodySystemAnnouncementFallback,
+        );
+      default:
+        return (title: l10n.notifTypeUnknown, body: '');
+    }
+  }
+
+  /// file_shared/file_share_revoked: names — массив из 1 элемента при ровно
+  /// одном файле/папке, пустой [] при нескольких (контракт бэкенда). Во
+  /// втором случае считаем количество по file_ids+folder_ids.
+  static String _fileSharedBody(
+    AppLocalizations l10n,
+    Map<String, dynamic> body, {
+    required bool revoked,
+  }) {
+    final sharedBy = _s(body['shared_by']);
+    final names = _list(body['names']);
+    if (names.length == 1) {
+      final name = _s(names.first);
+      return revoked
+          ? l10n.notifBodyFileShareRevokedSingle(sharedBy, name)
+          : l10n.notifBodyFileSharedSingle(sharedBy, name);
+    }
+    final count = _list(body['file_ids']).length + _list(body['folder_ids']).length;
+    return revoked
+        ? l10n.notifBodyFileShareRevokedMultiple(sharedBy, count.toString())
+        : l10n.notifBodyFileSharedMultiple(sharedBy, count.toString());
   }
 }

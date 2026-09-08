@@ -93,6 +93,7 @@
   "folderCount": "Papkalar",
   "shareRequests": "Ulashish so'rovlari",
   "shareRequestsSubtitle": "Havolalar va ruxsatlarni boshqarish",
+  "privacyPolicy": "Maxfiylik siyosati",
   "shareRequestDetails": "Ulashish so'rovi tafsilotlari",
   "request": "So'rov",
   "linkNameLabel": "HAVOLA NOMI",
@@ -257,11 +258,18 @@
       "done": { "type": "int" }
     }
   },
+  "syncPausedDuringUpload": "Yuklash paytida sinxronizatsiya pauzada — avtomatik davom etadi",
   "syncQueueFraction": "{count} / {total} fayl",
   "@syncQueueFraction": {
     "placeholders": {
       "count": { "type": "int" },
       "total": { "type": "int" }
+    }
+  },
+  "syncFailedCount": "{count} xato",
+  "@syncFailedCount": {
+    "placeholders": {
+      "count": { "type": "int" }
     }
   },
   "syncQueueItemPending": "Navbatda",
@@ -278,6 +286,13 @@
     }
   },
   "syncCancelAllConfirmButton": "Ha, bekor qilish",
+  "syncQueueShowingPartial": "{total} tadan {shown} tasi ko'rsatilmoqda",
+  "@syncQueueShowingPartial": {
+    "placeholders": {
+      "shown": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
   "fileTypes": "Fayl turlari",
   "viewAll": "Barchasi",
   "recentFiles": "Galereya fayllari",
@@ -371,6 +386,11 @@
     "placeholders": { "number": { "type": "String" } }
   },
   "cardAddedSuccess": "Karta muvaffaqiyatli qo'shildi",
+  "cardAlreadyExists": "Bu karta allaqachon qo'shilgan.",
+  "cardTokenError": "Kartani qo'shib bo'lmadi. Qaytadan urinib ko'ring.",
+  "paymentGatewayUnavailable": "To'lov xizmati vaqtincha ishlamayapti. Keyinroq urinib ko'ring.",
+  "cardVerificationExpired": "Kartani tasdiqlash sessiyasi tugadi. Kartani qaytadan qo'shing.",
+  "invalidVerificationCode": "Tasdiqlash kodi noto'g'ri.",
   "confirmButton": "Tasdiqlash",
   "plansTitle": "Tariflar",
   "noPlans": "Tariflar mavjud emas",
@@ -381,6 +401,13 @@
       "name": { "type": "String" },
       "price": { "type": "String" },
       "period": { "type": "String" }
+    }
+  },
+  "confirmFreePlanTitle": "Bepul tarifga qaytilsinmi?",
+  "confirmFreePlanMessage": "Siz «{name}» tarifiga o'tasiz. Davom etasizmi?",
+  "@confirmFreePlanMessage": {
+    "placeholders": {
+      "name": { "type": "String" }
     }
   },
   "updatePlan": "Ulash",
@@ -531,5 +558,121 @@
   "notifTypeSystemAnnouncement": "Tizim xabari",
   "notifTypeStorageWarning": "Xotira deyarli to'lgan",
   "notifTypeStorageFull": "Xotira to'ldi",
-  "notifTypeUnknown": "Yangi bildirishnoma"
+  "notifTypeStorageDeletionWarning": "Xotirani tozalash rejalashtirildi",
+  "notifTypeUnknown": "Yangi bildirishnoma",
+  "notifBodySubscriptionExpiryWarning": "«{plan}» tarifingiz {days} kundan so'ng tugaydi",
+  "@notifBodySubscriptionExpiryWarning": {
+    "placeholders": {
+      "plan": { "type": "String" },
+      "days": { "type": "String" }
+    }
+  },
+  "notifBodySubscriptionExpired": "«{plan}» tarifingiz muddati tugadi",
+  "@notifBodySubscriptionExpired": {
+    "placeholders": {
+      "plan": { "type": "String" }
+    }
+  },
+  "notifBodySubscriptionRenewed": "«{plan}» tarifingiz yangilandi",
+  "@notifBodySubscriptionRenewed": {
+    "placeholders": {
+      "plan": { "type": "String" }
+    }
+  },
+  "notifBodySubscriptionDowngraded": "Tarifingiz «{plan}»ga pasaytirildi",
+  "@notifBodySubscriptionDowngraded": {
+    "placeholders": {
+      "plan": { "type": "String" }
+    }
+  },
+  "notifBodyPaymentSuccess": "«{plan}» tarifi uchun {amount} to'lov muvaffaqiyatli o'tdi",
+  "@notifBodyPaymentSuccess": {
+    "placeholders": {
+      "amount": { "type": "String" },
+      "plan": { "type": "String" }
+    }
+  },
+  "notifBodyPaymentFailed": "«{plan}» tarifi uchun {amount} to'lov amalga oshmadi: {error}",
+  "@notifBodyPaymentFailed": {
+    "placeholders": {
+      "amount": { "type": "String" },
+      "plan": { "type": "String" },
+      "error": { "type": "String" }
+    }
+  },
+  "notifBodyCardDeclined": "{last4} bilan tugaydigan karta «{plan}» tarifi uchun rad etildi",
+  "@notifBodyCardDeclined": {
+    "placeholders": {
+      "last4": { "type": "String" },
+      "plan": { "type": "String" }
+    }
+  },
+  "notifBodyFileSharedSingle": "{sharedBy}: «{name}» fayliga kirish ochildi",
+  "@notifBodyFileSharedSingle": {
+    "placeholders": {
+      "sharedBy": { "type": "String" },
+      "name": { "type": "String" }
+    }
+  },
+  "notifBodyFileSharedMultiple": "{sharedBy}: {count} ta faylga kirish ochildi",
+  "@notifBodyFileSharedMultiple": {
+    "placeholders": {
+      "sharedBy": { "type": "String" },
+      "count": { "type": "String" }
+    }
+  },
+  "notifBodyFileShareRevokedSingle": "{sharedBy}: «{name}» fayliga kirish bekor qilindi",
+  "@notifBodyFileShareRevokedSingle": {
+    "placeholders": {
+      "sharedBy": { "type": "String" },
+      "name": { "type": "String" }
+    }
+  },
+  "notifBodyFileShareRevokedMultiple": "{sharedBy}: {count} ta faylga kirish bekor qilindi",
+  "@notifBodyFileShareRevokedMultiple": {
+    "placeholders": {
+      "sharedBy": { "type": "String" },
+      "count": { "type": "String" }
+    }
+  },
+  "notifBodyShareRequestReceived": "{requester}dan «{itemName}»ga kirish so'rovi",
+  "@notifBodyShareRequestReceived": {
+    "placeholders": {
+      "requester": { "type": "String" },
+      "itemName": { "type": "String" }
+    }
+  },
+  "notifBodyShareRequestApproved": "«{itemName}»ga kirish so'rovingiz tasdiqlandi",
+  "@notifBodyShareRequestApproved": {
+    "placeholders": {
+      "itemName": { "type": "String" }
+    }
+  },
+  "notifBodyShareRequestRejected": "«{itemName}»ga kirish so'rovingiz rad etildi",
+  "@notifBodyShareRequestRejected": {
+    "placeholders": {
+      "itemName": { "type": "String" }
+    }
+  },
+  "notifBodyStorageWarning": "Xotiraning {usedPercent}% ishlatildi",
+  "@notifBodyStorageWarning": {
+    "placeholders": {
+      "usedPercent": { "type": "String" }
+    }
+  },
+  "notifBodyStorageFull": "Xotira to'ldi ({usedBytes} / {limitBytes})",
+  "@notifBodyStorageFull": {
+    "placeholders": {
+      "usedBytes": { "type": "String" },
+      "limitBytes": { "type": "String" }
+    }
+  },
+  "notifBodyStorageDeletionWarning": "Fayllar {deletionDate} sanasida o'chiriladi ({daysLeft} kun qoldi)",
+  "@notifBodyStorageDeletionWarning": {
+    "placeholders": {
+      "deletionDate": { "type": "String" },
+      "daysLeft": { "type": "String" }
+    }
+  },
+  "notifBodySystemAnnouncementFallback": "Tafsilotlar uchun ilovani tekshiring"
 }

@@ -13,6 +13,7 @@ import 'core/config/app_config.dart';
 import 'core/services/language_notifier.dart';
 import 'core/services/main_page_visibility_observer.dart';
 import 'core/services/navigation_service.dart';
+import 'core/services/payment_deep_link_service.dart';
 import 'core/services/push_notification_service.dart';
 import 'features/auth/presentation/splash_page.dart';
 import 'features/sync/presentation/widgets/sync_status_bubble.dart';
@@ -94,7 +95,7 @@ final ThemeData _darkTheme = ThemeData(
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  AppConfig.initialize(Environment.prod);
+  AppConfig.initialize(Environment.dev);
   await initializeDateFormatting();
 
   try {
@@ -104,6 +105,8 @@ void main() async {
     debugPrint('[Main] Firebase init failed (non-critical): $e');
   }
 
+  unawaited(PaymentDeepLinkService.initialize());
+
   runApp(const ProviderScope(child: CloudApp()));
 
   // Плавающая таблетка синка живёт в root Overlay (а не внутри MainPage),
@@ -111,10 +114,12 @@ void main() async {
   // который пушится поверх MainPage через обычный Navigator.push.
   WidgetsBinding.instance.addPostFrameCallback((_) => _insertSyncStatusOverlay());
 
-  // image_picker (Android) copies every picked file into a random-UUID
-  // subfolder of the cache dir and never deletes it — safety net for cases
-  // where the process was killed before UploadQueueNotifier could clean up
-  // a picked file itself. Fire-and-forget so it never delays first frame.
+  // image_picker copies every picked file into the cache dir and never deletes
+  // it: Android — into random-UUID subfolders, iOS — as flat files at the cache
+  // root. Safety net for cases where the process was killed before
+  // UploadQueueNotifier could clean up a picked file itself (Android: removes
+  // UUID folders, iOS: removes stale image_picker files by age).
+  // Fire-and-forget so it never delays first frame.
   unawaited(_cleanupOrphanedImagePickerCache());
 }
 
@@ -133,10 +138,7 @@ void _insertSyncStatusOverlay() {
   }
   try {
     overlay.insert(OverlayEntry(
-      builder: (_) => const Material(
-        type: MaterialType.transparency,
-        child: SyncStatusBubble(),
-      ),
+      builder: (_) => const SyncStatusBubble(),
     ));
     _syncOverlayInserted = true;
   } catch (e) {
@@ -147,6 +149,29 @@ void _insertSyncStatusOverlay() {
 final RegExp _uuidDirName = RegExp(
   r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
 );
+
+/// image_picker (iOS) writes every picked/captured file flat into
+/// NSTemporaryDirectory() as `image_picker_<GUID><suffix>` and never deletes
+/// it (FLTImagePickerPhotoAssetUtil.temporaryFilePath:). Only files with this
+/// prefix are candidates for the age-based sweep.
+const String _iosImagePickerFilePrefix = 'image_picker_';
+
+/// Top-level temp-dir entries owned by other caches. They are directories and
+/// the age-based sweep only looks at files, but guard by name as well.
+const Set<String> _protectedTempEntries = {
+  'bulutchaThumbnailCache', // ThumbnailCacheManager.key
+  'bulutchaPhotoCache', // PhotoCacheManager.key
+  'libCachedImageData', // flutter_cache_manager default
+  'tus_uploads', // UploadRepository
+  'tus_sync_uploads', // TusSyncUploader
+};
+
+/// UploadQueueNotifier state lives in memory only, so nothing picked before
+/// the current process started can ever be restored via restoreFile — every
+/// leftover image_picker file is already orphaned at startup. 48h is a purely
+/// defensive margin (clock drift, mtime quirks, a future persisted queue) so
+/// the sweep can never touch a file a user could still want to restore.
+const Duration _orphanedPickerFileMaxAge = Duration(hours: 48);
 
 Future<void> _cleanupOrphanedImagePickerCache() async {
   try {
@@ -160,6 +185,24 @@ Future<void> _cleanupOrphanedImagePickerCache() async {
         await entry.delete(recursive: true);
       } catch (e) {
         debugPrint('[Main] Failed to delete orphaned picker cache dir $name: $e');
+      }
+    }
+
+    // iOS: flat layout — image_picker_<GUID><suffix> directly in the temp dir.
+    // Only files (never directories), only with the image_picker prefix, only
+    // when older than the threshold.
+    final cutoff = DateTime.now().subtract(_orphanedPickerFileMaxAge);
+    await for (final entry in tempDir.list()) {
+      if (entry is! File) continue;
+      final name = entry.uri.pathSegments.where((s) => s.isNotEmpty).last;
+      if (_protectedTempEntries.contains(name)) continue;
+      if (!name.startsWith(_iosImagePickerFilePrefix)) continue;
+      try {
+        final modified = await entry.lastModified();
+        if (modified.isAfter(cutoff)) continue;
+        await entry.delete();
+      } catch (e) {
+        debugPrint('[Main] Failed to delete stale picker file $name: $e');
       }
     }
   } catch (e) {

@@ -571,6 +571,12 @@ abstract class AppLocalizations {
   /// **'Manage links and access'**
   String get shareRequestsSubtitle;
 
+  /// No description provided for @privacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get privacyPolicy;
+
   /// No description provided for @shareRequestDetails.
   ///
   /// In en, this message translates to:
@@ -1195,11 +1201,23 @@ abstract class AppLocalizations {
   /// **'{active} active · {queued} queued · {done} done'**
   String syncBubbleSummary(int active, int queued, int done);
 
+  /// No description provided for @syncPausedDuringUpload.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync paused during upload — will resume automatically'**
+  String get syncPausedDuringUpload;
+
   /// No description provided for @syncQueueFraction.
   ///
   /// In en, this message translates to:
   /// **'{count} / {total} files'**
   String syncQueueFraction(int count, int total);
+
+  /// No description provided for @syncFailedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} failed'**
+  String syncFailedCount(int count);
 
   /// No description provided for @syncQueueItemPending.
   ///
@@ -1254,6 +1272,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Yes, cancel all'**
   String get syncCancelAllConfirmButton;
+
+  /// No description provided for @syncQueueShowingPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing {shown} of {total}'**
+  String syncQueueShowingPartial(int shown, int total);
 
   /// No description provided for @syncSelectedFiles.
   ///
@@ -1681,6 +1705,36 @@ abstract class AppLocalizations {
   /// **'Card added successfully'**
   String get cardAddedSuccess;
 
+  /// No description provided for @cardAlreadyExists.
+  ///
+  /// In en, this message translates to:
+  /// **'This card is already added.'**
+  String get cardAlreadyExists;
+
+  /// No description provided for @cardTokenError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to add card. Please try again.'**
+  String get cardTokenError;
+
+  /// No description provided for @paymentGatewayUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment service is temporarily unavailable. Please try again later.'**
+  String get paymentGatewayUnavailable;
+
+  /// No description provided for @cardVerificationExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Card verification session expired. Please add the card again.'**
+  String get cardVerificationExpired;
+
+  /// No description provided for @invalidVerificationCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid verification code.'**
+  String get invalidVerificationCode;
+
   /// No description provided for @confirmButton.
   ///
   /// In en, this message translates to:
@@ -1710,6 +1764,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Subscribe to «{name}» for {price} UZS / {period}?'**
   String confirmPurchaseMessage(String name, String price, String period);
+
+  /// No description provided for @confirmFreePlanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Return to free plan?'**
+  String get confirmFreePlanTitle;
+
+  /// No description provided for @confirmFreePlanMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You will switch back to the «{name}» plan. Continue?'**
+  String confirmFreePlanMessage(String name);
 
   /// No description provided for @updatePlan.
   ///
@@ -2395,11 +2461,125 @@ abstract class AppLocalizations {
   /// **'Storage full'**
   String get notifTypeStorageFull;
 
+  /// No description provided for @notifTypeStorageDeletionWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage cleanup scheduled'**
+  String get notifTypeStorageDeletionWarning;
+
   /// No description provided for @notifTypeUnknown.
   ///
   /// In en, this message translates to:
   /// **'New notification'**
   String get notifTypeUnknown;
+
+  /// No description provided for @notifBodySubscriptionExpiryWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Your {plan} plan expires in {days} days'**
+  String notifBodySubscriptionExpiryWarning(String plan, String days);
+
+  /// No description provided for @notifBodySubscriptionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your {plan} plan has expired'**
+  String notifBodySubscriptionExpired(String plan);
+
+  /// No description provided for @notifBodySubscriptionRenewed.
+  ///
+  /// In en, this message translates to:
+  /// **'Your {plan} plan has been renewed'**
+  String notifBodySubscriptionRenewed(String plan);
+
+  /// No description provided for @notifBodySubscriptionDowngraded.
+  ///
+  /// In en, this message translates to:
+  /// **'Your plan has been downgraded to {plan}'**
+  String notifBodySubscriptionDowngraded(String plan);
+
+  /// No description provided for @notifBodyPaymentSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment of {amount} for the {plan} plan was successful'**
+  String notifBodyPaymentSuccess(String amount, String plan);
+
+  /// No description provided for @notifBodyPaymentFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment of {amount} for the {plan} plan failed: {error}'**
+  String notifBodyPaymentFailed(String amount, String plan, String error);
+
+  /// No description provided for @notifBodyCardDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'Card ending in {last4} was declined for the {plan} plan'**
+  String notifBodyCardDeclined(String last4, String plan);
+
+  /// No description provided for @notifBodyFileSharedSingle.
+  ///
+  /// In en, this message translates to:
+  /// **'{sharedBy} shared \"{name}\" with you'**
+  String notifBodyFileSharedSingle(String sharedBy, String name);
+
+  /// No description provided for @notifBodyFileSharedMultiple.
+  ///
+  /// In en, this message translates to:
+  /// **'{sharedBy} shared {count} items with you'**
+  String notifBodyFileSharedMultiple(String sharedBy, String count);
+
+  /// No description provided for @notifBodyFileShareRevokedSingle.
+  ///
+  /// In en, this message translates to:
+  /// **'{sharedBy} revoked your access to \"{name}\"'**
+  String notifBodyFileShareRevokedSingle(String sharedBy, String name);
+
+  /// No description provided for @notifBodyFileShareRevokedMultiple.
+  ///
+  /// In en, this message translates to:
+  /// **'{sharedBy} revoked your access to {count} items'**
+  String notifBodyFileShareRevokedMultiple(String sharedBy, String count);
+
+  /// No description provided for @notifBodyShareRequestReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'{requester} requested access to \"{itemName}\"'**
+  String notifBodyShareRequestReceived(String requester, String itemName);
+
+  /// No description provided for @notifBodyShareRequestApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Your request for \"{itemName}\" was approved'**
+  String notifBodyShareRequestApproved(String itemName);
+
+  /// No description provided for @notifBodyShareRequestRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Your request for \"{itemName}\" was rejected'**
+  String notifBodyShareRequestRejected(String itemName);
+
+  /// No description provided for @notifBodyStorageWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve used {usedPercent}% of your storage'**
+  String notifBodyStorageWarning(String usedPercent);
+
+  /// No description provided for @notifBodyStorageFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Your storage is full ({usedBytes} of {limitBytes} used)'**
+  String notifBodyStorageFull(String usedBytes, String limitBytes);
+
+  /// No description provided for @notifBodyStorageDeletionWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Files will be deleted on {deletionDate} ({daysLeft} days left)'**
+  String notifBodyStorageDeletionWarning(String deletionDate, String daysLeft);
+
+  /// No description provided for @notifBodySystemAnnouncementFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the app for details'**
+  String get notifBodySystemAnnouncementFallback;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

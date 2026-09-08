@@ -1,12 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/config/app_config.dart';
 import '../../core/storage/secure_storage.dart';
 import 'auto_sync_service.dart';
 import 'data/gallery_service.dart';
 import 'data/sync_queue_db.dart';
+import 'sync_providers.dart';
 
 /// Координирует ручную загрузку (UploadPage) с фоновым AutoSyncService:
 /// - ставит автосинк на паузу перед стартом ручного батча, если он бежал;
@@ -20,12 +22,24 @@ import 'data/sync_queue_db.dart';
 /// Не трогает pauseTask/cancelTask/основной цикл AutoSyncService.startSync() —
 /// recheck здесь отдельный путь, оперирует SyncQueueDb напрямую.
 class UploadSyncCoordinator {
-  UploadSyncCoordinator({AutoSyncService? service, SyncQueueDb? db})
-      : _service = service ?? AutoSyncService(),
-        _db = db ?? SyncQueueDb();
+  // container опционален и намеренно НЕ WidgetRef: afterManualUploadComplete()
+  // может выполниться уже после dispose() страницы, которая создала этот
+  // координатор (см. dispose() в upload_page.dart) — WidgetRef той страницы
+  // к этому моменту уже недействителен и бросит при чтении/записи. Корневой
+  // ProviderContainer (см. main.dart — один ProviderScope на всё приложение)
+  // живёт весь жизненный цикл приложения, поэтому безопасен для отложенной
+  // записи в isSyncPausedBySystemProvider.
+  UploadSyncCoordinator({
+    AutoSyncService? service,
+    SyncQueueDb? db,
+    ProviderContainer? container,
+  })  : _service = service ?? AutoSyncService(),
+        _db = db ?? SyncQueueDb(),
+        _container = container;
 
   final AutoSyncService _service;
   final SyncQueueDb _db;
+  final ProviderContainer? _container;
 
   // Тот же лимит, что неявно использует основной цикл синка
   // (см. AutoSyncService.startSync — getPendingOldestFirst(limit: 50)).
@@ -41,6 +55,7 @@ class UploadSyncCoordinator {
     if (!_service.isRunning) return false;
     await _service.stopSync();
     _pausedBySystem = true;
+    _setPausedBySystemFlag(true);
     return true;
   }
 
@@ -50,10 +65,23 @@ class UploadSyncCoordinator {
     final resumed = _pausedBySystem;
     if (_pausedBySystem) {
       _pausedBySystem = false;
+      _setPausedBySystemFlag(false);
       unawaited(_service.startAutoSync());
     }
 
     return (duplicatesSkipped: duplicatesSkipped, resumed: resumed);
+  }
+
+  // Future.microtask — тот же паттерн, что в MainPageVisibilityObserver
+  // (main_page_visibility_observer.dart): вызывающий код (beforeManualUpload/
+  // afterManualUploadComplete) может сработать во время build-фазы, а
+  // Riverpod запрещает синхронную запись в провайдер в этот момент.
+  void _setPausedBySystemFlag(bool value) {
+    final container = _container;
+    if (container == null) return;
+    Future.microtask(() {
+      container.read(isSyncPausedBySystemProvider.notifier).state = value;
+    });
   }
 
   /// Прогоняет весь текущий pending через check-duplicate батчами по 50 и
@@ -74,21 +102,36 @@ class UploadSyncCoordinator {
         token: token,
       );
 
-      for (var offset = 0; offset < pending.length; offset += _dedupBatchSize) {
-        final end = (offset + _dedupBatchSize < pending.length)
-            ? offset + _dedupBatchSize
-            : pending.length;
-        final batch = pending.sublist(offset, end);
+      // Дубликаты бекенд проверяет per-папка — группируем pending по
+      // фактической целевой папке (та же логика резолва, что startSync()
+      // использует на файл) прежде чем слать check-duplicate, иначе файл,
+      // предназначенный для одной папки, мог бы ложно словить дубликат
+      // из другой.
+      final grouped = await _service.groupTasksByDestinationFolder(pending);
 
-        final duplicateMap = await galleryService.checkDuplicates(batch);
-        if (duplicateMap.isEmpty) continue;
+      for (final entry in grouped.entries) {
+        final folderId = entry.key;
+        final folderTasks = entry.value;
 
-        for (final task in batch) {
-          if (task.id == null) continue;
-          if (duplicateMap[task.localId] == true) {
-            await _db.markDoneWithoutSessionIncrement(task.id!, _duplicateMarker);
-            duplicateCount++;
-            debugPrint('[UploadSyncCoordinator] Recheck duplicate: ${task.fileName}');
+        for (var offset = 0; offset < folderTasks.length; offset += _dedupBatchSize) {
+          final end = (offset + _dedupBatchSize < folderTasks.length)
+              ? offset + _dedupBatchSize
+              : folderTasks.length;
+          final batch = folderTasks.sublist(offset, end);
+
+          final duplicateMap = await galleryService.checkDuplicates(
+            batch,
+            folderId: folderId,
+          );
+          if (duplicateMap == null) continue;
+
+          for (final task in batch) {
+            if (task.id == null) continue;
+            if (duplicateMap[task.localId] == true) {
+              await _db.markDoneWithoutSessionIncrement(task.id!, _duplicateMarker);
+              duplicateCount++;
+              debugPrint('[UploadSyncCoordinator] Recheck duplicate: ${task.fileName}');
+            }
           }
         }
       }

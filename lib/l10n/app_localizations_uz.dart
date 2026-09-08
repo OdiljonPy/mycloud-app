@@ -250,6 +250,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get shareRequestsSubtitle => 'Havolalar va ruxsatlarni boshqarish';
 
   @override
+  String get privacyPolicy => 'Maxfiylik siyosati';
+
+  @override
   String get shareRequestDetails => 'Ulashish so\'rovi tafsilotlari';
 
   @override
@@ -584,8 +587,16 @@ class AppLocalizationsUz extends AppLocalizations {
   }
 
   @override
+  String get syncPausedDuringUpload => 'Yuklash paytida sinxronizatsiya pauzada — avtomatik davom etadi';
+
+  @override
   String syncQueueFraction(int count, int total) {
     return '$count / $total fayl';
+  }
+
+  @override
+  String syncFailedCount(int count) {
+    return '$count xato';
   }
 
   @override
@@ -616,6 +627,11 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get syncCancelAllConfirmButton => 'Ha, bekor qilish';
+
+  @override
+  String syncQueueShowingPartial(int shown, int total) {
+    return '$total tadan $shown tasi ko\'rsatilmoqda';
+  }
 
   @override
   String get syncSelectedFiles => 'Tanlangan fayllar';
@@ -847,6 +863,21 @@ class AppLocalizationsUz extends AppLocalizations {
   String get cardAddedSuccess => 'Karta muvaffaqiyatli qo\'shildi';
 
   @override
+  String get cardAlreadyExists => 'Bu karta allaqachon qo\'shilgan.';
+
+  @override
+  String get cardTokenError => 'Kartani qo\'shib bo\'lmadi. Qaytadan urinib ko\'ring.';
+
+  @override
+  String get paymentGatewayUnavailable => 'To\'lov xizmati vaqtincha ishlamayapti. Keyinroq urinib ko\'ring.';
+
+  @override
+  String get cardVerificationExpired => 'Kartani tasdiqlash sessiyasi tugadi. Kartani qaytadan qo\'shing.';
+
+  @override
+  String get invalidVerificationCode => 'Tasdiqlash kodi noto\'g\'ri.';
+
+  @override
   String get confirmButton => 'Tasdiqlash';
 
   @override
@@ -861,6 +892,14 @@ class AppLocalizationsUz extends AppLocalizations {
   @override
   String confirmPurchaseMessage(String name, String price, String period) {
     return '«$name» tarifini $price UZS / $period ga ulashni istaysizmi?';
+  }
+
+  @override
+  String get confirmFreePlanTitle => 'Bepul tarifga qaytilsinmi?';
+
+  @override
+  String confirmFreePlanMessage(String name) {
+    return 'Siz «$name» tarifiga o\'tasiz. Davom etasizmi?';
   }
 
   @override
@@ -1222,5 +1261,96 @@ class AppLocalizationsUz extends AppLocalizations {
   String get notifTypeStorageFull => 'Xotira to\'ldi';
 
   @override
+  String get notifTypeStorageDeletionWarning => 'Xotirani tozalash rejalashtirildi';
+
+  @override
   String get notifTypeUnknown => 'Yangi bildirishnoma';
+
+  @override
+  String notifBodySubscriptionExpiryWarning(String plan, String days) {
+    return '«$plan» tarifingiz $days kundan so\'ng tugaydi';
+  }
+
+  @override
+  String notifBodySubscriptionExpired(String plan) {
+    return '«$plan» tarifingiz muddati tugadi';
+  }
+
+  @override
+  String notifBodySubscriptionRenewed(String plan) {
+    return '«$plan» tarifingiz yangilandi';
+  }
+
+  @override
+  String notifBodySubscriptionDowngraded(String plan) {
+    return 'Tarifingiz «$plan»ga pasaytirildi';
+  }
+
+  @override
+  String notifBodyPaymentSuccess(String amount, String plan) {
+    return '«$plan» tarifi uchun $amount to\'lov muvaffaqiyatli o\'tdi';
+  }
+
+  @override
+  String notifBodyPaymentFailed(String amount, String plan, String error) {
+    return '«$plan» tarifi uchun $amount to\'lov amalga oshmadi: $error';
+  }
+
+  @override
+  String notifBodyCardDeclined(String last4, String plan) {
+    return '$last4 bilan tugaydigan karta «$plan» tarifi uchun rad etildi';
+  }
+
+  @override
+  String notifBodyFileSharedSingle(String sharedBy, String name) {
+    return '$sharedBy: «$name» fayliga kirish ochildi';
+  }
+
+  @override
+  String notifBodyFileSharedMultiple(String sharedBy, String count) {
+    return '$sharedBy: $count ta faylga kirish ochildi';
+  }
+
+  @override
+  String notifBodyFileShareRevokedSingle(String sharedBy, String name) {
+    return '$sharedBy: «$name» fayliga kirish bekor qilindi';
+  }
+
+  @override
+  String notifBodyFileShareRevokedMultiple(String sharedBy, String count) {
+    return '$sharedBy: $count ta faylga kirish bekor qilindi';
+  }
+
+  @override
+  String notifBodyShareRequestReceived(String requester, String itemName) {
+    return '${requester}dan «$itemName»ga kirish so\'rovi';
+  }
+
+  @override
+  String notifBodyShareRequestApproved(String itemName) {
+    return '«$itemName»ga kirish so\'rovingiz tasdiqlandi';
+  }
+
+  @override
+  String notifBodyShareRequestRejected(String itemName) {
+    return '«$itemName»ga kirish so\'rovingiz rad etildi';
+  }
+
+  @override
+  String notifBodyStorageWarning(String usedPercent) {
+    return 'Xotiraning $usedPercent% ishlatildi';
+  }
+
+  @override
+  String notifBodyStorageFull(String usedBytes, String limitBytes) {
+    return 'Xotira to\'ldi ($usedBytes / $limitBytes)';
+  }
+
+  @override
+  String notifBodyStorageDeletionWarning(String deletionDate, String daysLeft) {
+    return 'Fayllar $deletionDate sanasida o\'chiriladi ($daysLeft kun qoldi)';
+  }
+
+  @override
+  String get notifBodySystemAnnouncementFallback => 'Tafsilotlar uchun ilovani tekshiring';
 }

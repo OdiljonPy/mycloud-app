@@ -5,10 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/services/language_notifier.dart';
+import '../../../core/services/photo_cache_manager.dart';
 import '../../../core/utils/plan_localizer.dart';
 import '../../../core/utils/error_localizer.dart';
 import '../../../core/utils/safe_action_mixin.dart';
@@ -45,6 +47,7 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
   bool _isLoading = true;
 
   static const _accent = Color(0xFF2563EB);
+  static const _privacyPolicyUrl = 'https://bulutcha.com/';
 
   @override
   void initState() {
@@ -652,6 +655,8 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
                       _buildShareRequests(),
                       const SizedBox(height: 16),
                       _buildTheme(),
+                      const SizedBox(height: 16),
+                      _buildPrivacyPolicy(),
                       const SizedBox(height: 24),
                       _buildLogout(),
                       const SizedBox(height: 12),
@@ -699,7 +704,10 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
                       backgroundColor:
                           Theme.of(context).colorScheme.surfaceContainerHighest,
                       backgroundImage: _avatarUrl != null
-                          ? CachedNetworkImageProvider(_avatarUrl!)
+                          ? CachedNetworkImageProvider(
+                              _avatarUrl!,
+                              cacheManager: PhotoCacheManager.instance,
+                            )
                           : null,
                       child: _avatarUrl == null
                           ? const Icon(Icons.person,
@@ -1318,6 +1326,57 @@ class _ProfilePageState extends State<ProfilePage> with SafeActionMixin<ProfileP
                           fontSize: 13, color: Colors.grey.shade500),
                     ),
                   ],
+                ),
+              ),
+              Icon(Icons.chevron_right,
+                  color: Colors.grey.shade400, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPrivacyPolicy() {
+    final t = AppLocalizations.of(context)!;
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: () async {
+          await launchUrl(Uri.parse(_privacyPolicyUrl),
+              mode: LaunchMode.externalApplication);
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding:
+          const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _accent.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.privacy_tip_outlined,
+                    color: _accent, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  t.privacyPolicy,
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w500),
                 ),
               ),
               Icon(Icons.chevron_right,

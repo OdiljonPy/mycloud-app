@@ -7,6 +7,11 @@ import 'data/sync_repository.dart';
 import 'application/sync_settings_state.dart';
 import 'application/sync_settings_notifier.dart';
 
+// isSyncPausedBySystemProvider lives in sync_pause_flag_provider.dart
+// (AutoSyncService imports it directly — keeps the import graph acyclic).
+// Re-exported here so existing importers keep resolving it unchanged.
+export 'sync_pause_flag_provider.dart';
+
 /// Provides the AutoSyncService singleton.
 /// No codegen — plain Provider.
 final autoSyncServiceProvider = Provider<AutoSyncService>((ref) {
@@ -24,6 +29,14 @@ final syncProgressProvider = StreamProvider<SyncProgress>((ref) {
 final syncRepositoryProvider = Provider<SyncFacade>((ref) {
   return SyncRepository(ref.watch(autoSyncServiceProvider));
 });
+
+/// true, пока открыт модальный диалог подтверждения (отмена всех / сброс
+/// очереди). SyncStatusBubble вставлена в root Overlay сырым OverlayEntry,
+/// а Navigator.rearrange на каждом push диалога поднимает не-route entries
+/// на самый верх стека — то есть попап рисуется ПОВЕРХ барьера и AlertDialog.
+/// Пока флаг true, таблетка не рендерится вовсе.
+final isModalDialogOpenProvider = StateProvider<bool>((ref) => false);
+
 
 /// Manages sync settings preferences state.
 /// Use ref.watch(syncSettingsProvider) in UI for reactive reads.

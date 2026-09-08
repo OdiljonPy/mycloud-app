@@ -59,6 +59,11 @@ class UploadRepository {
 
   static const _knownMediaExtensions = {'cr2', 'nef', 'arw', 'ts', 'mts'};
 
+  // Максимум ПОДРЯД идущих неудачных сетевых повторов на один файл —
+  // страховка от бесконечного while в [uploadFile]. Счётчик сбрасывается,
+  // если после предыдущего повтора был реальный прогресс (см. там же).
+  static const _maxNetworkRetries = 5;
+
   // Загрузка в UploadPage тоже строго последовательная (см. _startUploadAll
   // там — await на каждом файле), поэтому активный клиент — ровно один.
   TusClient? _activeClient;
@@ -127,6 +132,9 @@ class UploadRepository {
 
     bool isCompleted = false;
     StreamSubscription? connectivitySub;
+    int networkRetries = 0;
+    bool madeProgressSinceRetry = false;
+    double lastProgress = 0.0;
 
     // Слушаем сеть только для UI статуса
     connectivitySub = Connectivity().onConnectivityChanged.listen((
@@ -147,16 +155,46 @@ class UploadRepository {
     // TusStore сохраняет offset → продолжаем с того места
     while (!isCompleted) {
       try {
-        await client.upload(
-          onProgress: (double progress) {
-            onProgress?.call((progress / 100.0).clamp(0.0, 1.0));
-          },
-          onComplete: () {
-            isCompleted = true;
-            connectivitySub?.cancel();
-            onComplete?.call();
-          },
-        );
+        // Таймаут-страховка от "тихо зависшего" сокета (соединение живо,
+        // но сервер никогда не отвечает) — без него await здесь мог бы не
+        // завершиться никогда, и UploadSyncCoordinator остался бы на паузе
+        // навсегда (см. upload_sync_coordinator.dart). TimeoutException
+        // уходит в тот же catch ниже, что и обычный обрыв сети — retry
+        // продолжится с сохранённого TUS-offset, как и раньше.
+        await client
+            .upload(
+              onProgress: (double progress) {
+                if (progress > lastProgress) {
+                  lastProgress = progress;
+                  madeProgressSinceRetry = true;
+                }
+                onProgress?.call((progress / 100.0).clamp(0.0, 1.0));
+              },
+              onComplete: () {
+                isCompleted = true;
+                connectivitySub?.cancel();
+                onComplete?.call();
+              },
+            )
+            .timeout(
+              const Duration(minutes: 30),
+              onTimeout: () {
+                // Future.timeout() не отменяет client.upload() — если
+                // "зависший" запрос проснётся уже после того, как retry
+                // ниже стартовал новый upload() на том же TusClient (те же
+                // resumable-поля, тот же TUS URL), возможна гонка из двух
+                // параллельных запросов на один upload endpoint. pause()
+                // — best-effort сигнал остановиться до следующего чанка.
+                try {
+                  client.pause();
+                } catch (e) {
+                  if (kDebugMode) {
+                    debugPrint('[UploadRepo] pause on timeout failed: $e');
+                  }
+                }
+                throw TimeoutException('TUS upload timed out after 30 minutes');
+              },
+            );
 
         // upload() вернулся без исключения и без onComplete — единственная
         // причина: requestAbort() вызвал client.pause() извне (пауза или
@@ -177,6 +215,46 @@ class UploadRepository {
         }
         break;
       } catch (e) {
+        if (!_isRetryableNetworkError(e)) {
+          // Протокольная/серверная/локальная ошибка (HTTP 4xx/5xx, битые
+          // заголовки, файл недоступен, Error) — повтор бессмыслен, ждать
+          // сеть тем более. Выходим из цикла исключением: UploadPage ловит
+          // его и делает failItem → батч гарантированно дойдёт до
+          // allSettled, остальные файлы очереди не блокируются.
+          if (kDebugMode) {
+            debugPrint('[UploadRepo] non-retryable error for $fileName: $e');
+          }
+          _activeClient = null;
+          connectivitySub.cancel();
+          throw AppException(
+            message: 'Upload failed: $e',
+            statusCode: _httpStatusFromError(e),
+          );
+        }
+
+        // Сетевая ошибка. Ограничиваем число ПОДРЯД идущих неудачных
+        // повторов: если после прошлого повтора чанки реально уходили —
+        // обнуляем (длинный файл по плохой сети — норма, не ошибка).
+        if (madeProgressSinceRetry) {
+          networkRetries = 0;
+          madeProgressSinceRetry = false;
+        }
+        networkRetries++;
+        if (networkRetries > _maxNetworkRetries) {
+          if (kDebugMode) {
+            debugPrint(
+              '[UploadRepo] giving up on $fileName after '
+              '$_maxNetworkRetries network retries: $e',
+            );
+          }
+          _activeClient = null;
+          connectivitySub.cancel();
+          throw AppException(
+            message:
+                'Upload failed after $_maxNetworkRetries network retries: $e',
+          );
+        }
+
         // Сеть пропала — ждём connectivity и повторяем
         onStatusChange?.call('paused');
 
@@ -191,6 +269,32 @@ class UploadRepository {
 
     _activeClient = null;
     connectivitySub.cancel();
+  }
+
+  /// true — ошибка транспорта: есть смысл дождаться сети и повторить с
+  /// сохранённого TUS-offset. false — повтор не поможет, файл надо failить.
+  static bool _isRetryableNetworkError(Object e) {
+    // tus_client: любой не-2xx HTTP-статус или невалидные заголовки ответа.
+    if (e is ProtocolException) return false;
+    // Наши собственные ошибки (auth и т.п.).
+    if (e is AppException) return false;
+    // Локальная FS-ошибка (файл удалён/недоступен) — сеть ни при чём.
+    if (e is FileSystemException) return false;
+    // StateError/ArgumentError/RangeError... — баг, а не сеть.
+    if (e is Error) return false;
+    // Сюда попадают: SocketException (в т.ч. обёртка из package:http),
+    // HttpException "Connection closed…", TlsException, TimeoutException
+    // (в т.ч. наша 30-минутная страховка), http.ClientException (package:http
+    // не в прямых зависимостях — по типу не проверить). Всё это транспорт;
+    // бесконечный цикл исключён счётчиком _maxNetworkRetries.
+    return true;
+  }
+
+  /// Вытаскивает HTTP-статус из текста ProtocolException tus_client
+  /// ("unexpected status code (403) while …"), иначе null.
+  static int? _httpStatusFromError(Object e) {
+    final m = RegExp(r'status code \((\d{3})\)').firstMatch(e.toString());
+    return m == null ? null : int.tryParse(m.group(1)!);
   }
 
   Future<void> _waitForNetwork() async {

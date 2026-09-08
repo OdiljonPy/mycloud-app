@@ -9,6 +9,10 @@ class SyncProgress with _$SyncProgress {
     @Default(0) int uploading,
     @Default(0) int done,
     @Default(0) int failed,
+    /// Подмножество [failed], которое ещё будет ретраиться по backoff
+    /// (retry_count ниже порога SyncQueueDb). [failed] — все failed-строки,
+    /// включая терминальные; это поле чисто аддитивное.
+    @Default(0) int retryableFailed,
     @Default(0) int paused,
     @Default(0) int cancelled,
     @Default(0.0) double currentFileProgress,
@@ -16,7 +20,6 @@ class SyncProgress with _$SyncProgress {
     @Default(0) int totalInBatch,
     @Default(0) int scannedCount,
     @Default(false) bool isScanning,
-    @Default(0) int sessionUploaded,
     @Default(0) int deviceTotal,
   }) = _SyncProgress;
 }

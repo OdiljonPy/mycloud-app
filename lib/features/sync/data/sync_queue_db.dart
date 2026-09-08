@@ -229,13 +229,14 @@ class SyncQueueDb {
     }
   }
 
-  /// Помечает задачу как done и увеличивает session_uploaded счётчик.
+  /// Помечает задачу как done (файл загружен в рамках синк-сессии).
+  /// Счётчик «загружено в этой сессии» ведётся в памяти AutoSyncService;
+  /// колонка session_uploaded в БД оставлена намеренно (не пишется/не читается).
   Future<void> markDoneWithSession(int id, String serverUuid) async {
     try {
       await _database.update('sync_queue', {
         'status': SyncStatus.done.name,
         'server_uuid': serverUuid,
-        'session_uploaded': 1,
         'updated_at': DateTime.now().millisecondsSinceEpoch,
       }, where: 'id = ?', whereArgs: [id]);
     } catch (e) {
@@ -243,10 +244,10 @@ class SyncQueueDb {
     }
   }
 
-  /// То же самое что markDoneWithSession, но БЕЗ инкремента session_uploaded.
+  /// Семантически: done БЕЗ учёта в счётчике «загружено в этой сессии».
   /// Нужно для recheck уже стоящих в очереди pending-файлов (см.
-  /// UploadSyncCoordinator) — такие файлы юзер не грузил через сам синк-путь,
-  /// инкремент исказил бы счётчик "загружено в этой сессии".
+  /// UploadSyncCoordinator) — такие файлы юзер не грузил через сам синк-путь.
+  /// Сам счётчик — in-memory в AutoSyncService, здесь только статус/маркер.
   Future<void> markDoneWithoutSessionIncrement(int id, String marker) async {
     try {
       await _database.update('sync_queue', {
@@ -256,28 +257,6 @@ class SyncQueueDb {
       }, where: 'id = ?', whereArgs: [id]);
     } catch (e) {
       debugPrint('[SyncQueueDb] markDoneWithoutSessionIncrement failed: $e');
-    }
-  }
-
-  /// Сколько файлов загружено в текущей сессии.
-  Future<int> countSessionUploaded() async {
-    try {
-      final result = await _database.rawQuery(
-        'SELECT COUNT(*) as count FROM sync_queue WHERE session_uploaded = 1',
-      );
-      return Sqflite.firstIntValue(result) ?? 0;
-    } catch (e) {
-      return 0;
-    }
-  }
-
-  /// Сбрасывает session_uploaded счётчик при старте новой сессии.
-  Future<void> resetSessionCounter() async {
-    try {
-      await _database.update('sync_queue', {'session_uploaded': 0});
-      debugPrint('[SyncQueueDb] Session counter reset');
-    } catch (e) {
-      debugPrint('[SyncQueueDb] resetSessionCounter failed: $e');
     }
   }
 
@@ -320,18 +299,23 @@ class SyncQueueDb {
     }
   }
 
+  /// Таблица backoff для resetFailedForRetry(): индекс = retry_count.
+  /// Длина списка — единственный источник порога "терминальности":
+  /// failed-задача с retry_count >= _retryBackoffMs.length больше не ретраится.
+  /// getRetryableFailedCount() опирается на ту же длину — не расходятся.
+  static const _retryBackoffMs = [
+    60 * 1000,        // 1 мин
+    5 * 60 * 1000,    // 5 мин
+    30 * 60 * 1000,   // 30 мин
+  ];
+
   /// Сбрасывает failed задачи обратно в pending по exponential backoff.
   /// retry_count 0 → ждать 1мин, 1 → 5мин, 2 → 30мин. После 3 попыток — не трогать.
   Future<void> resetFailedForRetry() async {
     try {
       final now = DateTime.now().millisecondsSinceEpoch;
-      const backoffMs = [
-        60 * 1000,        // 1 мин
-        5 * 60 * 1000,    // 5 мин
-        30 * 60 * 1000,   // 30 мин
-      ];
-      for (int i = 0; i < backoffMs.length; i++) {
-        final cutoff = now - backoffMs[i];
+      for (int i = 0; i < _retryBackoffMs.length; i++) {
+        final cutoff = now - _retryBackoffMs[i];
         final count = await _database.update(
           'sync_queue',
           {'status': SyncStatus.pending.name, 'updated_at': now},
@@ -344,6 +328,23 @@ class SyncQueueDb {
       }
     } catch (e) {
       debugPrint('[SyncQueueDb] resetFailedForRetry failed: $e');
+    }
+  }
+
+  /// Сколько failed-задач ещё будут ретраиться resetFailedForRetry().
+  /// Порог тот же, что и там: retry_count < _retryBackoffMs.length.
+  /// Терминальные (исчерпавшие попытки) сюда не входят — они остаются
+  /// только в общем counts['failed'] из getStatusCounts().
+  Future<int> getRetryableFailedCount() async {
+    try {
+      final result = await _database.rawQuery(
+        'SELECT COUNT(*) as cnt FROM sync_queue WHERE status = ? AND retry_count < ?',
+        [SyncStatus.failed.name, _retryBackoffMs.length],
+      );
+      return Sqflite.firstIntValue(result) ?? 0;
+    } catch (e) {
+      debugPrint('[SyncQueueDb] getRetryableFailedCount failed: $e');
+      return 0;
     }
   }
 
@@ -375,6 +376,49 @@ class SyncQueueDb {
     } catch (e) {
       debugPrint('[SyncQueueDb] purgeNonSelectedPending failed: $e');
       return 0;
+    }
+  }
+
+  /// Удаляет ТОЛЬКО failed/cancelled записи старше [maxAgeDays].
+  /// Возраст считается по updated_at (момент последнего перехода в
+  /// failed/cancelled — см. markFailed/markCancelled), а не по created_at:
+  /// файл, который упал недавно, не должен вычищаться лишь потому, что
+  /// попал в очередь давно.
+  /// done-записи НЕ трогает никогда — это история дедупа
+  /// (isDoneByNameAndSize/isDoneByFingerprint). pending/uploading/paused
+  /// тоже вне зоны действия. Идемпотентен, при пустом результате
+  /// возвращает 0 и не бросает.
+  Future<int> pruneOldFailedAndCancelled({int maxAgeDays = 30}) async {
+    try {
+      final cutoff = DateTime.now()
+          .subtract(Duration(days: maxAgeDays))
+          .millisecondsSinceEpoch;
+      final count = await _database.delete(
+        'sync_queue',
+        where: 'status IN (?, ?) AND updated_at < ?',
+        whereArgs: [SyncStatus.failed.name, SyncStatus.cancelled.name, cutoff],
+      );
+      if (count > 0) {
+        debugPrint('[SyncQueueDb] Pruned $count failed/cancelled tasks older than $maxAgeDays days');
+      }
+      return count;
+    } catch (e) {
+      debugPrint('[SyncQueueDb] pruneOldFailedAndCancelled failed: $e');
+      return 0;
+    }
+  }
+
+  /// VACUUM — физически ужимает файл БД после DELETE (SQLite сам место не
+  /// освобождает). Может быть медленным на большой базе; sqflite
+  /// сериализует операции над одним Database, поэтому вызывать только
+  /// fire-and-forget и только когда реально что-то удалили. Ошибка
+  /// некритична — логируется, не пробрасывается.
+  Future<void> vacuum() async {
+    try {
+      await _database.execute('VACUUM');
+      debugPrint('[SyncQueueDb] VACUUM done');
+    } catch (e) {
+      debugPrint('[SyncQueueDb] VACUUM failed (non-critical): $e');
     }
   }
 

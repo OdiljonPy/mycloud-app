@@ -78,22 +78,28 @@ class GalleryService {
 
   /// GET /content/gallery/
   /// Returns Set<"name|size"> for deduplication during cold start.
+  /// Follows `next` across all server-side pages so cold start sees the
+  /// full uploaded set, not just page 1.
   Future<Set<String>> getUploadedFileKeys() async {
     try {
-      final response = await _dio.get('/content/gallery/');
-      final data = response.data;
-      final List<dynamic> items = data is List ? data : (data['result'] ?? []);
       final keys = <String>{};
-      for (final item in items) {
-        if (item is Map<String, dynamic>) {
-          final name = item['name'] as String? ?? '';
-          final size = (item['size'] as num?)?.toInt() ?? 0;
-          if (name.isNotEmpty) {
-            keys.add('$name|$size');
+      String? url = '/content/gallery/';
+      while (url != null) {
+        final response = await _dio.get(url);
+        final data = response.data;
+        final List<dynamic> items = data is List ? data : (data['results'] ?? []);
+        for (final item in items) {
+          if (item is Map<String, dynamic>) {
+            final name = item['name'] as String? ?? '';
+            final size = (item['size'] as num?)?.toInt() ?? 0;
+            if (name.isNotEmpty) {
+              keys.add('$name|$size');
+            }
           }
         }
+        url = data is Map<String, dynamic> ? data['next'] as String? : null;
       }
-      debugPrint('[GalleryService] Loaded ${keys.length} file keys');
+      debugPrint('[GalleryService] Loaded ${keys.length} file keys (all pages)');
       return keys;
     } catch (e) {
       debugPrint('[GalleryService] getUploadedFileKeys failed: $e');
@@ -209,8 +215,9 @@ class GalleryService {
 
   /// POST /content/files/check-duplicate/
   /// Returns Map<localTaskId, isDuplicate> for deduplication before upload.
-  /// On error returns empty map (safe fallback — upload all).
-  Future<Map<String, bool>> checkDuplicates(
+  /// On error: return null so callers know this check failed and must not
+  /// treat absence as confirmed non-duplicate.
+  Future<Map<String, bool>?> checkDuplicates(
     List<SyncTask> tasks, {
     String? folderId,
   }) async {
@@ -220,28 +227,21 @@ class GalleryService {
       final uuidToTask = <String, SyncTask>{};
       final filesPayload = tasks.map((task) {
         final id = _deterministicUuid(task.fileName, task.fileSize, task.mimeType);
-        debugPrint('[DupCheck] ${task.fileName} → uuid: $id');
         uuidToTask[id] = task;
         return {
           'name': task.fileName,
           'size': task.fileSize,
           'type': task.mimeType,
           'uuid': id,
-          if (folderId != null) 'folder_id': folderId,
         };
       }).toList();
 
-      debugPrint('[GalleryService] checkDuplicates REQUEST: ${filesPayload.take(2).toList()}');
       debugPrint('[DupCheck] Sending ${filesPayload.length} files to check-duplicate');
-      for (final f in filesPayload.take(3)) {
-        debugPrint('[DupCheck] file → name: ${f['name']}, size: ${f['size']}, type: ${f['type']}');
-      }
 
       final response = await _dio.post(
         '/content/files/check-duplicate/',
         data: {
           'files': filesPayload,
-          if (folderId != null) 'folder_id': folderId,
         },
       );
 
@@ -272,9 +272,22 @@ class GalleryService {
       debugPrint('[GalleryService] checkDuplicates REQUEST sample: '
           '${filesPayload.take(1).toList()}');
       return duplicateMap;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 400) {
+        // Confirmed data-rejection signal (e.g. one file's name is rejected
+        // by the backend) — not transient. Rethrow so the caller can bisect
+        // the batch instead of skipping everything in it forever.
+        rethrow;
+      }
+      debugPrint('[GalleryService] checkDuplicates failed: $e');
+      // On error: return null so callers know this check failed and must
+      // not treat absence as confirmed non-duplicate.
+      return null;
     } catch (e) {
       debugPrint('[GalleryService] checkDuplicates failed: $e');
-      return {}; // On error: upload all (safe fallback)
+      // On error: return null so callers know this check failed and must
+      // not treat absence as confirmed non-duplicate.
+      return null;
     }
   }
 }

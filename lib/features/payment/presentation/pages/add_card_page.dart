@@ -8,6 +8,7 @@ import 'verify_card_page.dart';
 import '../widgets/card_preview_widget.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/utils/error_localizer.dart';
+import '../../../../core/errors/app_exception.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class AddCardPage extends StatefulWidget {
@@ -24,6 +25,10 @@ class _AddCardPageState extends State<AddCardPage> {
 
   bool _cardTouched = false;
   bool _expireTouched = false;
+
+  // Server-side field errors (validation_error). Cleared on the next edit.
+  String? _cardNumberServerError;
+  String? _expireDateServerError;
 
   @override
   void dispose() {
@@ -51,6 +56,60 @@ class _AddCardPageState extends State<AddCardPage> {
   }
 
   bool get _isFormValid => _isCardNumberValid && _isExpireValid;
+
+  /// Extracts a single user-facing string from a DRF-style errors map entry
+  /// (either `"field": "msg"` or `"field": ["msg", ...]`).
+  static String? _serverFieldError(Map<String, dynamic> errors, String key) {
+    final value = errors[key];
+    if (value == null) return null;
+    if (value is List) {
+      if (value.isEmpty) return null;
+      final first = value.first?.toString().trim();
+      return (first == null || first.isEmpty) ? null : first;
+    }
+    final text = value.toString().trim();
+    return text.isEmpty ? null : text;
+  }
+
+  void _onPaymentError(Object error, AppLocalizations l10n) {
+    if (error is AppException) {
+      final errors = error.errors;
+      switch (error.messageKey) {
+        case 'validation_error':
+          if (errors != null) {
+            final cardErr = _serverFieldError(errors, 'card_number');
+            final expErr = _serverFieldError(errors, 'expire_date');
+            if (cardErr != null || expErr != null) {
+              setState(() {
+                if (cardErr != null) _cardNumberServerError = cardErr;
+                if (expErr != null) _expireDateServerError = expErr;
+              });
+              return;
+            }
+          }
+          break;
+        case 'card_already_exist':
+          _showError(l10n.cardAlreadyExists);
+          return;
+        case 'click_card_token_error':
+          _showError(l10n.cardTokenError);
+          return;
+        case 'click_api_error':
+          _showError(l10n.paymentGatewayUnavailable);
+          return;
+      }
+    }
+    _showError(ErrorLocalizer.forException(error, l10n));
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
@@ -82,12 +141,7 @@ class _AddCardPageState extends State<AddCardPage> {
               ),
             );
           } else if (state is PaymentError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(ErrorLocalizer.forException(state.error, l10n)),
-                backgroundColor: Colors.red,
-              ),
-            );
+            _onPaymentError(state.error, l10n);
           }
         },
         child: BlocBuilder<PaymentBloc, PaymentState>(
@@ -132,17 +186,21 @@ class _AddCardPageState extends State<AddCardPage> {
                         ),
                         counterText: '',
                       ),
-                      onChanged: (_) => setState(() => _cardTouched = true),
+                      onChanged: (_) => setState(() {
+                        _cardTouched = true;
+                        _cardNumberServerError = null;
+                      }),
                       validator: (v) {
                         if (v == null || v.isEmpty) return l10n.enterCardNumber;
                         if (_rawCardNumber.length != 16) return l10n.cardNumber16Digits;
                         return null;
                       },
                     ).animate(delay: 150.ms).fadeIn(duration: 300.ms).slideX(begin: 0.05, curve: Curves.easeOut),
-                    if (_cardTouched && !_isCardNumberValid) ...[
+                    if (_cardNumberServerError != null ||
+                        (_cardTouched && !_isCardNumberValid)) ...[
                       const SizedBox(height: 6),
                       Text(
-                        l10n.checkCardData,
+                        _cardNumberServerError ?? l10n.checkCardData,
                         style: TextStyle(color: errorColor, fontSize: 12),
                       ),
                     ],
@@ -168,7 +226,10 @@ class _AddCardPageState extends State<AddCardPage> {
                         ),
                         counterText: '',
                       ),
-                      onChanged: (_) => setState(() => _expireTouched = true),
+                      onChanged: (_) => setState(() {
+                        _expireTouched = true;
+                        _expireDateServerError = null;
+                      }),
                       validator: (v) {
                         if (v == null || v.isEmpty) return l10n.enterExpiryDate;
                         if (_rawExpireDate.length != 4) return l10n.expiryDateFormat;
@@ -180,10 +241,11 @@ class _AddCardPageState extends State<AddCardPage> {
                         return null;
                       },
                     ).animate(delay: 250.ms).fadeIn(duration: 300.ms).slideX(begin: 0.05, curve: Curves.easeOut),
-                    if (_expireTouched && !_isExpireValid) ...[
+                    if (_expireDateServerError != null ||
+                        (_expireTouched && !_isExpireValid)) ...[
                       const SizedBox(height: 6),
                       Text(
-                        l10n.checkCardData,
+                        _expireDateServerError ?? l10n.checkCardData,
                         style: TextStyle(color: errorColor, fontSize: 12),
                       ),
                     ],

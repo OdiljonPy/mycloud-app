@@ -58,6 +58,12 @@ class PlanPurchased extends PaymentState {
   const PlanPurchased(this.response);
 }
 
+class PlanLinkGenerated extends PaymentState {
+  final PaymentLinkResponse response;
+
+  const PlanLinkGenerated(this.response);
+}
+
 class PaymentError extends PaymentState {
   final Object error;
 

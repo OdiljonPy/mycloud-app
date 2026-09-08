@@ -54,6 +54,7 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
 
   List<FolderModel> _folders = [];
   List<FileModel> _files = [];
+  List<FileModel> _dateOrderedFiles = [];
   // Starts false: _loadContent() guards on this flag and flips it true
   // synchronously before its first await.
   bool _isLoading = false;
@@ -405,6 +406,7 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
       setState(() {
         _folders = markedFolders;
         _files = _isSyncFolder ? _sortByCaptureDate(loadedFiles) : loadedFiles;
+        _recomputeDateOrder();
         _hasNextPage = result['hasNext'] as bool;
         _pinnedFolders = pinned;
         _totalFilesCount = result['totalCount'] as int? ?? _files.length;
@@ -448,6 +450,7 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
       setState(() {
         _files.addAll(newFiles);
         if (_isSyncFolder) _files = _sortByCaptureDate(_files);
+        _recomputeDateOrder();
         _currentPage++;
         _hasNextPage = result['hasNext'] as bool;
         _isLoadingMore = false;
@@ -493,6 +496,9 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
       precacheImage(
         CachedNetworkImageProvider(
           thumb,
+          // Must match MediaThumbnail's key (file.id, null when empty) so the
+          // precached entry is the one the grid/list actually reads back.
+          cacheKey: f.id.isNotEmpty ? f.id : null,
           cacheManager: ThumbnailCacheManager.instance,
         ),
         context,
@@ -555,13 +561,16 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
     final currentFolder = _currentFolderId;
     Navigator.push(
       context,
-      slideUpRoute(UploadPage(
-        parentId: currentFolder,
-        onUploadComplete: () async {
-          await Future.delayed(const Duration(seconds: 2));
-          _loadContent();
-        },
-      )),
+      slideUpRoute(
+        UploadPage(
+          parentId: currentFolder,
+          onUploadComplete: () async {
+            await Future.delayed(const Duration(seconds: 2));
+            _loadContent();
+          },
+        ),
+        settings: const RouteSettings(name: 'upload'),
+      ),
     ).then((_) => _loadContent());
   }
 
@@ -589,14 +598,17 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
     final currentFolder = _currentFolderId;
     Navigator.push(
       context,
-      slideUpRoute(UploadPage(
-        parentId: currentFolder,
-        initialFiles: files,
-        onUploadComplete: () async {
-          await Future.delayed(const Duration(seconds: 2));
-          _loadContent();
-        },
-      )),
+      slideUpRoute(
+        UploadPage(
+          parentId: currentFolder,
+          initialFiles: files,
+          onUploadComplete: () async {
+            await Future.delayed(const Duration(seconds: 2));
+            _loadContent();
+          },
+        ),
+        settings: const RouteSettings(name: 'upload'),
+      ),
     ).then((_) => _loadContent());
   }
 
@@ -2477,6 +2489,15 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
       return bDate.compareTo(aDate);
     });
     return sorted;
+  }
+
+  /// Snapshot of `_files` sorted newest-first by capturedAt ?? createdAt
+  /// (same comparator as _sortByCaptureDate / _groupFilesByDate). Used only
+  /// by the FastScrollbar date bubble; never replaces `_files`.
+  void _recomputeDateOrder() {
+    _dateOrderedFiles = List<FileModel>.from(_files)
+      ..sort((a, b) => (b.capturedAt ?? b.createdAt)
+          .compareTo(a.capturedAt ?? a.createdAt));
   }
 
   List<MapEntry<String, List<FileModel>>> _groupFilesByDate(List<FileModel> files) {

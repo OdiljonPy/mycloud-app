@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
+import 'package:intl/intl.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/utils/plan_localizer.dart';
@@ -15,6 +16,8 @@ import '../../sync/presentation/auto_sync_settings_page.dart';
 import '../../sync/auto_sync_service.dart';
 import '../../sync/data/gallery_service.dart';
 import '../data/home_repository.dart';
+import '../data/models/file_model.dart';
+import '../../../core/providers/favourites_provider.dart';
 import '../../notifications/presentation/widgets/notification_bell_button.dart';
 import 'photo_viewer_page.dart';
 import '../../../main.dart';
@@ -27,6 +30,7 @@ class HomePage extends StatefulWidget {
   final VoidCallback? onNavigateToFiles;
   final VoidCallback? onNavigateToShared;
   final VoidCallback? onToggleFavourites;
+  final VoidCallback? onNavigateToProfile;
 
   const HomePage({
     super.key,
@@ -34,6 +38,7 @@ class HomePage extends StatefulWidget {
     this.onNavigateToFiles,
     this.onNavigateToShared,
     this.onToggleFavourites,
+    this.onNavigateToProfile,
   });
 
   @override
@@ -343,7 +348,11 @@ class HomePageState extends State<HomePage> {
                       const SizedBox(height: 16),
                       _buildQuickActions(context, t),
                       const SizedBox(height: 24),
-                      _buildRecentFilesSection(cs, t),
+                      ListenableBuilder(
+                        listenable: FavouritesProvider.instance,
+                        builder: (context, _) =>
+                            _buildRecentFilesSection(cs, t),
+                      ),
                       const SizedBox(height: 24),
                     ],
                   ),
@@ -926,6 +935,51 @@ class _QuickActionCard extends StatelessWidget {
   }
 }
 
+// ─── Favourites helpers (shared by grid/list gallery items) ─────────────────
+
+/// Minimal FileModel for FavouritesProvider.toggleFavourite().
+/// createdAt is a placeholder: not read by toggleFavourite and not used for
+/// sorting/display in the Favourites view.
+FileModel _galleryFileToFileModel(GalleryFile f) => FileModel(
+      id: f.id,
+      name: f.name,
+      size: f.size,
+      mimeType: f.mimeType,
+      uploadStatus: f.uploadStatus,
+      createdAt: DateTime.now(),
+      thumbnailPath: f.thumbnailPath,
+      capturedAt:
+          f.capturedAt != null ? DateTime.tryParse(f.capturedAt!) : null,
+    );
+
+/// File IDs with a favourite toggle request currently in flight.
+/// Per-file guard: a rapid double-tap on the same star would otherwise fire a
+/// second POST/DELETE before the first settles (400 "already in favourites" /
+/// 404), producing a misleading favouriteUpdateFailed SnackBar.
+final Set<String> _favouriteTogglesInFlight = {};
+
+/// Same behaviour as FilesPage._toggleFavourite: haptic, optimistic toggle,
+/// SnackBar(favouriteUpdateFailed) on error.
+/// Silently ignores a tap while a request for the same file is in flight.
+Future<void> _toggleGalleryFavourite(
+    BuildContext context, GalleryFile file) async {
+  if (_favouriteTogglesInFlight.contains(file.id)) return;
+  _favouriteTogglesInFlight.add(file.id);
+  HapticFeedback.lightImpact();
+  try {
+    await FavouritesProvider.instance
+        .toggleFavourite(_galleryFileToFileModel(file));
+  } catch (_) {
+    if (!context.mounted) return;
+    final t = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(t.favouriteUpdateFailed)),
+    );
+  } finally {
+    _favouriteTogglesInFlight.remove(file.id);
+  }
+}
+
 // ─── Backend Gallery Item Grid ──────────────────────────────────────────────
 
 class _BackendGalleryItemGrid extends StatelessWidget {
@@ -947,25 +1001,61 @@ class _BackendGalleryItemGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final thumbnailUrl = file.thumbnailPath ?? '';
     final normalizedUrl = _normalizeUrl(thumbnailUrl, context);
+    final isFav = FavouritesProvider.instance.isFavourite(file.id);
 
     return GestureDetector(
       onTap: onTap,
-      child: MediaThumbnail(
-        mimeType: file.mimeType,
-        thumbnailPath: normalizedUrl,
-        cacheKey: file.id,
-        borderRadius: BorderRadius.circular(12),
-        httpHeaders:
-            authToken != null ? {'Authorization': 'Bearer $authToken'} : null,
-        fallbackIcon: Icons.image_not_supported_rounded,
-        fallbackIconColor: isDark ? Colors.grey[600]! : Colors.grey[400]!,
-        fallbackBackgroundColor: isDark ? Colors.grey[900] : Colors.grey[200],
-        fallbackIconSize: 32,
-        memCacheWidth: 300,
-        memCacheHeight: 300,
-        playBadgeColor: const Color(0xFFEA4335),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          MediaThumbnail(
+            mimeType: file.mimeType,
+            thumbnailPath: normalizedUrl,
+            cacheKey: file.id,
+            borderRadius: BorderRadius.circular(12),
+            httpHeaders: _buildHeaders(normalizedUrl),
+            fallbackIcon: Icons.image_not_supported_rounded,
+            fallbackIconColor: isDark ? Colors.grey[600]! : Colors.grey[400]!,
+            fallbackBackgroundColor: isDark ? Colors.grey[900] : Colors.grey[200],
+            fallbackIconSize: 32,
+            memCacheWidth: 300,
+            memCacheHeight: 300,
+            playBadgeColor: const Color(0xFFEA4335),
+          ),
+          // Same star as FilesPage media grid (MediaGridCard._badge), no circle,
+          // enlarged tap area.
+          Positioned(
+            top: 6,
+            right: 6,
+            child: GestureDetector(
+              onTap: () => _toggleGalleryFavourite(context, file),
+              behavior: HitTestBehavior.opaque,
+              child: SizedBox(
+                width: 26,
+                height: 26,
+                child: Icon(
+                  isFav ? Icons.star_rounded : Icons.star_border_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  Map<String, String>? _buildHeaders(String url) {
+    if (authToken == null) return null;
+    final uri = Uri.tryParse(url);
+    if (uri == null) return null;
+    final apiHost = Uri.parse(AppConfig.instance.baseUrl).host;
+    if (uri.host == apiHost) {
+      return {'Authorization': 'Bearer $authToken'};
+    }
+    // Pre-signed MinIO links must NOT include Authorization header.
+    return null;
   }
 
   String _normalizeUrl(String? raw, BuildContext context) {
@@ -1036,6 +1126,7 @@ class _BackendGalleryItemList extends StatelessWidget {
     final t = AppLocalizations.of(context)!;
     final thumbnailUrl = file.thumbnailPath ?? '';
     final normalizedUrl = _normalizeUrl(thumbnailUrl, context);
+    final isFav = FavouritesProvider.instance.isFavourite(file.id);
 
     return GestureDetector(
       onTap: onTap,
@@ -1064,8 +1155,7 @@ class _BackendGalleryItemList extends StatelessWidget {
               memCacheWidth: 180,
               memCacheHeight: 180,
               borderRadius: BorderRadius.circular(8),
-              httpHeaders:
-                  authToken != null ? {'Authorization': 'Bearer $authToken'} : null,
+              httpHeaders: _buildHeaders(normalizedUrl),
               fallbackIcon: Icons.image_not_supported_rounded,
               fallbackIconColor: isDark ? Colors.grey[600]! : Colors.grey[400]!,
               fallbackBackgroundColor: isDark ? Colors.grey[800] : Colors.grey[300],
@@ -1098,6 +1188,18 @@ class _BackendGalleryItemList extends StatelessWidget {
                 ],
               ),
             ),
+            // Same star as FilesPage list tile (_FileTile trailing).
+            GestureDetector(
+              onTap: () => _toggleGalleryFavourite(context, file),
+              child: Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: Icon(
+                  isFav ? Icons.star : Icons.star_border,
+                  color: isFav ? Colors.amber : Colors.grey,
+                  size: 22,
+                ),
+              ),
+            ),
             Icon(
               Icons.chevron_right_rounded,
               color: cs.onSurface.withValues(alpha: 0.3),
@@ -1106,6 +1208,18 @@ class _BackendGalleryItemList extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Map<String, String>? _buildHeaders(String url) {
+    if (authToken == null) return null;
+    final uri = Uri.tryParse(url);
+    if (uri == null) return null;
+    final apiHost = Uri.parse(AppConfig.instance.baseUrl).host;
+    if (uri.host == apiHost) {
+      return {'Authorization': 'Bearer $authToken'};
+    }
+    // Pre-signed MinIO links must NOT include Authorization header.
+    return null;
   }
 
   String _normalizeUrl(String? raw, BuildContext context) {

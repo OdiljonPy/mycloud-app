@@ -250,6 +250,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get shareRequestsSubtitle => 'Управление ссылками и доступами';
 
   @override
+  String get privacyPolicy => 'Политика конфиденциальности';
+
+  @override
   String get shareRequestDetails => 'Детали запроса';
 
   @override
@@ -584,8 +587,16 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get syncPausedDuringUpload => 'Синк на паузе во время загрузки — продолжится автоматически';
+
+  @override
   String syncQueueFraction(int count, int total) {
     return '$count / $total файлов';
+  }
+
+  @override
+  String syncFailedCount(int count) {
+    return '$count с ошибкой';
   }
 
   @override
@@ -616,6 +627,11 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get syncCancelAllConfirmButton => 'Да, отменить все';
+
+  @override
+  String syncQueueShowingPartial(int shown, int total) {
+    return 'Показано $shown из $total';
+  }
 
   @override
   String get syncSelectedFiles => 'Выбранные файлы';
@@ -847,6 +863,21 @@ class AppLocalizationsRu extends AppLocalizations {
   String get cardAddedSuccess => 'Карта успешно добавлена';
 
   @override
+  String get cardAlreadyExists => 'Эта карта уже добавлена.';
+
+  @override
+  String get cardTokenError => 'Не удалось добавить карту. Попробуйте ещё раз.';
+
+  @override
+  String get paymentGatewayUnavailable => 'Платёжный сервис временно недоступен. Попробуйте позже.';
+
+  @override
+  String get cardVerificationExpired => 'Сессия подтверждения карты истекла. Добавьте карту заново.';
+
+  @override
+  String get invalidVerificationCode => 'Неверный код подтверждения.';
+
+  @override
   String get confirmButton => 'Подтвердить';
 
   @override
@@ -861,6 +892,14 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String confirmPurchaseMessage(String name, String price, String period) {
     return 'Подключить тариф «$name» за $price UZS / $period?';
+  }
+
+  @override
+  String get confirmFreePlanTitle => 'Вернуться на бесплатный тариф?';
+
+  @override
+  String confirmFreePlanMessage(String name) {
+    return 'Вы перейдёте на тариф «$name». Продолжить?';
   }
 
   @override
@@ -1222,5 +1261,96 @@ class AppLocalizationsRu extends AppLocalizations {
   String get notifTypeStorageFull => 'Хранилище заполнено';
 
   @override
+  String get notifTypeStorageDeletionWarning => 'Запланирована очистка хранилища';
+
+  @override
   String get notifTypeUnknown => 'Новое уведомление';
+
+  @override
+  String notifBodySubscriptionExpiryWarning(String plan, String days) {
+    return 'Ваш тариф «$plan» истекает через $days дн.';
+  }
+
+  @override
+  String notifBodySubscriptionExpired(String plan) {
+    return 'Ваш тариф «$plan» истёк';
+  }
+
+  @override
+  String notifBodySubscriptionRenewed(String plan) {
+    return 'Ваш тариф «$plan» продлён';
+  }
+
+  @override
+  String notifBodySubscriptionDowngraded(String plan) {
+    return 'Ваш тариф понижен до «$plan»';
+  }
+
+  @override
+  String notifBodyPaymentSuccess(String amount, String plan) {
+    return 'Платёж $amount за тариф «$plan» прошёл успешно';
+  }
+
+  @override
+  String notifBodyPaymentFailed(String amount, String plan, String error) {
+    return 'Платёж $amount за тариф «$plan» не прошёл: $error';
+  }
+
+  @override
+  String notifBodyCardDeclined(String last4, String plan) {
+    return 'Карта, оканчивающаяся на $last4, отклонена при оплате тарифа «$plan»';
+  }
+
+  @override
+  String notifBodyFileSharedSingle(String sharedBy, String name) {
+    return '$sharedBy: открыт доступ к файлу «$name»';
+  }
+
+  @override
+  String notifBodyFileSharedMultiple(String sharedBy, String count) {
+    return '$sharedBy: открыт доступ к файлам ($count)';
+  }
+
+  @override
+  String notifBodyFileShareRevokedSingle(String sharedBy, String name) {
+    return '$sharedBy: доступ к файлу «$name» отозван';
+  }
+
+  @override
+  String notifBodyFileShareRevokedMultiple(String sharedBy, String count) {
+    return '$sharedBy: доступ к файлам отозван ($count)';
+  }
+
+  @override
+  String notifBodyShareRequestReceived(String requester, String itemName) {
+    return 'Запрос на доступ к «$itemName» от $requester';
+  }
+
+  @override
+  String notifBodyShareRequestApproved(String itemName) {
+    return 'Ваш запрос на доступ к «$itemName» одобрен';
+  }
+
+  @override
+  String notifBodyShareRequestRejected(String itemName) {
+    return 'Ваш запрос на доступ к «$itemName» отклонён';
+  }
+
+  @override
+  String notifBodyStorageWarning(String usedPercent) {
+    return 'Использовано $usedPercent% хранилища';
+  }
+
+  @override
+  String notifBodyStorageFull(String usedBytes, String limitBytes) {
+    return 'Хранилище заполнено ($usedBytes из $limitBytes)';
+  }
+
+  @override
+  String notifBodyStorageDeletionWarning(String deletionDate, String daysLeft) {
+    return 'Файлы будут удалены $deletionDate (осталось $daysLeft дн.)';
+  }
+
+  @override
+  String get notifBodySystemAnnouncementFallback => 'Подробности в приложении';
 }

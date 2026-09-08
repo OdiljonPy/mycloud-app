@@ -16,6 +16,10 @@ import '../../profile/presentation/profile_page.dart';
 /// Default is a fallback estimate used before the first measurement lands.
 final bottomNavBarHeightProvider = StateProvider<double>((ref) => 66.0);
 
+/// Whether the Files tab (index 1) is the currently selected MainPage tab —
+/// only that tab has the upload FAB at the bottom-right corner.
+final isFilesTabActiveProvider = StateProvider<bool>((ref) => false);
+
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
 
@@ -83,6 +87,9 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
               }
             }
             setState(() => _currentIndex = 0);
+            ProviderScope.containerOf(context, listen: false)
+                .read(isFilesTabActiveProvider.notifier)
+                .state = false;
             return;
           }
           // Home tab → double-press to exit
@@ -106,11 +113,29 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
             children: [
               HomePage(
                 key: _homeKey,
-                onNavigateToFiles: () => setState(() => _currentIndex = 1),
-                onNavigateToShared: () => setState(() => _currentIndex = 2),
-                onNavigateToProfile: () => setState(() => _currentIndex = 3),
+                onNavigateToFiles: () {
+                  setState(() => _currentIndex = 1);
+                  ProviderScope.containerOf(context, listen: false)
+                      .read(isFilesTabActiveProvider.notifier)
+                      .state = true;
+                },
+                onNavigateToShared: () {
+                  setState(() => _currentIndex = 2);
+                  ProviderScope.containerOf(context, listen: false)
+                      .read(isFilesTabActiveProvider.notifier)
+                      .state = false;
+                },
+                onNavigateToProfile: () {
+                  setState(() => _currentIndex = 3);
+                  ProviderScope.containerOf(context, listen: false)
+                      .read(isFilesTabActiveProvider.notifier)
+                      .state = false;
+                },
                 onToggleFavourites: () {
                   setState(() => _currentIndex = 1);
+                  ProviderScope.containerOf(context, listen: false)
+                      .read(isFilesTabActiveProvider.notifier)
+                      .state = true;
                   Future.delayed(const Duration(milliseconds: 100), () {
                     _filesKey.currentState?.toggleFavourites();
                   });
@@ -167,7 +192,12 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
                 label: t.home,
                 index: 0,
                 current: _currentIndex,
-                onTap: (i) => setState(() => _currentIndex = i),
+                onTap: (i) {
+                  setState(() => _currentIndex = i);
+                  ProviderScope.containerOf(context, listen: false)
+                      .read(isFilesTabActiveProvider.notifier)
+                      .state = (i == 1);
+                },
               ),
               _NavItem(
                 icon: Icons.folder_rounded,
@@ -179,6 +209,9 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
                     _filesKey.currentState?.resetToRoot();
                   }
                   setState(() => _currentIndex = i);
+                  ProviderScope.containerOf(context, listen: false)
+                      .read(isFilesTabActiveProvider.notifier)
+                      .state = (i == 1);
                 },
               ),
               _NavItem(
@@ -186,14 +219,24 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
                 label: t.shared,
                 index: 2,
                 current: _currentIndex,
-                onTap: (i) => setState(() => _currentIndex = i),
+                onTap: (i) {
+                  setState(() => _currentIndex = i);
+                  ProviderScope.containerOf(context, listen: false)
+                      .read(isFilesTabActiveProvider.notifier)
+                      .state = (i == 1);
+                },
               ),
               _NavItem(
                 icon: Icons.person_rounded,
                 label: t.profile,
                 index: 3,
                 current: _currentIndex,
-                onTap: (i) => setState(() => _currentIndex = i),
+                onTap: (i) {
+                  setState(() => _currentIndex = i);
+                  ProviderScope.containerOf(context, listen: false)
+                      .read(isFilesTabActiveProvider.notifier)
+                      .state = (i == 1);
+                },
               ),
             ],
           ),

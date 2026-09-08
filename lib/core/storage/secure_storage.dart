@@ -22,6 +22,7 @@ class SecureStorage {
   // кэшируется, чтобы не закрепить случайный сбой на весь сеанс.
   static String? _accessTokenCache;
   static String? _refreshTokenCache;
+  static bool get hasCachedAccessToken => _accessTokenCache != null;
 
   static Future<String?> _safeRead(String key) async {
     try {

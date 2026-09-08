@@ -5,6 +5,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_app/l10n/app_localizations.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/services/photo_cache_manager.dart';
+import '../../../core/services/thumbnail_cache_manager.dart';
 import '../../../core/utils/error_localizer.dart';
 import '../../../core/utils/media_type_helper.dart';
 import '../data/download_repository.dart';
@@ -106,6 +108,7 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
         CachedNetworkImageProvider(
           fullUrl,
           cacheKey: _fullCacheKey(item.fileId),
+          cacheManager: PhotoCacheManager.instance,
           headers: _buildHeaders(fullUrl),
         ),
         context,
@@ -195,13 +198,18 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
     }
 
     final headers = _buildHeaders(displayUrl);
-    // Thumbnail phase reuses the list's thumbnail cache entry (plain fileId)
-    // so it paints instantly from disk; the full-res phase uses a distinct
-    // key so it gets its own cache entry and survives closing/reopening the
-    // viewer instead of re-downloading every time.
+    // Thumbnail phase reads from ThumbnailCacheManager with the same key the
+    // list uses (plain fileId, see MediaThumbnail cacheKey: file.id), so it is
+    // a genuine disk-cache hit and paints instantly without a second download.
+    // The full-res phase uses PhotoCacheManager with a distinct key so it gets
+    // its own bounded cache entry and survives closing/reopening the viewer
+    // instead of re-downloading every time.
     final cacheKey = item.fileId.isEmpty
         ? null
         : (hasFullUrl ? _fullCacheKey(item.fileId) : item.fileId);
+    final cacheManager = hasFullUrl
+        ? PhotoCacheManager.instance
+        : ThumbnailCacheManager.instance;
 
     final viewer = InteractiveViewer(
       minScale: 0.5,
@@ -213,6 +221,7 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
             CachedNetworkImage(
               imageUrl: displayUrl,
               cacheKey: cacheKey,
+              cacheManager: cacheManager,
               httpHeaders: headers,
               fit: BoxFit.contain,
               useOldImageOnUrlChange: true, // prevents blank flash on URL switch

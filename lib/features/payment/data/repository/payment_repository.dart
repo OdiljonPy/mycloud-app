@@ -48,9 +48,14 @@ class PaymentRepository {
       });
       return CardToken.fromJson(r.data as Map<String, dynamic>);
     } on DioException catch (e) {
+      final data = e.response?.data;
       throw AppException(
-        message: _extractError(e.response?.data),
+        message: _extractError(data),
         statusCode: e.response?.statusCode,
+        messageKey: data is Map ? data['message_key']?.toString() : null,
+        errors: data is Map && data['errors'] is Map
+            ? Map<String, dynamic>.from(data['errors'] as Map)
+            : null,
       );
     }
   }
@@ -89,9 +94,14 @@ class PaymentRepository {
       );
       return CardToken.fromJson(r.data as Map<String, dynamic>);
     } on DioException catch (e) {
+      final data = e.response?.data;
       throw AppException(
-        message: _extractError(e.response?.data),
+        message: _extractError(data),
         statusCode: e.response?.statusCode,
+        messageKey: data is Map ? data['message_key']?.toString() : null,
+        errors: data is Map && data['errors'] is Map
+            ? Map<String, dynamic>.from(data['errors'] as Map)
+            : null,
       );
     }
   }
@@ -103,6 +113,26 @@ class PaymentRepository {
         data: {'plan_id': planId},
       );
       return PurchasePlanResponse.fromJson(r.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      throw AppException(
+        message: _extractError(data),
+        statusCode: e.response?.statusCode,
+        messageKey: data is Map ? data['message_key']?.toString() : null,
+      );
+    }
+  }
+
+  Future<PaymentLinkResponse> purchasePlanLink(int planId) async {
+    try {
+      final r = await _dio.post(
+        '/payment/subscriptions/purchase/link/',
+        data: {
+          'plan_id': planId,
+          'return_url': 'bulutcha://payment/return',
+        },
+      );
+      return PaymentLinkResponse.fromJson(r.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw AppException(
         message: _extractError(e.response?.data),

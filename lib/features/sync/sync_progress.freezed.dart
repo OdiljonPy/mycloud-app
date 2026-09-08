@@ -20,6 +20,11 @@ mixin _$SyncProgress {
   int get uploading => throw _privateConstructorUsedError;
   int get done => throw _privateConstructorUsedError;
   int get failed => throw _privateConstructorUsedError;
+
+  /// Подмножество [failed], которое ещё будет ретраиться по backoff
+  /// (retry_count ниже порога SyncQueueDb). [failed] — все failed-строки,
+  /// включая терминальные; это поле чисто аддитивное.
+  int get retryableFailed => throw _privateConstructorUsedError;
   int get paused => throw _privateConstructorUsedError;
   int get cancelled => throw _privateConstructorUsedError;
   double get currentFileProgress => throw _privateConstructorUsedError;
@@ -27,7 +32,6 @@ mixin _$SyncProgress {
   int get totalInBatch => throw _privateConstructorUsedError;
   int get scannedCount => throw _privateConstructorUsedError;
   bool get isScanning => throw _privateConstructorUsedError;
-  int get sessionUploaded => throw _privateConstructorUsedError;
   int get deviceTotal => throw _privateConstructorUsedError;
 
   /// Create a copy of SyncProgress
@@ -48,6 +52,7 @@ abstract class $SyncProgressCopyWith<$Res> {
       int uploading,
       int done,
       int failed,
+      int retryableFailed,
       int paused,
       int cancelled,
       double currentFileProgress,
@@ -55,7 +60,6 @@ abstract class $SyncProgressCopyWith<$Res> {
       int totalInBatch,
       int scannedCount,
       bool isScanning,
-      int sessionUploaded,
       int deviceTotal});
 }
 
@@ -78,6 +82,7 @@ class _$SyncProgressCopyWithImpl<$Res, $Val extends SyncProgress>
     Object? uploading = null,
     Object? done = null,
     Object? failed = null,
+    Object? retryableFailed = null,
     Object? paused = null,
     Object? cancelled = null,
     Object? currentFileProgress = null,
@@ -85,7 +90,6 @@ class _$SyncProgressCopyWithImpl<$Res, $Val extends SyncProgress>
     Object? totalInBatch = null,
     Object? scannedCount = null,
     Object? isScanning = null,
-    Object? sessionUploaded = null,
     Object? deviceTotal = null,
   }) {
     return _then(_value.copyWith(
@@ -104,6 +108,10 @@ class _$SyncProgressCopyWithImpl<$Res, $Val extends SyncProgress>
       failed: null == failed
           ? _value.failed
           : failed // ignore: cast_nullable_to_non_nullable
+              as int,
+      retryableFailed: null == retryableFailed
+          ? _value.retryableFailed
+          : retryableFailed // ignore: cast_nullable_to_non_nullable
               as int,
       paused: null == paused
           ? _value.paused
@@ -133,10 +141,6 @@ class _$SyncProgressCopyWithImpl<$Res, $Val extends SyncProgress>
           ? _value.isScanning
           : isScanning // ignore: cast_nullable_to_non_nullable
               as bool,
-      sessionUploaded: null == sessionUploaded
-          ? _value.sessionUploaded
-          : sessionUploaded // ignore: cast_nullable_to_non_nullable
-              as int,
       deviceTotal: null == deviceTotal
           ? _value.deviceTotal
           : deviceTotal // ignore: cast_nullable_to_non_nullable
@@ -158,6 +162,7 @@ abstract class _$$SyncProgressImplCopyWith<$Res>
       int uploading,
       int done,
       int failed,
+      int retryableFailed,
       int paused,
       int cancelled,
       double currentFileProgress,
@@ -165,7 +170,6 @@ abstract class _$$SyncProgressImplCopyWith<$Res>
       int totalInBatch,
       int scannedCount,
       bool isScanning,
-      int sessionUploaded,
       int deviceTotal});
 }
 
@@ -186,6 +190,7 @@ class __$$SyncProgressImplCopyWithImpl<$Res>
     Object? uploading = null,
     Object? done = null,
     Object? failed = null,
+    Object? retryableFailed = null,
     Object? paused = null,
     Object? cancelled = null,
     Object? currentFileProgress = null,
@@ -193,7 +198,6 @@ class __$$SyncProgressImplCopyWithImpl<$Res>
     Object? totalInBatch = null,
     Object? scannedCount = null,
     Object? isScanning = null,
-    Object? sessionUploaded = null,
     Object? deviceTotal = null,
   }) {
     return _then(_$SyncProgressImpl(
@@ -212,6 +216,10 @@ class __$$SyncProgressImplCopyWithImpl<$Res>
       failed: null == failed
           ? _value.failed
           : failed // ignore: cast_nullable_to_non_nullable
+              as int,
+      retryableFailed: null == retryableFailed
+          ? _value.retryableFailed
+          : retryableFailed // ignore: cast_nullable_to_non_nullable
               as int,
       paused: null == paused
           ? _value.paused
@@ -241,10 +249,6 @@ class __$$SyncProgressImplCopyWithImpl<$Res>
           ? _value.isScanning
           : isScanning // ignore: cast_nullable_to_non_nullable
               as bool,
-      sessionUploaded: null == sessionUploaded
-          ? _value.sessionUploaded
-          : sessionUploaded // ignore: cast_nullable_to_non_nullable
-              as int,
       deviceTotal: null == deviceTotal
           ? _value.deviceTotal
           : deviceTotal // ignore: cast_nullable_to_non_nullable
@@ -261,6 +265,7 @@ class _$SyncProgressImpl implements _SyncProgress {
       this.uploading = 0,
       this.done = 0,
       this.failed = 0,
+      this.retryableFailed = 0,
       this.paused = 0,
       this.cancelled = 0,
       this.currentFileProgress = 0.0,
@@ -268,7 +273,6 @@ class _$SyncProgressImpl implements _SyncProgress {
       this.totalInBatch = 0,
       this.scannedCount = 0,
       this.isScanning = false,
-      this.sessionUploaded = 0,
       this.deviceTotal = 0});
 
   @override
@@ -283,6 +287,13 @@ class _$SyncProgressImpl implements _SyncProgress {
   @override
   @JsonKey()
   final int failed;
+
+  /// Подмножество [failed], которое ещё будет ретраиться по backoff
+  /// (retry_count ниже порога SyncQueueDb). [failed] — все failed-строки,
+  /// включая терминальные; это поле чисто аддитивное.
+  @override
+  @JsonKey()
+  final int retryableFailed;
   @override
   @JsonKey()
   final int paused;
@@ -305,14 +316,11 @@ class _$SyncProgressImpl implements _SyncProgress {
   final bool isScanning;
   @override
   @JsonKey()
-  final int sessionUploaded;
-  @override
-  @JsonKey()
   final int deviceTotal;
 
   @override
   String toString() {
-    return 'SyncProgress(pending: $pending, uploading: $uploading, done: $done, failed: $failed, paused: $paused, cancelled: $cancelled, currentFileProgress: $currentFileProgress, currentFileName: $currentFileName, totalInBatch: $totalInBatch, scannedCount: $scannedCount, isScanning: $isScanning, sessionUploaded: $sessionUploaded, deviceTotal: $deviceTotal)';
+    return 'SyncProgress(pending: $pending, uploading: $uploading, done: $done, failed: $failed, retryableFailed: $retryableFailed, paused: $paused, cancelled: $cancelled, currentFileProgress: $currentFileProgress, currentFileName: $currentFileName, totalInBatch: $totalInBatch, scannedCount: $scannedCount, isScanning: $isScanning, deviceTotal: $deviceTotal)';
   }
 
   @override
@@ -325,6 +333,8 @@ class _$SyncProgressImpl implements _SyncProgress {
                 other.uploading == uploading) &&
             (identical(other.done, done) || other.done == done) &&
             (identical(other.failed, failed) || other.failed == failed) &&
+            (identical(other.retryableFailed, retryableFailed) ||
+                other.retryableFailed == retryableFailed) &&
             (identical(other.paused, paused) || other.paused == paused) &&
             (identical(other.cancelled, cancelled) ||
                 other.cancelled == cancelled) &&
@@ -338,8 +348,6 @@ class _$SyncProgressImpl implements _SyncProgress {
                 other.scannedCount == scannedCount) &&
             (identical(other.isScanning, isScanning) ||
                 other.isScanning == isScanning) &&
-            (identical(other.sessionUploaded, sessionUploaded) ||
-                other.sessionUploaded == sessionUploaded) &&
             (identical(other.deviceTotal, deviceTotal) ||
                 other.deviceTotal == deviceTotal));
   }
@@ -351,6 +359,7 @@ class _$SyncProgressImpl implements _SyncProgress {
       uploading,
       done,
       failed,
+      retryableFailed,
       paused,
       cancelled,
       currentFileProgress,
@@ -358,7 +367,6 @@ class _$SyncProgressImpl implements _SyncProgress {
       totalInBatch,
       scannedCount,
       isScanning,
-      sessionUploaded,
       deviceTotal);
 
   /// Create a copy of SyncProgress
@@ -376,6 +384,7 @@ abstract class _SyncProgress implements SyncProgress {
       final int uploading,
       final int done,
       final int failed,
+      final int retryableFailed,
       final int paused,
       final int cancelled,
       final double currentFileProgress,
@@ -383,7 +392,6 @@ abstract class _SyncProgress implements SyncProgress {
       final int totalInBatch,
       final int scannedCount,
       final bool isScanning,
-      final int sessionUploaded,
       final int deviceTotal}) = _$SyncProgressImpl;
 
   @override
@@ -394,6 +402,12 @@ abstract class _SyncProgress implements SyncProgress {
   int get done;
   @override
   int get failed;
+
+  /// Подмножество [failed], которое ещё будет ретраиться по backoff
+  /// (retry_count ниже порога SyncQueueDb). [failed] — все failed-строки,
+  /// включая терминальные; это поле чисто аддитивное.
+  @override
+  int get retryableFailed;
   @override
   int get paused;
   @override
@@ -408,8 +422,6 @@ abstract class _SyncProgress implements SyncProgress {
   int get scannedCount;
   @override
   bool get isScanning;
-  @override
-  int get sessionUploaded;
   @override
   int get deviceTotal;
 

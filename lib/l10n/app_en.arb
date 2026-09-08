@@ -93,6 +93,7 @@
   "folderCount": "Folders",
   "shareRequests": "Share Requests",
   "shareRequestsSubtitle": "Manage links and access",
+  "privacyPolicy": "Privacy Policy",
   "shareRequestDetails": "Share request details",
   "request": "Request",
   "linkNameLabel": "LINK NAME",
@@ -268,11 +269,18 @@
       "done": { "type": "int" }
     }
   },
+  "syncPausedDuringUpload": "Sync paused during upload — will resume automatically",
   "syncQueueFraction": "{count} / {total} files",
   "@syncQueueFraction": {
     "placeholders": {
       "count": { "type": "int" },
       "total": { "type": "int" }
+    }
+  },
+  "syncFailedCount": "{count} failed",
+  "@syncFailedCount": {
+    "placeholders": {
+      "count": { "type": "int" }
     }
   },
   "syncQueueItemPending": "Queued",
@@ -289,6 +297,13 @@
     }
   },
   "syncCancelAllConfirmButton": "Yes, cancel all",
+  "syncQueueShowingPartial": "Showing {shown} of {total}",
+  "@syncQueueShowingPartial": {
+    "placeholders": {
+      "shown": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
   "syncSelectedFiles": "Selected files",
   "syncSelectedFilesSubtitle": "Sync only selected",
   "syncSelectedCount": "{count} media selected",
@@ -397,6 +412,11 @@
     "placeholders": { "number": { "type": "String" } }
   },
   "cardAddedSuccess": "Card added successfully",
+  "cardAlreadyExists": "This card is already added.",
+  "cardTokenError": "Failed to add card. Please try again.",
+  "paymentGatewayUnavailable": "Payment service is temporarily unavailable. Please try again later.",
+  "cardVerificationExpired": "Card verification session expired. Please add the card again.",
+  "invalidVerificationCode": "Invalid verification code.",
   "confirmButton": "Confirm",
   "plansTitle": "Plans",
   "noPlans": "No plans available",
@@ -407,6 +427,13 @@
       "name": { "type": "String" },
       "price": { "type": "String" },
       "period": { "type": "String" }
+    }
+  },
+  "confirmFreePlanTitle": "Return to free plan?",
+  "confirmFreePlanMessage": "You will switch back to the «{name}» plan. Continue?",
+  "@confirmFreePlanMessage": {
+    "placeholders": {
+      "name": { "type": "String" }
     }
   },
   "updatePlan": "Subscribe",
@@ -557,5 +584,121 @@
   "notifTypeSystemAnnouncement": "System announcement",
   "notifTypeStorageWarning": "Storage running low",
   "notifTypeStorageFull": "Storage full",
-  "notifTypeUnknown": "New notification"
+  "notifTypeStorageDeletionWarning": "Storage cleanup scheduled",
+  "notifTypeUnknown": "New notification",
+  "notifBodySubscriptionExpiryWarning": "Your {plan} plan expires in {days} days",
+  "@notifBodySubscriptionExpiryWarning": {
+    "placeholders": {
+      "plan": { "type": "String" },
+      "days": { "type": "String" }
+    }
+  },
+  "notifBodySubscriptionExpired": "Your {plan} plan has expired",
+  "@notifBodySubscriptionExpired": {
+    "placeholders": {
+      "plan": { "type": "String" }
+    }
+  },
+  "notifBodySubscriptionRenewed": "Your {plan} plan has been renewed",
+  "@notifBodySubscriptionRenewed": {
+    "placeholders": {
+      "plan": { "type": "String" }
+    }
+  },
+  "notifBodySubscriptionDowngraded": "Your plan has been downgraded to {plan}",
+  "@notifBodySubscriptionDowngraded": {
+    "placeholders": {
+      "plan": { "type": "String" }
+    }
+  },
+  "notifBodyPaymentSuccess": "Payment of {amount} for the {plan} plan was successful",
+  "@notifBodyPaymentSuccess": {
+    "placeholders": {
+      "amount": { "type": "String" },
+      "plan": { "type": "String" }
+    }
+  },
+  "notifBodyPaymentFailed": "Payment of {amount} for the {plan} plan failed: {error}",
+  "@notifBodyPaymentFailed": {
+    "placeholders": {
+      "amount": { "type": "String" },
+      "plan": { "type": "String" },
+      "error": { "type": "String" }
+    }
+  },
+  "notifBodyCardDeclined": "Card ending in {last4} was declined for the {plan} plan",
+  "@notifBodyCardDeclined": {
+    "placeholders": {
+      "last4": { "type": "String" },
+      "plan": { "type": "String" }
+    }
+  },
+  "notifBodyFileSharedSingle": "{sharedBy} shared \"{name}\" with you",
+  "@notifBodyFileSharedSingle": {
+    "placeholders": {
+      "sharedBy": { "type": "String" },
+      "name": { "type": "String" }
+    }
+  },
+  "notifBodyFileSharedMultiple": "{sharedBy} shared {count} items with you",
+  "@notifBodyFileSharedMultiple": {
+    "placeholders": {
+      "sharedBy": { "type": "String" },
+      "count": { "type": "String" }
+    }
+  },
+  "notifBodyFileShareRevokedSingle": "{sharedBy} revoked your access to \"{name}\"",
+  "@notifBodyFileShareRevokedSingle": {
+    "placeholders": {
+      "sharedBy": { "type": "String" },
+      "name": { "type": "String" }
+    }
+  },
+  "notifBodyFileShareRevokedMultiple": "{sharedBy} revoked your access to {count} items",
+  "@notifBodyFileShareRevokedMultiple": {
+    "placeholders": {
+      "sharedBy": { "type": "String" },
+      "count": { "type": "String" }
+    }
+  },
+  "notifBodyShareRequestReceived": "{requester} requested access to \"{itemName}\"",
+  "@notifBodyShareRequestReceived": {
+    "placeholders": {
+      "requester": { "type": "String" },
+      "itemName": { "type": "String" }
+    }
+  },
+  "notifBodyShareRequestApproved": "Your request for \"{itemName}\" was approved",
+  "@notifBodyShareRequestApproved": {
+    "placeholders": {
+      "itemName": { "type": "String" }
+    }
+  },
+  "notifBodyShareRequestRejected": "Your request for \"{itemName}\" was rejected",
+  "@notifBodyShareRequestRejected": {
+    "placeholders": {
+      "itemName": { "type": "String" }
+    }
+  },
+  "notifBodyStorageWarning": "You've used {usedPercent}% of your storage",
+  "@notifBodyStorageWarning": {
+    "placeholders": {
+      "usedPercent": { "type": "String" }
+    }
+  },
+  "notifBodyStorageFull": "Your storage is full ({usedBytes} of {limitBytes} used)",
+  "@notifBodyStorageFull": {
+    "placeholders": {
+      "usedBytes": { "type": "String" },
+      "limitBytes": { "type": "String" }
+    }
+  },
+  "notifBodyStorageDeletionWarning": "Files will be deleted on {deletionDate} ({daysLeft} days left)",
+  "@notifBodyStorageDeletionWarning": {
+    "placeholders": {
+      "deletionDate": { "type": "String" },
+      "daysLeft": { "type": "String" }
+    }
+  },
+  "notifBodySystemAnnouncementFallback": "Check the app for details"
 }
