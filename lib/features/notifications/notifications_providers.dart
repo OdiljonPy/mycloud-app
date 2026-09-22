@@ -3,7 +3,8 @@ import 'data/notifications_repository.dart';
 
 /// Provides the NotificationsRepository singleton.
 /// No codegen — plain Provider (тот же стиль, что sync_providers.dart).
-final notificationsRepositoryProvider = Provider<NotificationsRepository>((ref) {
+final notificationsRepositoryProvider =
+    Provider<NotificationsRepository>((ref) {
   return NotificationsRepository();
 });
 

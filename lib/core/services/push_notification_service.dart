@@ -12,13 +12,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../features/notifications/notification_type_mapper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../firebase_options.dart';
 
 // Должен быть top-level (вне класса) и с этой аннотацией — иначе Android
 // не найдёт entry point для background isolate, и пуши в background/killed
 // состоянии не будут запускать этот handler.
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   debugPrint('[PushNotification] Background message: ${message.messageId}, data: ${message.data}');
 
   // FCM data payload: {key/type, body: <JSON-строка>, notification_id, priority}
@@ -104,6 +107,11 @@ class PushNotificationService {
     try {
       await _waitForApnsTokenIfNeeded();
       _currentToken = await _messaging.getToken();
+      if (_currentToken != null) {
+        debugPrint('[PushNotification] ensureToken success: $_currentToken');
+      } else {
+        debugPrint('[PushNotification] ensureToken returned null');
+      }
     } catch (e) {
       debugPrint('[PushNotification] ensureToken failed: $e');
     }
@@ -132,12 +140,18 @@ class PushNotificationService {
     try {
       await _waitForApnsTokenIfNeeded();
       _currentToken = await _messaging.getToken();
+      if (_currentToken != null) {
+        debugPrint('[PushNotification] getToken success: $_currentToken');
+      } else {
+        debugPrint('[PushNotification] getToken returned null — FCM not ready or project misconfigured');
+      }
     } catch (e) {
       debugPrint('[PushNotification] getToken failed: $e');
     }
 
     _messaging.onTokenRefresh.listen((token) {
       _currentToken = token;
+      debugPrint('[PushNotification] onTokenRefresh: $token');
       onTokenRefreshed?.call(token);
     });
 

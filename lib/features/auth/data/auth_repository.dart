@@ -40,7 +40,11 @@ class AuthRepository {
       if (accessToken == null) return;
 
       final token = await PushNotificationService.ensureToken();
-      if (token == null) return;
+      if (token == null) {
+        debugPrint('[AuthRepository] registerCurrentDevice: FCM token is null, skipping registration');
+        return;
+      }
+      debugPrint('[AuthRepository] registerCurrentDevice: token=${token.substring(0, 20)}...');
 
       final deviceId = await PushNotificationService.getDeviceId();
       final language = LanguageNotifier.instance.locale.languageCode;
@@ -51,6 +55,7 @@ class AuthRepository {
         isAndroid: Platform.isAndroid,
         language: language,
       );
+      debugPrint('[AuthRepository] registerCurrentDevice: success');
     } catch (e) {
       debugPrint('[AuthRepository] registerCurrentDevice failed: $e');
     }
