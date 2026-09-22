@@ -12,20 +12,6 @@ import '../share/presentation/share_requests_page.dart';
 import '../home/presentation/shared_page.dart';
 import '../profile/presentation/profile_page.dart';
 import 'presentation/notifications_page.dart';
-import 'dart:io' show Platform;
-
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../core/services/navigation_service.dart';
-import '../../l10n/app_localizations.dart';
-import '../payment/presentation/pages/subscription_page.dart';
-import '../payment/presentation/pages/add_card_page.dart';
-import '../payment/presentation/bloc/payment_bloc.dart';
-import '../payment/data/repository/payment_repository.dart';
-import '../share/presentation/share_requests_page.dart';
-import '../home/presentation/shared_page.dart';
-import '../profile/presentation/profile_page.dart';
-import 'presentation/notifications_page.dart';
 
 /// Единственное место, которое нужно трогать при появлении новых типов
 /// уведомлений или при изменении списка от бэкенда — карты type→экран и
