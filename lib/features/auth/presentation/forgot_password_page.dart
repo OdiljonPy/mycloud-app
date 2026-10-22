@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import '../data/auth_repository.dart';
-import '../../../core/errors/app_exception.dart';
 import '../../../core/utils/error_localizer.dart';
 import '../../../core/utils/uzbek_phone_formatter.dart';
 import '../../../l10n/app_localizations.dart';
 import 'reset_password_otp_page.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
-  const ForgotPasswordPage({super.key});
+  final AuthRepository? authRepository;
+  const ForgotPasswordPage({super.key, this.authRepository});
 
   @override
   State<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
@@ -15,17 +15,18 @@ class ForgotPasswordPage extends StatefulWidget {
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final _phoneController = TextEditingController(text: '+998 ');
-  final _authRepo = AuthRepository();
+  late final _authRepo = widget.authRepository ?? AuthRepository();
   final _phoneFocus = FocusNode();
 
   bool _isLoading = false;
   bool _phoneTouched = false;
-  String? _error;
+  Object? _error;
 
   String _rawPhone() => _phoneController.text.replaceAll(RegExp(r'[^\d]'), '');
   bool get _isPhoneValid => _rawPhone().length == 12;
 
   Future<void> _sendOtp() async {
+    if (_isLoading || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
     setState(() => _phoneTouched = true);
     if (!_isPhoneValid) return;
 
@@ -37,22 +38,21 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     try {
       final phone = '+${_rawPhone()}';
       final otpKey = await _authRepo.forgotPassword(phoneNumber: phone);
-      if (mounted) {
-        Navigator.push(
+      if (mounted && (ModalRoute.of(context)?.isCurrent ?? true)) {
+        await Navigator.push<void>(
           context,
           MaterialPageRoute(
             builder: (_) => ResetPasswordOtpPage(
               phoneNumber: phone,
               otpKey: otpKey,
+              authRepository: _authRepo,
             ),
           ),
         );
       }
-    } on AppException catch (e) {
-      final localized = mounted
-          ? ErrorLocalizer.localize(e.message, AppLocalizations.of(context)!)
-          : e.message;
-      setState(() => _error = localized);
+    } catch (e) {
+      if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      setState(() => _error = e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -82,10 +82,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     // iOS HIG ranglar
     final bgColor = isDark ? const Color(0xFF000000) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
-    final subtitleColor = isDark ? const Color(0xFF98989D) : const Color(0xFF8E8E93);
-    final hintColor = isDark ? const Color(0xFF636366) : const Color(0xFFC7C7CC);
-    final accentColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF1A73E8);
-    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+    final subtitleColor =
+        isDark ? const Color(0xFF98989D) : const Color(0xFF8E8E93);
+    final hintColor =
+        isDark ? const Color(0xFF636366) : const Color(0xFFC7C7CC);
+    final accentColor =
+        isDark ? const Color(0xFF0A84FF) : const Color(0xFF1A73E8);
+    final errorColor =
+        isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -105,7 +109,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 8),
-
               Container(
                 width: 56,
                 height: 56,
@@ -113,11 +116,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   color: accentColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(Icons.lock_reset_rounded, color: accentColor, size: 28),
+                child: Icon(Icons.lock_reset_rounded,
+                    color: accentColor, size: 28),
               ),
-
               const SizedBox(height: 24),
-
               Text(
                 AppLocalizations.of(context)!.forgotPasswordTitle,
                 style: TextStyle(
@@ -131,9 +133,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 AppLocalizations.of(context)!.forgotPasswordSubtitle,
                 style: TextStyle(fontSize: 14, color: subtitleColor),
               ),
-
               const SizedBox(height: 40),
-
               Text(
                 AppLocalizations.of(context)!.phoneNumberLabel,
                 style: TextStyle(
@@ -144,6 +144,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               ),
               const SizedBox(height: 8),
               TextField(
+                readOnly: _isLoading,
                 controller: _phoneController,
                 focusNode: _phoneFocus,
                 keyboardType: TextInputType.phone,
@@ -155,8 +156,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   hintStyle: TextStyle(color: hintColor),
                   filled: true,
                   fillColor: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFF2A2A2A)
-                    : const Color(0xFFF5F7FA),
+                      ? const Color(0xFF2A2A2A)
+                      : const Color(0xFFF5F7FA),
                   prefixIcon: Container(
                     margin: const EdgeInsets.all(10),
                     padding: const EdgeInsets.all(8),
@@ -164,7 +165,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       color: accentColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(Icons.phone_rounded, color: accentColor, size: 18),
+                    child:
+                        Icon(Icons.phone_rounded, color: accentColor, size: 18),
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -190,7 +192,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],
-
               if (_error != null) ...[
                 const SizedBox(height: 12),
                 Container(
@@ -208,7 +209,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          _error!,
+                          ErrorLocalizer.forException(
+                              _error!, AppLocalizations.of(context)!),
                           style: TextStyle(
                             color: errorColor,
                             fontSize: 13,
@@ -219,9 +221,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   ),
                 ),
               ],
-
               const SizedBox(height: 32),
-
               SizedBox(
                 width: double.infinity,
                 height: 54,
@@ -254,7 +254,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                         ),
                 ),
               ),
-
               const SizedBox(height: 40),
             ],
           ),

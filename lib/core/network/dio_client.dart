@@ -34,7 +34,11 @@ class DioClient {
   // снова мог триггернуть auto-logout.
   static void resetLogoutFlag() => _isLoggingOut = false;
 
-  static Dio _createDio() {
+  @visibleForTesting
+  static Dio createForTesting(HttpClientAdapter adapter) =>
+      _createDio(adapter: adapter);
+
+  static Dio _createDio({HttpClientAdapter? adapter}) {
     final dio = Dio(
       BaseOptions(
         baseUrl: AppConfig.instance.baseUrl,
@@ -50,7 +54,7 @@ class DioClient {
     // Логгер добавлен ДО _AuthInterceptor: он видит headers раньше, чем
     // туда попадёт Authorization — токен физически не печатается в лог.
     // Только debug — в release логгер выключен полностью.
-    if (kDebugMode) {
+    if (kDebugMode && adapter == null) {
       dio.interceptors.add(PrettyDioLogger(
         requestHeader: true,
         requestBody: true,
@@ -60,7 +64,8 @@ class DioClient {
         compact: true,
       ));
     }
-    dio.interceptors.add(_AuthInterceptor(dio));
+    if (adapter != null) dio.httpClientAdapter = adapter;
+    dio.interceptors.add(_AuthInterceptor(dio, refreshAdapter: adapter));
 
     return dio;
   }
@@ -68,158 +73,230 @@ class DioClient {
 
 class _AuthInterceptor extends Interceptor {
   final Dio dio;
-
-  // Один физический refresh на всю "бурю" параллельных 401 — конкурентные
-  // запросы ждут этот же Future и ретраятся с его результатом вместо
-  // немедленного провала (раньше только первый запрос ретраился, остальные
-  // сразу проваливались 401-кой, даже если refresh секундой позже был успешен).
+  final HttpClientAdapter? refreshAdapter;
   Future<String?>? _refreshFuture;
+  int? _refreshRevision;
 
-  _AuthInterceptor(this.dio);
+  static const _revisionKey = 'cloudSessionRevision';
+  static const _retryKey = 'cloudAuthRetried';
+  static const _publicPaths = {
+    'login/',
+    'register/',
+    'otp/verify/',
+    'otp/resend/',
+    'password/forgot/',
+    'password/resend/',
+    'password/verify/',
+    'password/reset/',
+    'token-refresh/',
+  };
+
+  _AuthInterceptor(this.dio, {this.refreshAdapter});
+
+  bool _isPublic(RequestOptions options) => _publicPaths.any(
+        (path) => options.uri.path.endsWith('/authentication/users/$path'),
+      );
+
+  bool _isCurrent(int revision) => revision == SecureStorage.sessionRevision;
+
+  DioException _staleRequest(RequestOptions options) => DioException(
+        requestOptions: options,
+        type: DioExceptionType.cancel,
+        message: 'Authentication session changed',
+      );
 
   @override
   void onRequest(
-      RequestOptions options,
-      RequestInterceptorHandler handler,
-      ) async {
-    final token = await SecureStorage.getAccessToken();
-    if (token != null) {
-      options.headers['Authorization'] = 'Bearer $token';
+      RequestOptions options, RequestInterceptorHandler handler) async {
+    if (_isPublic(options)) {
+      options.headers.remove('Authorization');
+      handler.next(options);
+      return;
     }
-    handler.next(options);
+    final revision =
+        options.extra[_revisionKey] as int? ?? SecureStorage.sessionRevision;
+    options.extra[_revisionKey] = revision;
+    try {
+      final token = await SecureStorage.getAccessToken();
+      if (!_isCurrent(revision)) {
+        handler.reject(_staleRequest(options));
+        return;
+      }
+      options.headers.remove('Authorization');
+      if (token != null) options.headers['Authorization'] = 'Bearer $token';
+      handler.next(options);
+    } catch (error) {
+      handler.reject(DioException(requestOptions: options, error: error));
+    }
+  }
+
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    final revision = response.requestOptions.extra[_revisionKey] as int?;
+    if (revision != null && !_isCurrent(revision)) {
+      handler.reject(_staleRequest(response.requestOptions));
+      return;
+    }
+    handler.next(response);
   }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    if (err.response?.statusCode != 401) {
+    if (err.response?.statusCode != 401 || _isPublic(err.requestOptions)) {
       handler.next(err);
       return;
     }
-
+    final revision = err.requestOptions.extra[_revisionKey] as int?;
+    if (revision == null || !_isCurrent(revision)) {
+      handler.next(_staleRequest(err.requestOptions));
+      return;
+    }
     final silent = err.requestOptions.extra['silentAuth'] == true;
-    final newToken = await (_refreshFuture ??=
-        _refreshToken(silent).whenComplete(() => _refreshFuture = null));
-
-    if (newToken == null) {
-      handler.next(err);
-      return;
-    }
-
     try {
-      // Не подставляем newToken в headers напрямую — тогда PrettyDioLogger
-      // (идёт в цепочке раньше onRequest) залогировал бы новый токен на
-      // ретрае. Убираем старый и даём onRequest подставить свежий из
-      // SecureStorage уже после логгера.
+      if (err.requestOptions.extra[_retryKey] == true) {
+        await _forceLogout(silent: silent, revision: revision);
+        handler.next(err);
+        return;
+      }
+
+      // A late 401 may belong to the token that another request has already
+      // refreshed. Reuse the current token rather than rotate it again.
+      var newToken = await SecureStorage.getAccessToken();
+      if (newToken == null ||
+          err.requestOptions.headers['Authorization'] == 'Bearer $newToken') {
+        if (_refreshFuture == null || _refreshRevision != revision) {
+          _refreshRevision = revision;
+          final pending = _refreshToken(revision);
+          _refreshFuture = pending;
+          try {
+            newToken = await pending;
+          } finally {
+            if (identical(_refreshFuture, pending)) _refreshFuture = null;
+          }
+        } else {
+          newToken = await _refreshFuture;
+        }
+      }
+      if (!_isCurrent(revision)) {
+        handler.next(_staleRequest(err.requestOptions));
+        return;
+      }
+      if (newToken == null) {
+        await _forceLogout(silent: silent, revision: revision);
+        handler.next(err);
+        return;
+      }
+      err.requestOptions.extra[_retryKey] = true;
       err.requestOptions.headers.remove('Authorization');
-      final retryResponse = await dio.fetch(err.requestOptions);
-      handler.resolve(retryResponse);
-    } catch (_) {
-      handler.next(err);
+      final response = await dio.fetch(err.requestOptions);
+      handler.resolve(response);
+    } on DioException catch (error) {
+      // Propagate refresh transport/5xx failures as such, not as the original
+      // 401: the splash must not erase a session merely because it is offline.
+      handler.next(DioException(
+        requestOptions: err.requestOptions,
+        response: error.response,
+        type: error.type,
+        error: error.error,
+        message: error.message,
+      ));
+    } catch (error) {
+      handler
+          .next(DioException(requestOptions: err.requestOptions, error: error));
     }
   }
 
-  Future<String?> _refreshToken(bool silent) async {
+  Future<String?> _refreshToken(int revision) async {
+    final refreshToken = await SecureStorage.getRefreshToken();
+    if (!_isCurrent(revision) || refreshToken == null) return null;
+    final refreshDio = Dio(BaseOptions(
+      baseUrl: AppConfig.instance.baseUrl,
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+    ));
+    if (refreshAdapter != null) refreshDio.httpClientAdapter = refreshAdapter!;
     try {
-      final refreshToken = await SecureStorage.getRefreshToken();
-      if (refreshToken == null) {
-        await _forceLogout(silent: silent);
-        return null;
-      }
-
-      final refreshDio = Dio(
-        BaseOptions(
-          baseUrl: AppConfig.instance.baseUrl,
-          connectTimeout: const Duration(seconds: 30),
-          receiveTimeout: const Duration(seconds: 30),
-        ),
-      );
-
-      // Только debug — иначе refresh-запрос (единственный, который решает,
-      // разлогинить юзера или нет) был полностью невидим в логах, и по факту
-      // 401-штормов было невозможно понять, что ответил бэкенд на refresh.
-      // Заголовков тут нет (refresh шлёт только тело), так что requestHeader
-      // ничего чувствительного не печатает.
-      if (kDebugMode) {
-        refreshDio.interceptors.add(PrettyDioLogger(
-          requestHeader: true,
-          requestBody: true,
-          responseBody: true,
-          responseHeader: false,
-          error: true,
-          compact: true,
-        ));
-      }
-
       final response = await refreshDio.post(
         '/authentication/users/token-refresh/',
         data: {'refresh_token': refreshToken},
       );
-
-      final result = response.data is Map &&
-              response.data.containsKey('result')
-          ? response.data['result']
-          : response.data;
-
-      final newAccessToken = (result['access_token'] ??
+      if (!_isCurrent(revision)) return null;
+      final data = response.data;
+      final result =
+          data is Map && data['result'] is Map ? data['result'] : data;
+      final access = result is Map
+          ? result['access_token'] ??
               result['access'] ??
-              response.data['access_token'] ??
-              response.data['access'])
-          ?.toString();
-
-      final newRefreshToken = (result['refresh_token'] ??
+              (data is Map ? data['access_token'] ?? data['access'] : null)
+          : null;
+      final refresh = result is Map
+          ? result['refresh_token'] ??
               result['refresh'] ??
-              response.data['refresh_token'] ??
-              response.data['refresh'])
-          ?.toString();
-
-      if (newAccessToken == null) throw Exception('No access token in refresh response');
-
-      await SecureStorage.saveTokens(
-        accessToken: newAccessToken,
-        refreshToken: newRefreshToken ?? refreshToken,
+              (data is Map ? data['refresh_token'] ?? data['refresh'] : null)
+          : null;
+      // Refresh rotates both tokens according to MD/swagger.md. A partial pair
+      // is not safe to persist or to treat as an expired session.
+      if (access is! String ||
+          access.trim().isEmpty ||
+          refresh is! String ||
+          refresh.trim().isEmpty) {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: Response(
+              requestOptions: response.requestOptions, statusCode: 502),
+          type: DioExceptionType.badResponse,
+          message: 'Invalid token refresh response',
+        );
+      }
+      final saved = await SecureStorage.saveRefreshedTokens(
+        accessToken: access,
+        refreshToken: refresh,
+        expectedRevision: revision,
       );
-
-      return newAccessToken;
-    } catch (_) {
-      await _forceLogout(silent: silent);
-      return null;
+      return saved ? access : null;
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 401 ||
+          error.response?.statusCode == 403) {
+        return null;
+      }
+      rethrow;
+    } finally {
+      // Tests share an adapter; production owns this short-lived client.
+      if (refreshAdapter == null) refreshDio.close();
     }
   }
 
-  // refreshToken() провалился → сессия невалидна.
-  // silentAuth (проверка на сплэше) — экран сам чистит токены и решает, что
-  // показать пользователю: здесь трогать глобальный logout-стейт нельзя,
-  // иначе конкурентный silent-запрос может обнулить токены живой сессии.
-  Future<void> _forceLogout({required bool silent}) async {
-    if (silent) return;
-    if (DioClient._isLoggingOut) return;
-    DioClient._isLoggingOut = true;
-
+  Future<void> _forceLogout(
+      {required bool silent, required int revision}) async {
+    if (silent || !_isCurrent(revision) || DioClient._isLoggingOut) return;
     final lastUserId = await SecureStorage.getUserId();
+    if (!_isCurrent(revision)) return;
     if (lastUserId != null) {
       final prefs = await SharedPreferences.getInstance();
+      if (!_isCurrent(revision)) return;
       await prefs.setString(
-        DioClient.kLastKnownUserIdBeforeForcedLogoutKey,
-        lastUserId,
-      );
+          DioClient.kLastKnownUserIdBeforeForcedLogoutKey, lastUserId);
     }
-
-    await SecureStorage.clearTokens();
+    if (!_isCurrent(revision) || DioClient._isLoggingOut) return;
+    DioClient._isLoggingOut = true;
+    final bool cleared;
+    try {
+      cleared = await SecureStorage.clearTokens(expectedRevision: revision);
+    } catch (_) {
+      DioClient._isLoggingOut = false;
+      rethrow;
+    }
+    if (!cleared || SecureStorage.sessionRevision != revision + 1) return;
     DioClient.reset();
 
     final navigator = NavigationService.navigatorKey.currentState;
     final context = NavigationService.navigatorKey.currentContext;
-    if (navigator == null || context == null) return;
-
+    if (navigator == null || context == null || !context.mounted) return;
+    final l10n = AppLocalizations.of(context);
     navigator.pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginPage()),
       (_) => false,
     );
-
-    // context приходит от GlobalKey (NavigationService), а не от State —
-    // используется сразу после null-проверки, без промежуточных await.
-    // ignore: use_build_context_synchronously
-    final l10n = AppLocalizations.of(context);
     if (l10n != null) {
       NavigationService.scaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(l10n.errorSessionExpiredRelogin)),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/services/app_initializer.dart';
 import '../../../core/services/language_notifier.dart';
@@ -52,18 +53,22 @@ class _SplashPageState extends State<SplashPage>
     final onboardDone = prefs.getBool('onboard_done') ?? false;
 
     String? token;
-    try { token = await SecureStorage.getAccessToken(); } catch (_) {}
+    try {
+      token = await SecureStorage.getAccessToken();
+    } catch (_) {}
 
     if (!mounted) return;
 
     if (token != null && token.isNotEmpty) {
+      final revision = SecureStorage.sessionRevision;
       final valid = await _isSessionValid();
-      if (!mounted) return;
+      if (!mounted || revision != SecureStorage.sessionRevision) return;
       if (valid) {
         _go(const MainPage(), settings: const RouteSettings(name: 'main'));
       } else {
-        await SecureStorage.clearTokens();
-        if (!mounted) return;
+        final cleared =
+            await SecureStorage.clearTokens(expectedRevision: revision);
+        if (!mounted || !cleared) return;
         _go(const LoginPage());
       }
     } else if (!langChosen) {
@@ -96,7 +101,10 @@ class _SplashPageState extends State<SplashPage>
   }
 
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -153,7 +161,7 @@ class _SplashPageState extends State<SplashPage>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Your files, everywhere.',
+                    AppLocalizations.of(context)!.splashTagline,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.75),
                       fontSize: 15,
@@ -239,20 +247,25 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
                       'assets/images/mycloud.png',
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => const Icon(
-                        Icons.cloud_rounded, color: Colors.white, size: 44),
+                          Icons.cloud_rounded,
+                          color: Colors.white,
+                          size: 44),
                     ),
                   ),
                 ),
                 const SizedBox(height: 24),
                 const Text(
                   'Tilni tanlang',
-                  style: TextStyle(color: Colors.white, fontSize: 26,
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
                       fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 6),
                 Text('Выберите язык · Choose language',
-                  style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7), fontSize: 14)),
+                    style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 14)),
                 const Spacer(),
                 ..._langs.map((lang) {
                   final isSelected = _selected == lang['code'];
@@ -278,7 +291,8 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
                       ),
                       child: Row(
                         children: [
-                          Text(lang['flag']!, style: const TextStyle(fontSize: 26)),
+                          Text(lang['flag']!,
+                              style: const TextStyle(fontSize: 26)),
                           const SizedBox(width: 16),
                           Text(
                             lang['label']!,
@@ -314,14 +328,16 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16)),
                     ),
-                    child: Text(
-                        _selected == 'uz'
-                            ? 'Davom etish →'
-                            : _selected == 'ru'
-                                ? 'Продолжить →'
-                                : 'Continue →',
-                        style: const TextStyle(fontSize: 16,
-                            fontWeight: FontWeight.bold)),
+                    child: Localizations.override(
+                      context: context,
+                      locale: Locale(_selected),
+                      child: Builder(
+                          builder: (context) => Text(
+                                AppLocalizations.of(context)!.languageContinue,
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold),
+                              )),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -347,47 +363,23 @@ class _OnboardingPageState extends State<OnboardingPage> {
   int _page = 0;
 
   static final _slides = [
-    const _Slide(
+    _Slide(
       icon: Icons.cloud_upload_rounded,
-      titles: {
-        'uz': 'Barcha fayllar bir joyda',
-        'ru': 'Все файлы в одном месте',
-        'en': 'All files in one place',
-      },
-      subtitles: {
-        'uz': 'Rasmlar, videolar, hujjatlar — hammasi xavfsiz saqlangan',
-        'ru': 'Фото, видео, документы — всё надёжно хранится',
-        'en': 'Photos, videos, documents — all securely stored',
-      },
-      gradient: [Color(0xFF1A73E8), Color(0xFF0D47A1)],
+      title: (l10n) => l10n.onboardingFilesTitle,
+      subtitle: (l10n) => l10n.onboardingFilesSubtitle,
+      gradient: const [Color(0xFF1A73E8), Color(0xFF0D47A1)],
     ),
-    const _Slide(
+    _Slide(
       icon: Icons.sync_rounded,
-      titles: {
-        'uz': 'Avtomatik sinxronizatsiya',
-        'ru': 'Автоматическая синхронизация',
-        'en': 'Auto sync',
-      },
-      subtitles: {
-        'uz': 'Galereya fonida yuklanadi — Google Photos kabi',
-        'ru': 'Галерея загружается фоном — как Google Photos',
-        'en': 'Gallery uploads in background — like Google Photos',
-      },
-      gradient: [Color(0xFF0D47A1), Color(0xFF1565C0)],
+      title: (l10n) => l10n.onboardingSyncTitle,
+      subtitle: (l10n) => l10n.onboardingSyncSubtitle,
+      gradient: const [Color(0xFF0D47A1), Color(0xFF1565C0)],
     ),
-    const _Slide(
+    _Slide(
       icon: Icons.lock_rounded,
-      titles: {
-        'uz': 'Xavfsiz va tez',
-        'ru': 'Безопасно и быстро',
-        'en': 'Safe and fast',
-      },
-      subtitles: {
-        'uz': 'Sizning malumotlaringiz faqat sizniki',
-        'ru': 'Ваши данные принадлежат только вам',
-        'en': 'Your data belongs only to you',
-      },
-      gradient: [Color(0xFF1565C0), Color(0xFF1A237E)],
+      title: (l10n) => l10n.onboardingPrivacyTitle,
+      subtitle: (l10n) => l10n.onboardingPrivacySubtitle,
+      gradient: const [Color(0xFF1565C0), Color(0xFF1A237E)],
     ),
   ];
 
@@ -412,11 +404,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final lang = LanguageNotifier.instance.locale.languageCode;
+    final l10n = AppLocalizations.of(context)!;
     final slide = _slides[_page];
     return Scaffold(
       body: AnimatedContainer(
@@ -437,7 +432,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 child: TextButton(
                   onPressed: _finish,
                   child: Text(
-                    lang == 'uz' ? 'O\'tkazib yuborish' : lang == 'ru' ? 'Пропустить' : 'Skip',
+                    l10n.skipButton,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 14,
@@ -445,7 +440,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   ),
                 ),
               ),
-
               Expanded(
                 child: PageView.builder(
                   controller: _ctrl,
@@ -454,7 +448,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   itemBuilder: (_, i) => _SlideWidget(slide: _slides[i]),
                 ),
               ),
-
               Padding(
                 padding: const EdgeInsets.fromLTRB(28, 0, 28, 40),
                 child: Row(
@@ -492,11 +485,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         child: Center(
                           child: _page == _slides.length - 1
                               ? Text(
-                                  lang == 'uz'
-                                      ? 'Boshlash'
-                                      : lang == 'ru'
-                                          ? 'Начать'
-                                          : 'Get Started',
+                                  l10n.getStartedButton,
                                   style: const TextStyle(
                                     color: Color(0xFF1A73E8),
                                     fontWeight: FontWeight.bold,
@@ -524,17 +513,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
 class _Slide {
   final IconData icon;
-  final Map<String, String> titles;    // {'uz': ..., 'ru': ..., 'en': ...}
-  final Map<String, String> subtitles;
+  final String Function(AppLocalizations) title;
+  final String Function(AppLocalizations) subtitle;
   final List<Color> gradient;
   const _Slide({
     required this.icon,
-    required this.titles,
-    required this.subtitles,
+    required this.title,
+    required this.subtitle,
     required this.gradient,
   });
-  String title(String lang) => titles[lang] ?? titles['en'] ?? '';
-  String subtitle(String lang) => subtitles[lang] ?? subtitles['en'] ?? '';
 }
 
 class _SlideWidget extends StatelessWidget {
@@ -543,7 +530,7 @@ class _SlideWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lang = LanguageNotifier.instance.locale.languageCode;
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 36),
       child: Column(
@@ -560,7 +547,7 @@ class _SlideWidget extends StatelessWidget {
           ),
           const SizedBox(height: 48),
           Text(
-            slide.title(lang),
+            slide.title(l10n),
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
@@ -571,7 +558,7 @@ class _SlideWidget extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            slide.subtitle(lang),
+            slide.subtitle(l10n),
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.85),

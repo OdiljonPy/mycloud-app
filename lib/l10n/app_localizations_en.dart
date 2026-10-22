@@ -1353,4 +1353,95 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notifBodySystemAnnouncementFallback => 'Check the app for details';
+
+  @override
+  String get errorNetworkUnavailable => 'No connection. Check your internet connection and try again.';
+
+  @override
+  String get errorRequestTimeout => 'The request timed out. Please try again.';
+
+  @override
+  String get errorAccessDenied => 'You do not have permission to perform this action.';
+
+  @override
+  String get errorResourceNotFound => 'The item was not found or has been deleted.';
+
+  @override
+  String get errorTooManyRequests => 'Too many requests. Please wait and try again.';
+
+  @override
+  String get errorShareLimitReached => 'Your sharing limit has been reached.';
+
+  @override
+  String get errorServerUnavailable => 'The server is temporarily unavailable. Please try again later.';
+
+  @override
+  String get errorValidation => 'Check the entered details and try again.';
+
+  @override
+  String get errorItemAlreadyExists => 'This item already exists.';
+
+  @override
+  String get errorOtpExpired => 'The verification code has expired. Request a new code.';
+
+  @override
+  String get errorRequestCancelled => 'The action was cancelled.';
+
+  @override
+  String get errorSystemFolderProtected => 'This system folder cannot be deleted.';
+
+  @override
+  String get pressBackAgainToExit => 'Press back again to close the app';
+
+  @override
+  String get splashTagline => 'Your files, everywhere.';
+
+  @override
+  String get languageContinue => 'Continue →';
+
+  @override
+  String get skipButton => 'Skip';
+
+  @override
+  String get getStartedButton => 'Get Started';
+
+  @override
+  String get onboardingFilesTitle => 'All files in one place';
+
+  @override
+  String get onboardingFilesSubtitle => 'Photos, videos, documents — all securely stored';
+
+  @override
+  String get onboardingSyncTitle => 'Auto sync';
+
+  @override
+  String get onboardingSyncSubtitle => 'Gallery uploads in background — like Google Photos';
+
+  @override
+  String get onboardingPrivacyTitle => 'Safe and fast';
+
+  @override
+  String get onboardingPrivacySubtitle => 'Your data belongs only to you';
+
+  @override
+  String get uploadCheckingDuplicates => 'Upload complete. Checking for duplicates…';
+
+  @override
+  String get syncResumed => 'Sync resumed.';
+
+  @override
+  String syncResumedWithDuplicates(int count) {
+    return 'Sync resumed. Duplicate files skipped: $count.';
+  }
+
+  @override
+  String syncPausedForManualUpload(int count) {
+    return 'Sync paused. Files to upload: $count.';
+  }
+
+  @override
+  String get syncStatusScanning => 'Scanning gallery...';
+
+  @override
+  String get localFileNotFound => 'File not found';
 }

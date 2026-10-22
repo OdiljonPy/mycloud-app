@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../data/auth_repository.dart';
-import '../../../core/errors/app_exception.dart';
 import '../../../core/utils/error_localizer.dart';
 import '../../../core/utils/uzbek_phone_formatter.dart';
 import '../../../l10n/app_localizations.dart';
@@ -9,7 +8,8 @@ import 'forgot_password_page.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final AuthRepository? authRepository;
+  const LoginPage({super.key, this.authRepository});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -18,14 +18,14 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _phoneController = TextEditingController(text: '+998 ');
   final _passwordController = TextEditingController();
-  final _authRepo = AuthRepository();
+  late final _authRepo = widget.authRepository ?? AuthRepository();
 
   final _phoneFocus = FocusNode();
   final _passwordFocus = FocusNode();
 
   bool _isLoading = false;
   bool _obscurePassword = true;
-  String? _error;
+  Object? _error;
 
   bool _phoneTouched = false;
   bool _passwordTouched = false;
@@ -51,6 +51,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _login() async {
+    if (_isLoading || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
     setState(() {
       _phoneTouched = true;
       _passwordTouched = true;
@@ -67,7 +68,7 @@ class _LoginPageState extends State<LoginPage> {
         phoneNumber: '+${_rawPhone()}',
         password: _passwordController.text,
       );
-      if (mounted) {
+      if (mounted && (ModalRoute.of(context)?.isCurrent ?? true)) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             settings: const RouteSettings(name: 'main'),
@@ -75,13 +76,11 @@ class _LoginPageState extends State<LoginPage> {
           ),
         );
       }
-    } on AppException catch (e) {
-      final localized = mounted
-          ? ErrorLocalizer.localize(e.message, AppLocalizations.of(context)!)
-          : e.message;
-      setState(() => _error = localized);
+    } catch (e) {
+      if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      setState(() => _error = e);
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -100,10 +99,14 @@ class _LoginPageState extends State<LoginPage> {
 
     // iOS HIG ranglar
     final textColor = isDark ? Colors.white : Colors.black87;
-    final subtitleColor = isDark ? const Color(0xFF98989D) : const Color(0xFF8E8E93);
-    final hintColor = isDark ? const Color(0xFF636366) : const Color(0xFFC7C7CC);
-    final accentColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF1A73E8);
-    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+    final subtitleColor =
+        isDark ? const Color(0xFF98989D) : const Color(0xFF8E8E93);
+    final hintColor =
+        isDark ? const Color(0xFF636366) : const Color(0xFFC7C7CC);
+    final accentColor =
+        isDark ? const Color(0xFF0A84FF) : const Color(0xFF1A73E8);
+    final errorColor =
+        isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
 
     return Scaffold(
       body: SafeArea(
@@ -113,7 +116,6 @@ class _LoginPageState extends State<LoginPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 60),
-
               Container(
                 width: 64,
                 height: 64,
@@ -140,9 +142,7 @@ class _LoginPageState extends State<LoginPage> {
                   size: 34,
                 ),
               ),
-
               const SizedBox(height: 32),
-
               Text(
                 AppLocalizations.of(context)!.loginWelcomeTitle,
                 style: TextStyle(
@@ -157,9 +157,7 @@ class _LoginPageState extends State<LoginPage> {
                 AppLocalizations.of(context)!.loginSubtitle,
                 style: TextStyle(fontSize: 14, color: subtitleColor),
               ),
-
               const SizedBox(height: 48),
-
               Text(
                 AppLocalizations.of(context)!.phoneNumberLabel,
                 style: TextStyle(
@@ -170,6 +168,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: 8),
               TextField(
+                readOnly: _isLoading,
                 controller: _phoneController,
                 focusNode: _phoneFocus,
                 keyboardType: TextInputType.phone,
@@ -228,9 +227,7 @@ class _LoginPageState extends State<LoginPage> {
                   style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],
-
               const SizedBox(height: 16),
-
               Text(
                 AppLocalizations.of(context)!.passwordLabel,
                 style: TextStyle(
@@ -241,6 +238,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: 8),
               TextField(
+                readOnly: _isLoading,
                 controller: _passwordController,
                 focusNode: _passwordFocus,
                 obscureText: _obscurePassword,
@@ -302,17 +300,17 @@ class _LoginPageState extends State<LoginPage> {
                   style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],
-
               const SizedBox(height: 8),
-
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const ForgotPasswordPage()),
-                  ),
+                  onPressed: _isLoading
+                      ? null
+                      : () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const ForgotPasswordPage()),
+                          ),
                   style: TextButton.styleFrom(
                     padding: EdgeInsets.zero,
                     minimumSize: Size.zero,
@@ -328,7 +326,6 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
               ),
-
               if (_error != null) ...[
                 const SizedBox(height: 12),
                 Container(
@@ -350,7 +347,8 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          _error!,
+                          ErrorLocalizer.forException(
+                              _error!, AppLocalizations.of(context)!),
                           style: TextStyle(
                             color: errorColor,
                             fontSize: 13,
@@ -361,9 +359,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
               ],
-
               const SizedBox(height: 32),
-
               SizedBox(
                 width: double.infinity,
                 height: 54,
@@ -399,12 +395,11 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                 ),
               ),
-
               const SizedBox(height: 40),
-
               Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
                       AppLocalizations.of(context)!.noAccountPrompt,
@@ -414,11 +409,13 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     GestureDetector(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const RegisterPage()),
-                      ),
+                      onTap: _isLoading
+                          ? null
+                          : () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const RegisterPage()),
+                              ),
                       child: Text(
                         AppLocalizations.of(context)!.registerLink,
                         style: TextStyle(

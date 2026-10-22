@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../data/auth_repository.dart';
-import '../../../core/errors/app_exception.dart';
 import '../../../core/utils/error_localizer.dart';
 import '../../../core/utils/uzbek_phone_formatter.dart';
 import '../../../l10n/app_localizations.dart';
 import 'otp_page.dart';
 
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+  final AuthRepository? authRepository;
+  const RegisterPage({super.key, this.authRepository});
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
@@ -19,7 +19,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final _phoneController = TextEditingController(text: '+998 ');
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _authRepo = AuthRepository();
+  late final _authRepo = widget.authRepository ?? AuthRepository();
 
   final _phoneFocus = FocusNode();
   final _passwordFocus = FocusNode();
@@ -28,7 +28,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  String? _error;
+  Object? _error;
 
   bool _phoneTouched = false;
   bool _passwordTouched = false;
@@ -68,6 +68,7 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> _register() async {
+    if (_isLoading || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
     setState(() {
       _phoneTouched = true;
       _passwordTouched = true;
@@ -92,18 +93,18 @@ class _RegisterPageState extends State<RegisterPage> {
         password: password,
       );
 
-      if (mounted) {
-        Navigator.push(
+      if (mounted && (ModalRoute.of(context)?.isCurrent ?? true)) {
+        await Navigator.push<void>(
           context,
           MaterialPageRoute(
-            builder: (_) => OtpPage(phoneNumber: phone, otpKey: otpKey),
+            builder: (_) => OtpPage(
+                phoneNumber: phone, otpKey: otpKey, authRepository: _authRepo),
           ),
         );
       }
-    } on AppException catch (e) {
-      if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      setState(() => _error = ErrorLocalizer.forException(e, l10n));
+    } catch (e) {
+      if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      setState(() => _error = e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -128,11 +129,16 @@ class _RegisterPageState extends State<RegisterPage> {
     // iOS HIG ranglar
     final bgColor = isDark ? const Color(0xFF000000) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
-    final subtitleColor = isDark ? const Color(0xFF98989D) : const Color(0xFF8E8E93);
-    final inputFillColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF5F7FA);
-    final hintColor = isDark ? const Color(0xFF636366) : const Color(0xFFC7C7CC);
-    final accentColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF1A73E8);
-    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+    final subtitleColor =
+        isDark ? const Color(0xFF98989D) : const Color(0xFF8E8E93);
+    final inputFillColor =
+        isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF5F7FA);
+    final hintColor =
+        isDark ? const Color(0xFF636366) : const Color(0xFFC7C7CC);
+    final accentColor =
+        isDark ? const Color(0xFF0A84FF) : const Color(0xFF1A73E8);
+    final errorColor =
+        isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -140,7 +146,8 @@ class _RegisterPageState extends State<RegisterPage> {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: Theme.of(context).colorScheme.onSurface, size: 20),
+          icon: Icon(Icons.arrow_back_ios,
+              color: Theme.of(context).colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -152,7 +159,7 @@ class _RegisterPageState extends State<RegisterPage> {
             children: [
               const SizedBox(height: 8),
               Text(
-                'Create Account',
+                AppLocalizations.of(context)!.createAccountTitle,
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -161,14 +168,13 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Register a new user with phone number.',
+                AppLocalizations.of(context)!.createAccountSubtitle,
                 style: TextStyle(fontSize: 14, color: subtitleColor),
               ),
               const SizedBox(height: 32),
-
               _buildField(
-                label: 'Full Name',
-                hint: 'John Doe',
+                label: AppLocalizations.of(context)!.fullNameLabel,
+                hint: AppLocalizations.of(context)!.fullNameHint,
                 controller: _nameController,
                 icon: Icons.person_rounded,
                 textColor: textColor,
@@ -177,9 +183,8 @@ class _RegisterPageState extends State<RegisterPage> {
                 accentColor: accentColor,
               ),
               const SizedBox(height: 16),
-
               _buildField(
-                label: 'Phone Number',
+                label: AppLocalizations.of(context)!.phoneNumberLabel,
                 hint: '+998 XX XXX XX XX',
                 controller: _phoneController,
                 icon: Icons.phone_rounded,
@@ -199,10 +204,9 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
               ],
               const SizedBox(height: 16),
-
               _buildField(
-                label: 'Password',
-                hint: 'Enter your password',
+                label: AppLocalizations.of(context)!.passwordLabel,
+                hint: AppLocalizations.of(context)!.enterYourPasswordHint,
                 controller: _passwordController,
                 icon: Icons.lock_rounded,
                 obscure: _obscurePassword,
@@ -231,9 +235,8 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
               ],
               const SizedBox(height: 16),
-
               _buildField(
-                label: 'Confirm Password',
+                label: AppLocalizations.of(context)!.confirmPassword,
                 hint: AppLocalizations.of(context)!.repeatPasswordHint,
                 controller: _confirmPasswordController,
                 icon: Icons.lock_outline_rounded,
@@ -263,7 +266,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],
-
               if (_error != null) ...[
                 const SizedBox(height: 12),
                 Container(
@@ -285,7 +287,8 @@ class _RegisterPageState extends State<RegisterPage> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          _error!,
+                          ErrorLocalizer.forException(
+                              _error!, AppLocalizations.of(context)!),
                           style: TextStyle(
                             color: errorColor,
                             fontSize: 13,
@@ -296,9 +299,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                 ),
               ],
-
               const SizedBox(height: 32),
-
               SizedBox(
                 width: double.infinity,
                 height: 54,
@@ -321,9 +322,9 @@ class _RegisterPageState extends State<RegisterPage> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
-                          'Send OTP Code',
-                          style: TextStyle(
+                      : Text(
+                          AppLocalizations.of(context)!.sendOtpCodeButton,
+                          style: const TextStyle(
                             fontSize: 16,
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -367,6 +368,7 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
         const SizedBox(height: 8),
         TextField(
+          readOnly: _isLoading,
           controller: controller,
           obscureText: obscure,
           keyboardType: keyboardType,
@@ -379,8 +381,8 @@ class _RegisterPageState extends State<RegisterPage> {
             hintStyle: TextStyle(color: hintColor),
             filled: true,
             fillColor: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFF2A2A2A)
-                    : const Color(0xFFF5F7FA),
+                ? const Color(0xFF2A2A2A)
+                : const Color(0xFFF5F7FA),
             prefixIcon: Container(
               margin: const EdgeInsets.all(10),
               padding: const EdgeInsets.all(8),

@@ -23,7 +23,7 @@ class MoveDestinationScreen extends StatefulWidget {
 class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
   final _repo = HomeRepository();
   bool _isLoading = true;
-  String? _error;
+  Object? _error;
   List<FolderModel> _folders = [];
 
   // Custom Breadcrumb representation: id and name
@@ -63,7 +63,7 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = ErrorLocalizer.forException(e, AppLocalizations.of(context)!);
+        _error = e;
         _isLoading = false;
       });
     }
@@ -207,7 +207,7 @@ class _MoveDestinationScreenState extends State<MoveDestinationScreen> {
           children: [
             Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
             const SizedBox(height: 16),
-            Text(_error!, style: const TextStyle(color: Colors.grey)),
+            Text(ErrorLocalizer.forException(_error!, AppLocalizations.of(context)!), style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadCurrentFolder,

@@ -232,14 +232,14 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
                   color: Colors.white,
                 ),
               ),
-              errorWidget: (_, __, ___) => const Column(
+              errorWidget: (_, __, ___) => Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.broken_image, color: Colors.grey, size: 64),
-                  SizedBox(height: 12),
+                  const Icon(Icons.broken_image, color: Colors.grey, size: 64),
+                  const SizedBox(height: 12),
                   Text(
-                    'Не удалось загрузить изображение',
-                    style: TextStyle(color: Colors.grey),
+                    AppLocalizations.of(context)!.couldNotOpenImage,
+                    style: const TextStyle(color: Colors.grey),
                   ),
                 ],
               ),

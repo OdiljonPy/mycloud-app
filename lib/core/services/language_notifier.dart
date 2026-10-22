@@ -10,19 +10,21 @@ class LanguageNotifier extends ChangeNotifier {
   static final LanguageNotifier instance = LanguageNotifier._();
 
   static const _key = 'language_code';
+  static const _supportedLanguages = {'en', 'ru', 'uz'};
   Locale _locale = const Locale('en');
   Locale get locale => _locale;
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getString(_key);
-    if (stored != null) {
+    if (stored != null && _supportedLanguages.contains(stored)) {
       _locale = Locale(stored);
     }
     notifyListeners();
   }
 
   void setLanguage(String languageCode) {
+    if (!_supportedLanguages.contains(languageCode)) return;
     if (_locale.languageCode == languageCode) return;
     _locale = Locale(languageCode);
     notifyListeners();

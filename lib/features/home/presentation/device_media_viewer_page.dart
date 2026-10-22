@@ -1,11 +1,13 @@
 import 'dart:io';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:photo_manager/photo_manager.dart';
 
 /// Full-screen viewer for local device media files (images and videos)
 class DeviceMediaViewerPage extends StatefulWidget {
-  final List<({String url, String name, String fileId, String mimeType})>? files;
+  final List<({String url, String name, String fileId, String mimeType})>?
+      files;
   final List<AssetEntity>? assets; // For lazy loading from device gallery
   final int initialIndex;
 
@@ -14,7 +16,8 @@ class DeviceMediaViewerPage extends StatefulWidget {
     this.files,
     this.assets,
     required this.initialIndex,
-  }) : assert(files != null || assets != null, 'Either files or assets must be provided');
+  }) : assert(files != null || assets != null,
+            'Either files or assets must be provided');
 
   /// Factory for lazy loading from AssetEntity list (FAST!)
   factory DeviceMediaViewerPage.fromAssets({
@@ -49,7 +52,9 @@ class _DeviceMediaViewerPageState extends State<DeviceMediaViewerPage> {
     if (widget.assets != null) {
       _loadFilePath(widget.initialIndex);
       if (widget.initialIndex > 0) _loadFilePath(widget.initialIndex - 1);
-      if (widget.initialIndex < _itemCount - 1) _loadFilePath(widget.initialIndex + 1);
+      if (widget.initialIndex < _itemCount - 1) {
+        _loadFilePath(widget.initialIndex + 1);
+      }
     }
   }
 
@@ -151,15 +156,15 @@ class _DeviceMediaViewerPageState extends State<DeviceMediaViewerPage> {
       }
 
       if (filePath.isEmpty) {
-        return const Center(
+        return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.broken_image, color: Colors.grey, size: 64),
-              SizedBox(height: 12),
+              const Icon(Icons.broken_image, color: Colors.grey, size: 64),
+              const SizedBox(height: 12),
               Text(
-                'Файл не найден',
-                style: TextStyle(color: Colors.grey),
+                AppLocalizations.of(context)!.localFileNotFound,
+                style: const TextStyle(color: Colors.grey),
               ),
             ],
           ),
@@ -179,14 +184,14 @@ class _DeviceMediaViewerPageState extends State<DeviceMediaViewerPage> {
           child: Image.file(
             File(filePath),
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => const Column(
+            errorBuilder: (_, __, ___) => Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.broken_image, color: Colors.grey, size: 64),
-                SizedBox(height: 12),
+                const Icon(Icons.broken_image, color: Colors.grey, size: 64),
+                const SizedBox(height: 12),
                 Text(
-                  'Не удалось загрузить изображение',
-                  style: TextStyle(color: Colors.grey),
+                  AppLocalizations.of(context)!.couldNotOpenImage,
+                  style: const TextStyle(color: Colors.grey),
                 ),
               ],
             ),
@@ -199,15 +204,15 @@ class _DeviceMediaViewerPageState extends State<DeviceMediaViewerPage> {
     final isVideo = item.mimeType.toLowerCase().startsWith('video/');
 
     if (item.url.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.broken_image, color: Colors.grey, size: 64),
-            SizedBox(height: 12),
+            const Icon(Icons.broken_image, color: Colors.grey, size: 64),
+            const SizedBox(height: 12),
             Text(
-              'Файл не найден',
-              style: TextStyle(color: Colors.grey),
+              AppLocalizations.of(context)!.localFileNotFound,
+              style: const TextStyle(color: Colors.grey),
             ),
           ],
         ),
@@ -225,14 +230,14 @@ class _DeviceMediaViewerPageState extends State<DeviceMediaViewerPage> {
         child: Image.file(
           File(item.url),
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => const Column(
+          errorBuilder: (_, __, ___) => Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.broken_image, color: Colors.grey, size: 64),
-              SizedBox(height: 12),
+              const Icon(Icons.broken_image, color: Colors.grey, size: 64),
+              const SizedBox(height: 12),
               Text(
-                'Не удалось загрузить изображение',
-                style: TextStyle(color: Colors.grey),
+                AppLocalizations.of(context)!.couldNotOpenImage,
+                style: const TextStyle(color: Colors.grey),
               ),
             ],
           ),
@@ -289,15 +294,15 @@ class _DeviceVideoPlayerWidgetState extends State<_DeviceVideoPlayerWidget> {
   @override
   Widget build(BuildContext context) {
     if (_hasError) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, color: Colors.grey, size: 64),
-            SizedBox(height: 12),
+            const Icon(Icons.error_outline, color: Colors.grey, size: 64),
+            const SizedBox(height: 12),
             Text(
-              'Не удалось загрузить видео',
-              style: TextStyle(color: Colors.grey),
+              AppLocalizations.of(context)!.couldNotOpenVideo,
+              style: const TextStyle(color: Colors.grey),
             ),
           ],
         ),

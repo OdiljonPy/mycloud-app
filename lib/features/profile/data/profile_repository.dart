@@ -31,26 +31,24 @@ class ProfileRepository {
       );
       return r.data is Map<String, dynamic> ? r.data : {};
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data),
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 
   Future<void> updateProfile({String? fullName, String? phone}) async {
     try {
       final userId = await SecureStorage.getUserId();
-      if (userId == null) throw const AppException(message: 'User ID not found');
+      if (userId == null) {
+        throw const AppException(message: 'User ID not found');
+      }
       final data = <String, dynamic>{};
       if (fullName != null) data['full_name'] = fullName;
       if (phone != null) data['phone_number'] = phone;
       await _dio.patch('/authentication/users/$userId/', data: data);
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data),
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -60,17 +58,17 @@ class ProfileRepository {
   }) async {
     try {
       final userId = await SecureStorage.getUserId();
-      if (userId == null) throw const AppException(message: 'User ID not found');
+      if (userId == null) {
+        throw const AppException(message: 'User ID not found');
+      }
       await _dio.patch('/authentication/users/$userId/', data: {
         'old_password': current,
         'new_password': newPass,
         'confirm_password': newPass,
       });
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data),
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -79,10 +77,8 @@ class ProfileRepository {
       final r = await _dio.get('/storage/used/');
       return r.data is Map<String, dynamic> ? r.data : {};
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data),
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -91,10 +87,8 @@ class ProfileRepository {
       final r = await _dio.get('/storage/usage/');
       return r.data is Map<String, dynamic> ? r.data : {};
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data),
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -103,10 +97,8 @@ class ProfileRepository {
       final r = await _dio.get('/content/statistics/');
       return r.data is Map<String, dynamic> ? r.data : {};
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data),
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -115,24 +107,22 @@ class ProfileRepository {
     required String type,
   }) async {
     try {
-      final r = await _dio.post('/content/info/', data: {'id': id, 'type': type});
+      final r =
+          await _dio.post('/content/info/', data: {'id': id, 'type': type});
       return r.data is Map<String, dynamic> ? r.data : {};
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data),
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 
   Future<void> disableAccount() async {
     try {
-      await _dio.post('/authentication/users/disable/', data: {'verified': true});
+      await _dio
+          .post('/authentication/users/disable/', data: {'verified': true});
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data),
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -141,7 +131,8 @@ class ProfileRepository {
       final me = await getMe();
       final userId = me['id']?.toString();
       if (userId == null) {
-        throw const AppException(message: 'Не удалось получить ID пользователя');
+        throw const AppException(
+            message: 'Не удалось получить ID пользователя');
       }
       final formData = FormData.fromMap({
         'image': await MultipartFile.fromFile(
@@ -152,10 +143,8 @@ class ProfileRepository {
       });
       await _dio.patch('/authentication/users/$userId/', data: formData);
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data),
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 }

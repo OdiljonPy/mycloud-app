@@ -2580,6 +2580,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Check the app for details'**
   String get notifBodySystemAnnouncementFallback;
+
+  /// No description provided for @errorNetworkUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No connection. Check your internet connection and try again.'**
+  String get errorNetworkUnavailable;
+
+  /// No description provided for @errorRequestTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'The request timed out. Please try again.'**
+  String get errorRequestTimeout;
+
+  /// No description provided for @errorAccessDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have permission to perform this action.'**
+  String get errorAccessDenied;
+
+  /// No description provided for @errorResourceNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'The item was not found or has been deleted.'**
+  String get errorResourceNotFound;
+
+  /// No description provided for @errorTooManyRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many requests. Please wait and try again.'**
+  String get errorTooManyRequests;
+
+  /// No description provided for @errorShareLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Your sharing limit has been reached.'**
+  String get errorShareLimitReached;
+
+  /// No description provided for @errorServerUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The server is temporarily unavailable. Please try again later.'**
+  String get errorServerUnavailable;
+
+  /// No description provided for @errorValidation.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the entered details and try again.'**
+  String get errorValidation;
+
+  /// No description provided for @errorItemAlreadyExists.
+  ///
+  /// In en, this message translates to:
+  /// **'This item already exists.'**
+  String get errorItemAlreadyExists;
+
+  /// No description provided for @errorOtpExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'The verification code has expired. Request a new code.'**
+  String get errorOtpExpired;
+
+  /// No description provided for @errorRequestCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'The action was cancelled.'**
+  String get errorRequestCancelled;
+
+  /// No description provided for @errorSystemFolderProtected.
+  ///
+  /// In en, this message translates to:
+  /// **'This system folder cannot be deleted.'**
+  String get errorSystemFolderProtected;
+
+  /// No description provided for @pressBackAgainToExit.
+  ///
+  /// In en, this message translates to:
+  /// **'Press back again to close the app'**
+  String get pressBackAgainToExit;
+
+  /// No description provided for @splashTagline.
+  ///
+  /// In en, this message translates to:
+  /// **'Your files, everywhere.'**
+  String get splashTagline;
+
+  /// No description provided for @languageContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue →'**
+  String get languageContinue;
+
+  /// No description provided for @skipButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get skipButton;
+
+  /// No description provided for @getStartedButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Get Started'**
+  String get getStartedButton;
+
+  /// No description provided for @onboardingFilesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'All files in one place'**
+  String get onboardingFilesTitle;
+
+  /// No description provided for @onboardingFilesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos, videos, documents — all securely stored'**
+  String get onboardingFilesSubtitle;
+
+  /// No description provided for @onboardingSyncTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto sync'**
+  String get onboardingSyncTitle;
+
+  /// No description provided for @onboardingSyncSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery uploads in background — like Google Photos'**
+  String get onboardingSyncSubtitle;
+
+  /// No description provided for @onboardingPrivacyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Safe and fast'**
+  String get onboardingPrivacyTitle;
+
+  /// No description provided for @onboardingPrivacySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data belongs only to you'**
+  String get onboardingPrivacySubtitle;
+
+  /// No description provided for @uploadCheckingDuplicates.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload complete. Checking for duplicates…'**
+  String get uploadCheckingDuplicates;
+
+  /// No description provided for @syncResumed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync resumed.'**
+  String get syncResumed;
+
+  /// No description provided for @syncResumedWithDuplicates.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync resumed. Duplicate files skipped: {count}.'**
+  String syncResumedWithDuplicates(int count);
+
+  /// No description provided for @syncPausedForManualUpload.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync paused. Files to upload: {count}.'**
+  String syncPausedForManualUpload(int count);
+
+  /// No description provided for @syncStatusScanning.
+  ///
+  /// In en, this message translates to:
+  /// **'Scanning gallery...'**
+  String get syncStatusScanning;
+
+  /// No description provided for @localFileNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'File not found'**
+  String get localFileNotFound;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

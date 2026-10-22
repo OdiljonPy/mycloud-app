@@ -1353,4 +1353,95 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get notifBodySystemAnnouncementFallback => 'Подробности в приложении';
+
+  @override
+  String get errorNetworkUnavailable => 'Нет соединения. Проверьте интернет и повторите попытку.';
+
+  @override
+  String get errorRequestTimeout => 'Время ожидания истекло. Повторите попытку.';
+
+  @override
+  String get errorAccessDenied => 'Недостаточно прав для этого действия.';
+
+  @override
+  String get errorResourceNotFound => 'Объект не найден или уже удалён.';
+
+  @override
+  String get errorTooManyRequests => 'Слишком много запросов. Подождите и повторите попытку.';
+
+  @override
+  String get errorShareLimitReached => 'Достигнут лимит предоставления доступа.';
+
+  @override
+  String get errorServerUnavailable => 'Сервер временно недоступен. Повторите попытку позже.';
+
+  @override
+  String get errorValidation => 'Проверьте введённые данные и повторите попытку.';
+
+  @override
+  String get errorItemAlreadyExists => 'Такой объект уже существует.';
+
+  @override
+  String get errorOtpExpired => 'Срок действия кода истёк. Запросите новый код.';
+
+  @override
+  String get errorRequestCancelled => 'Действие отменено.';
+
+  @override
+  String get errorSystemFolderProtected => 'Эту системную папку нельзя удалить.';
+
+  @override
+  String get pressBackAgainToExit => 'Нажмите «Назад» ещё раз, чтобы закрыть приложение';
+
+  @override
+  String get splashTagline => 'Ваши файлы всегда под рукой.';
+
+  @override
+  String get languageContinue => 'Продолжить →';
+
+  @override
+  String get skipButton => 'Пропустить';
+
+  @override
+  String get getStartedButton => 'Начать';
+
+  @override
+  String get onboardingFilesTitle => 'Все файлы в одном месте';
+
+  @override
+  String get onboardingFilesSubtitle => 'Фото, видео, документы — всё надёжно хранится';
+
+  @override
+  String get onboardingSyncTitle => 'Автоматическая синхронизация';
+
+  @override
+  String get onboardingSyncSubtitle => 'Галерея загружается фоном — как Google Photos';
+
+  @override
+  String get onboardingPrivacyTitle => 'Безопасно и быстро';
+
+  @override
+  String get onboardingPrivacySubtitle => 'Ваши данные принадлежат только вам';
+
+  @override
+  String get uploadCheckingDuplicates => 'Загрузка завершена. Проверяем дубликаты…';
+
+  @override
+  String get syncResumed => 'Синхронизация продолжена.';
+
+  @override
+  String syncResumedWithDuplicates(int count) {
+    return 'Синхронизация продолжена. Пропущено дубликатов: $count.';
+  }
+
+  @override
+  String syncPausedForManualUpload(int count) {
+    return 'Синхронизация приостановлена. Файлов для загрузки: $count.';
+  }
+
+  @override
+  String get syncStatusScanning => 'Сканирование галереи...';
+
+  @override
+  String get localFileNotFound => 'Файл не найден';
 }

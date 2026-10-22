@@ -65,13 +65,7 @@ class DownloadRepository {
         }
       }
     } on DioException catch (e) {
-      throw AppException(
-        message:
-        e.response?.data?['message']?.toString() ??
-            e.message ??
-            'Download failed',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e, fallbackMessage: 'Request failed');
     } on AppException {
       rethrow;
     } catch (e) {

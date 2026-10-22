@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import '../data/auth_repository.dart';
-import '../../../core/errors/app_exception.dart';
 import '../../../core/utils/error_localizer.dart';
 import '../../../l10n/app_localizations.dart';
 import 'login_page.dart';
 
 class ResetPasswordPage extends StatefulWidget {
+  final AuthRepository? authRepository;
   final String otpKey;
   final int otpCode;
 
   const ResetPasswordPage({
     super.key,
+    this.authRepository,
     required this.otpKey,
     required this.otpCode,
   });
@@ -22,7 +23,7 @@ class ResetPasswordPage extends StatefulWidget {
 class _ResetPasswordPageState extends State<ResetPasswordPage> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _authRepo = AuthRepository();
+  late final _authRepo = widget.authRepository ?? AuthRepository();
 
   final _passwordFocus = FocusNode();
   final _confirmFocus = FocusNode();
@@ -30,8 +31,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
-  String? _error;
-  String? _success;
+  Object? _error;
+  bool _success = false;
 
   bool _passwordTouched = false;
   bool _confirmTouched = false;
@@ -58,6 +59,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   }
 
   Future<void> _resetPassword() async {
+    if (_isLoading || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
     setState(() {
       _passwordTouched = true;
       _confirmTouched = true;
@@ -67,7 +69,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     setState(() {
       _isLoading = true;
       _error = null;
-      _success = null;
+      _success = false;
     });
 
     try {
@@ -77,20 +79,18 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         password: _passwordController.text,
         confirmPassword: _confirmPasswordController.text,
       );
-      if (!mounted) return;
-      setState(() => _success = AppLocalizations.of(context)!.passwordResetSuccessMessage);
+      if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      setState(() => _success = true);
       await Future.delayed(const Duration(seconds: 1));
-      if (mounted) {
+      if (mounted && (ModalRoute.of(context)?.isCurrent ?? true)) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const LoginPage()),
           (_) => false,
         );
       }
-    } on AppException catch (e) {
-      final localized = mounted
-          ? ErrorLocalizer.forException(e, AppLocalizations.of(context)!)
-          : e.message;
-      setState(() => _error = localized);
+    } catch (e) {
+      if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      setState(() => _error = e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -112,12 +112,18 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     // iOS HIG ranglar
     final bgColor = isDark ? const Color(0xFF000000) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
-    final subtitleColor = isDark ? const Color(0xFF98989D) : const Color(0xFF8E8E93);
-    final inputFillColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF5F7FA);
-    final hintColor = isDark ? const Color(0xFF636366) : const Color(0xFFC7C7CC);
-    final accentColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF1A73E8);
-    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
-    final successColor = isDark ? const Color(0xFF30D158) : const Color(0xFF34C759);
+    final subtitleColor =
+        isDark ? const Color(0xFF98989D) : const Color(0xFF8E8E93);
+    final inputFillColor =
+        isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF5F7FA);
+    final hintColor =
+        isDark ? const Color(0xFF636366) : const Color(0xFFC7C7CC);
+    final accentColor =
+        isDark ? const Color(0xFF0A84FF) : const Color(0xFF1A73E8);
+    final errorColor =
+        isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+    final successColor =
+        isDark ? const Color(0xFF30D158) : const Color(0xFF34C759);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -136,7 +142,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 8),
-
               Container(
                 width: 56,
                 height: 56,
@@ -146,9 +151,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                 ),
                 child: Icon(Icons.lock_rounded, color: accentColor, size: 28),
               ),
-
               const SizedBox(height: 24),
-
               Text(
                 AppLocalizations.of(context)!.setNewPasswordTitle,
                 style: TextStyle(
@@ -162,9 +165,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                 AppLocalizations.of(context)!.setNewPasswordSubtitle,
                 style: TextStyle(fontSize: 14, color: subtitleColor),
               ),
-
               const SizedBox(height: 40),
-
               Text(
                 AppLocalizations.of(context)!.newPassword,
                 style: TextStyle(
@@ -175,6 +176,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               ),
               const SizedBox(height: 8),
               TextField(
+                readOnly: _isLoading,
                 controller: _passwordController,
                 focusNode: _passwordFocus,
                 obscureText: _obscurePassword,
@@ -192,7 +194,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                       color: accentColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(Icons.lock_rounded, color: accentColor, size: 18),
+                    child:
+                        Icon(Icons.lock_rounded, color: accentColor, size: 18),
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(
@@ -229,9 +232,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                   style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],
-
               const SizedBox(height: 16),
-
               Text(
                 AppLocalizations.of(context)!.confirmPassword,
                 style: TextStyle(
@@ -242,6 +243,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               ),
               const SizedBox(height: 8),
               TextField(
+                readOnly: _isLoading,
                 controller: _confirmPasswordController,
                 focusNode: _confirmFocus,
                 obscureText: _obscureConfirm,
@@ -249,7 +251,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                 onChanged: (_) => setState(() {}),
                 onSubmitted: (_) => _resetPassword(),
                 decoration: InputDecoration(
-                  hintText: AppLocalizations.of(context)!.confirmNewPasswordHint,
+                  hintText:
+                      AppLocalizations.of(context)!.confirmNewPasswordHint,
                   hintStyle: TextStyle(color: hintColor),
                   filled: true,
                   fillColor: inputFillColor,
@@ -298,7 +301,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                   style: TextStyle(color: errorColor, fontSize: 12),
                 ),
               ],
-
               if (_error != null) ...[
                 const SizedBox(height: 12),
                 Container(
@@ -316,7 +318,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          _error!,
+                          ErrorLocalizer.forException(
+                              _error!, AppLocalizations.of(context)!),
                           style: TextStyle(color: errorColor, fontSize: 13),
                         ),
                       ),
@@ -324,8 +327,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                   ),
                 ),
               ],
-
-              if (_success != null) ...[
+              if (_success) ...[
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -343,7 +345,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          _success!,
+                          AppLocalizations.of(context)!
+                              .passwordResetSuccessMessage,
                           style: TextStyle(color: successColor, fontSize: 13),
                         ),
                       ),
@@ -351,16 +354,13 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                   ),
                 ),
               ],
-
               const SizedBox(height: 32),
-
               SizedBox(
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton(
-                  onPressed: _isLoading || !_isFormValid
-                      ? null
-                      : _resetPassword,
+                  onPressed:
+                      _isLoading || !_isFormValid ? null : _resetPassword,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: accentColor,
                     disabledBackgroundColor: accentColor.withValues(alpha: 0.4),
@@ -388,7 +388,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         ),
                 ),
               ),
-
               const SizedBox(height: 40),
             ],
           ),

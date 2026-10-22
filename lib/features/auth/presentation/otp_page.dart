@@ -7,11 +7,13 @@ import '../../../l10n/app_localizations.dart';
 import '../../home/presentation/main_page.dart';
 
 class OtpPage extends StatefulWidget {
+  final AuthRepository? authRepository;
   final String phoneNumber;
   final String otpKey;
 
   const OtpPage({
     super.key,
+    this.authRepository,
     required this.phoneNumber,
     required this.otpKey,
   });
@@ -25,12 +27,12 @@ class _OtpPageState extends State<OtpPage> {
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
-  final _authRepo = AuthRepository();
+  late final _authRepo = widget.authRepository ?? AuthRepository();
   late String _otpKey;
 
   bool _isLoading = false;
   bool _isResending = false;
-  String? _error;
+  Object? _error;
 
   @override
   void initState() {
@@ -41,6 +43,7 @@ class _OtpPageState extends State<OtpPage> {
   String get _otpCode => _controllers.map((c) => c.text).join();
 
   void _onDigitChanged(String val, int index) {
+    if (_isLoading || _isResending) return;
     final digits = val.replaceAll(RegExp(r'[^0-9]'), '');
 
     if (digits.length > 1) {
@@ -70,6 +73,7 @@ class _OtpPageState extends State<OtpPage> {
   }
 
   void _onBackspace(int index) {
+    if (_isLoading || _isResending) return;
     if (_controllers[index].text.isEmpty && index > 0) {
       _controllers[index - 1].clear();
       _focusNodes[index - 1].requestFocus();
@@ -78,9 +82,17 @@ class _OtpPageState extends State<OtpPage> {
   }
 
   Future<void> _verify() async {
-    if (_isLoading) return;
-    if (_otpCode.length < 6) {
-      setState(() => _error = AppLocalizations.of(context)!.enterCompleteOtpCode);
+    if (_isLoading ||
+        _isResending ||
+        !(ModalRoute.of(context)?.isCurrent ?? true)) {
+      return;
+    }
+    final code = _otpCode;
+    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
+      setState(() => _error = const AppException(
+            message: 'Incomplete verification code',
+            messageKey: 'local_incomplete_otp',
+          ));
       return;
     }
 
@@ -92,9 +104,9 @@ class _OtpPageState extends State<OtpPage> {
     try {
       await _authRepo.verifyOtp(
         otpKey: _otpKey,
-        otpCode: int.parse(_otpCode),
+        otpCode: int.parse(code),
       );
-      if (mounted) {
+      if (mounted && (ModalRoute.of(context)?.isCurrent ?? true)) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             settings: const RouteSettings(name: 'main'),
@@ -103,21 +115,31 @@ class _OtpPageState extends State<OtpPage> {
           (_) => false,
         );
       }
-    } on AppException catch (e) {
-      final localized = mounted
-          ? ErrorLocalizer.localize(e.message, AppLocalizations.of(context)!)
-          : e.message;
-      setState(() => _error = localized);
+    } catch (e) {
+      if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      setState(() => _error = e);
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _resend() async {
-    setState(() => _isResending = true);
+    if (_isLoading ||
+        _isResending ||
+        !(ModalRoute.of(context)?.isCurrent ?? true)) {
+      return;
+    }
+    setState(() {
+      _isResending = true;
+      _error = null;
+    });
     try {
       final newKey = await _authRepo.resendOtp(phoneNumber: widget.phoneNumber);
+      if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
       setState(() => _otpKey = newKey);
+      for (final controller in _controllers) {
+        controller.clear();
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -126,13 +148,11 @@ class _OtpPageState extends State<OtpPage> {
           ),
         );
       }
-    } on AppException catch (e) {
-      final localized = mounted
-          ? ErrorLocalizer.localize(e.message, AppLocalizations.of(context)!)
-          : e.message;
-      setState(() => _error = localized);
+    } catch (e) {
+      if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      setState(() => _error = e);
     } finally {
-      setState(() => _isResending = false);
+      if (mounted) setState(() => _isResending = false);
     }
   }
 
@@ -154,10 +174,14 @@ class _OtpPageState extends State<OtpPage> {
     // iOS HIG ranglar
     final bgColor = isDark ? const Color(0xFF000000) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
-    final subtitleColor = isDark ? const Color(0xFF98989D) : const Color(0xFF8E8E93);
-    final inputFillColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF5F7FA);
-    final accentColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF1A73E8);
-    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+    final subtitleColor =
+        isDark ? const Color(0xFF98989D) : const Color(0xFF8E8E93);
+    final inputFillColor =
+        isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF5F7FA);
+    final accentColor =
+        isDark ? const Color(0xFF0A84FF) : const Color(0xFF1A73E8);
+    final errorColor =
+        isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -176,7 +200,6 @@ class _OtpPageState extends State<OtpPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 8),
-
               Container(
                 width: 56,
                 height: 56,
@@ -184,11 +207,10 @@ class _OtpPageState extends State<OtpPage> {
                   color: accentColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(Icons.message_rounded, color: accentColor, size: 28),
+                child:
+                    Icon(Icons.message_rounded, color: accentColor, size: 28),
               ),
-
               const SizedBox(height: 24),
-
               Text(
                 AppLocalizations.of(context)!.enterOtpCodeTitle,
                 style: TextStyle(
@@ -202,7 +224,8 @@ class _OtpPageState extends State<OtpPage> {
                 text: TextSpan(
                   style: TextStyle(fontSize: 14, color: subtitleColor),
                   children: [
-                    TextSpan(text: AppLocalizations.of(context)!.otpSentToPrefix),
+                    TextSpan(
+                        text: AppLocalizations.of(context)!.otpSentToPrefix),
                     TextSpan(
                       text: widget.phoneNumber,
                       style: TextStyle(
@@ -213,9 +236,7 @@ class _OtpPageState extends State<OtpPage> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 40),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(
@@ -232,6 +253,7 @@ class _OtpPageState extends State<OtpPage> {
                         return KeyEventResult.ignored;
                       },
                       child: TextField(
+                        readOnly: _isLoading || _isResending,
                         controller: _controllers[i],
                         focusNode: _focusNodes[i],
                         textAlign: TextAlign.center,
@@ -254,7 +276,8 @@ class _OtpPageState extends State<OtpPage> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: accentColor, width: 2),
+                            borderSide:
+                                BorderSide(color: accentColor, width: 2),
                           ),
                           contentPadding: EdgeInsets.zero,
                         ),
@@ -264,7 +287,6 @@ class _OtpPageState extends State<OtpPage> {
                   ),
                 ),
               ),
-
               if (_error != null) ...[
                 const SizedBox(height: 16),
                 Container(
@@ -272,7 +294,8 @@ class _OtpPageState extends State<OtpPage> {
                   decoration: BoxDecoration(
                     color: errorColor.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: errorColor.withValues(alpha: 0.2)),
+                    border:
+                        Border.all(color: errorColor.withValues(alpha: 0.2)),
                   ),
                   child: Row(
                     children: [
@@ -280,7 +303,8 @@ class _OtpPageState extends State<OtpPage> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          _error!,
+                          ErrorLocalizer.forException(
+                              _error!, AppLocalizations.of(context)!),
                           style: TextStyle(color: errorColor, fontSize: 13),
                         ),
                       ),
@@ -288,14 +312,12 @@ class _OtpPageState extends State<OtpPage> {
                   ),
                 ),
               ],
-
               const SizedBox(height: 32),
-
               SizedBox(
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _verify,
+                  onPressed: _isLoading || _isResending ? null : _verify,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: accentColor,
                     disabledBackgroundColor: accentColor.withValues(alpha: 0.5),
@@ -323,12 +345,10 @@ class _OtpPageState extends State<OtpPage> {
                         ),
                 ),
               ),
-
               const SizedBox(height: 16),
-
               Center(
                 child: TextButton(
-                  onPressed: _isResending ? null : _resend,
+                  onPressed: _isLoading || _isResending ? null : _resend,
                   child: _isResending
                       ? SizedBox(
                           width: 18,

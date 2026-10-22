@@ -1353,4 +1353,95 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get notifBodySystemAnnouncementFallback => 'Tafsilotlar uchun ilovani tekshiring';
+
+  @override
+  String get errorNetworkUnavailable => 'Aloqa yo‘q. Internetni tekshiring va qayta urinib ko‘ring.';
+
+  @override
+  String get errorRequestTimeout => 'Kutish vaqti tugadi. Qayta urinib ko‘ring.';
+
+  @override
+  String get errorAccessDenied => 'Bu amalni bajarish uchun ruxsat yo‘q.';
+
+  @override
+  String get errorResourceNotFound => 'Obyekt topilmadi yoki o‘chirilgan.';
+
+  @override
+  String get errorTooManyRequests => 'So‘rovlar juda ko‘p. Biroz kutib, qayta urinib ko‘ring.';
+
+  @override
+  String get errorShareLimitReached => 'Ulashish limiti tugadi.';
+
+  @override
+  String get errorServerUnavailable => 'Server vaqtincha ishlamayapti. Keyinroq qayta urinib ko‘ring.';
+
+  @override
+  String get errorValidation => 'Kiritilgan ma’lumotlarni tekshiring va qayta urinib ko‘ring.';
+
+  @override
+  String get errorItemAlreadyExists => 'Bunday obyekt allaqachon mavjud.';
+
+  @override
+  String get errorOtpExpired => 'Tasdiqlash kodi eskirgan. Yangi kod so‘rang.';
+
+  @override
+  String get errorRequestCancelled => 'Amal bekor qilindi.';
+
+  @override
+  String get errorSystemFolderProtected => 'Bu tizim papkasini o‘chirib bo‘lmaydi.';
+
+  @override
+  String get pressBackAgainToExit => 'Ilovani yopish uchun «Orqaga» tugmasini yana bosing';
+
+  @override
+  String get splashTagline => 'Fayllaringiz doim yoningizda.';
+
+  @override
+  String get languageContinue => 'Davom etish →';
+
+  @override
+  String get skipButton => 'O‘tkazib yuborish';
+
+  @override
+  String get getStartedButton => 'Boshlash';
+
+  @override
+  String get onboardingFilesTitle => 'Barcha fayllar bir joyda';
+
+  @override
+  String get onboardingFilesSubtitle => 'Rasmlar, videolar, hujjatlar — hammasi xavfsiz saqlangan';
+
+  @override
+  String get onboardingSyncTitle => 'Avtomatik sinxronizatsiya';
+
+  @override
+  String get onboardingSyncSubtitle => 'Galereya fonida yuklanadi — Google Photos kabi';
+
+  @override
+  String get onboardingPrivacyTitle => 'Xavfsiz va tez';
+
+  @override
+  String get onboardingPrivacySubtitle => 'Sizning malumotlaringiz faqat sizniki';
+
+  @override
+  String get uploadCheckingDuplicates => 'Yuklash tugadi. Takroriy fayllar tekshirilmoqda…';
+
+  @override
+  String get syncResumed => 'Sinxronizatsiya davom etmoqda.';
+
+  @override
+  String syncResumedWithDuplicates(int count) {
+    return 'Sinxronizatsiya davom etmoqda. O‘tkazib yuborilgan takroriy fayllar: $count.';
+  }
+
+  @override
+  String syncPausedForManualUpload(int count) {
+    return 'Sinxronizatsiya to‘xtatildi. Yuklanadigan fayllar: $count.';
+  }
+
+  @override
+  String get syncStatusScanning => 'Galereya skanlanmoqda...';
+
+  @override
+  String get localFileNotFound => 'Fayl topilmadi';
 }

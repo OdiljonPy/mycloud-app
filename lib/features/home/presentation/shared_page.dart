@@ -35,7 +35,7 @@ class _SharedPageState extends State<SharedPage> {
   // Starts false: _loadSharedUsers()/_openSharedFolder() guard on this flag,
   // and both flip it true synchronously before their first await.
   bool _isLoading = false;
-  String? _error;
+  Object? _error;
   final Map<String, String> _previewUrls = {};
 
   String? _selectedUserId;
@@ -149,8 +149,7 @@ class _SharedPageState extends State<SharedPage> {
       // catch left _isLoading stuck true on e.g. a parse error, which with
       // the re-entrancy guard above meant the page could never load again.
       if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      setState(() { _error = ErrorLocalizer.forException(e, l10n); });
+      setState(() { _error = e; });
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -184,8 +183,7 @@ class _SharedPageState extends State<SharedPage> {
       // Broad catch + finally below — same reasoning as _loadSharedUsers:
       // a narrower catch could leave _isLoading stuck true forever.
       if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      setState(() => _error = ErrorLocalizer.forException(e, l10n));
+      setState(() => _error = e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -502,7 +500,7 @@ class _SharedPageState extends State<SharedPage> {
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Icon(Icons.error_outline, size: 48, color: Colors.grey[400]),
       const SizedBox(height: 12),
-      Text(_error!, style: TextStyle(color: Colors.grey[600])),
+      Text(ErrorLocalizer.forException(_error!, AppLocalizations.of(context)!), style: TextStyle(color: Colors.grey[600])),
       const SizedBox(height: 16),
       ElevatedButton.icon(
         onPressed: _selectedUserId == null ? _loadSharedUsers : () => _openUserFiles(_selectedUserId!, _selectedUserName!),

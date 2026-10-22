@@ -700,5 +700,48 @@
       "daysLeft": { "type": "String" }
     }
   },
-  "notifBodySystemAnnouncementFallback": "Check the app for details"
+  "notifBodySystemAnnouncementFallback": "Check the app for details",
+  "errorNetworkUnavailable": "No connection. Check your internet connection and try again.",
+  "errorRequestTimeout": "The request timed out. Please try again.",
+  "errorAccessDenied": "You do not have permission to perform this action.",
+  "errorResourceNotFound": "The item was not found or has been deleted.",
+  "errorTooManyRequests": "Too many requests. Please wait and try again.",
+  "errorShareLimitReached": "Your sharing limit has been reached.",
+  "errorServerUnavailable": "The server is temporarily unavailable. Please try again later.",
+  "errorValidation": "Check the entered details and try again.",
+  "errorItemAlreadyExists": "This item already exists.",
+  "errorOtpExpired": "The verification code has expired. Request a new code.",
+  "errorRequestCancelled": "The action was cancelled.",
+  "errorSystemFolderProtected": "This system folder cannot be deleted.",
+  "pressBackAgainToExit": "Press back again to close the app",
+  "splashTagline": "Your files, everywhere.",
+  "languageContinue": "Continue →",
+  "skipButton": "Skip",
+  "getStartedButton": "Get Started",
+  "onboardingFilesTitle": "All files in one place",
+  "onboardingFilesSubtitle": "Photos, videos, documents — all securely stored",
+  "onboardingSyncTitle": "Auto sync",
+  "onboardingSyncSubtitle": "Gallery uploads in background — like Google Photos",
+  "onboardingPrivacyTitle": "Safe and fast",
+  "onboardingPrivacySubtitle": "Your data belongs only to you",
+  "uploadCheckingDuplicates": "Upload complete. Checking for duplicates…",
+  "syncResumed": "Sync resumed.",
+  "syncResumedWithDuplicates": "Sync resumed. Duplicate files skipped: {count}.",
+  "@syncResumedWithDuplicates": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncPausedForManualUpload": "Sync paused. Files to upload: {count}.",
+  "@syncPausedForManualUpload": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncStatusScanning": "Scanning gallery...",
+  "localFileNotFound": "File not found"
 }

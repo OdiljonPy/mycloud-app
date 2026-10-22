@@ -408,7 +408,7 @@ class _ShareDialogState extends State<ShareDialog> {
           controller: _linkNameController,
           style: TextStyle(color: textColor, fontSize: 16),
           decoration: InputDecoration(
-            labelText: 'Link name *',
+            labelText: '${AppLocalizations.of(context)!.linkName} *',
             labelStyle:
             TextStyle(color: textColor.withValues(alpha: 0.6), fontSize: 14),
             filled: true,
@@ -446,7 +446,7 @@ class _ShareDialogState extends State<ShareDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Generated link',
+                  AppLocalizations.of(context)!.generatedLink,
                   style: TextStyle(
                     fontSize: 12,
                     color: textColor.withValues(alpha: 0.5),
@@ -478,14 +478,14 @@ class _ShareDialogState extends State<ShareDialog> {
                           color: const Color(0xFF1A73E8).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.copy_rounded,
+                            const Icon(Icons.copy_rounded,
                                 size: 14, color: Color(0xFF1A73E8)),
-                            SizedBox(width: 4),
-                            Text('Copy',
-                                style: TextStyle(
+                            const SizedBox(width: 4),
+                            Text(AppLocalizations.of(context)!.copy,
+                                style: const TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFF1A73E8),
                                     fontWeight: FontWeight.w600)),

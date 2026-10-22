@@ -47,7 +47,7 @@ class _SharedByMeView extends StatelessWidget {
         backgroundColor: cs.surface,
         elevation: 0,
         title: Text(
-          'Shared by me',
+          AppLocalizations.of(context)!.sharedByMe,
           style: TextStyle(
             color: cs.onSurface,
             fontWeight: FontWeight.bold,

@@ -43,7 +43,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
   // Starts false: _loadContent() guards on this flag and flips it true
   // synchronously before its first await.
   bool _isLoading = false;
-  String? _error;
+  Object? _error;
   bool _isGrid = true;
   String? _authToken;
   final Map<String, String> _previewUrls = {};
@@ -144,7 +144,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = ErrorLocalizer.forException(e, AppLocalizations.of(context)!);
+        _error = e;
       });
     } finally {
       // finally (not just the catch branch) — guarantees _isLoading always
@@ -1065,7 +1065,7 @@ class _ShareFolderFilesPageState extends State<ShareFolderFilesPage> {
                                     color: Colors.grey, size: 48),
                                 const SizedBox(height: 12),
                                 Text(
-                                  _error!,
+                                  ErrorLocalizer.forException(_error!, AppLocalizations.of(context)!),
                                   style: const TextStyle(color: Colors.grey),
                                   textAlign: TextAlign.center,
                                 ),

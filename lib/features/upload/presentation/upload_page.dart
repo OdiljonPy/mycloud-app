@@ -202,7 +202,7 @@ class _UploadPageState extends ConsumerState<UploadPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Sync paused — uploading ${ref.read(uploadQueueProvider).length} files',
+            AppLocalizations.of(context)!.syncPausedForManualUpload(ref.read(uploadQueueProvider).length),
           ),
         ),
       );
@@ -317,14 +317,14 @@ class _UploadPageState extends ConsumerState<UploadPage> {
       if (allSettled) {
         if (syncWasPaused) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Upload complete. Checking for duplicates…')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.uploadCheckingDuplicates)),
           );
         }
         unawaited(_syncCoordinator.afterManualUploadComplete().then((result) {
           if (!syncWasPaused || !mounted || !result.resumed) return;
           final message = result.duplicatesSkipped > 0
-              ? '${result.duplicatesSkipped} duplicate files skipped. Sync resumed.'
-              : 'Sync resumed.';
+              ? AppLocalizations.of(context)!.syncResumedWithDuplicates(result.duplicatesSkipped)
+              : AppLocalizations.of(context)!.syncResumed;
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
         }));
       }

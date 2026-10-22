@@ -99,7 +99,7 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
             _lastBackPress = now;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(t.logoutConfirmMessage),
+                content: Text(t.pressBackAgainToExit),
                 duration: const Duration(seconds: 2),
               ),
             );
@@ -141,7 +141,7 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
                   });
                 },
               ),
-              FilesPage(key: _filesKey),
+              FilesPage(key: _filesKey, handleSystemBack: false),
               const SharedPage(),
               ProfilePage(onLogout: _logout),
             ],

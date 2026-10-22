@@ -13,7 +13,44 @@ import '../../notifications/data/notifications_repository.dart';
 import '../../sync/auto_sync_service.dart';
 
 class AuthRepository {
-  final Dio _dio = DioClient.instance;
+  final Dio _dio;
+
+  AuthRepository({Dio? dio}) : _dio = dio ?? DioClient.instance;
+
+  void _ensureCurrentSession(int revision) {
+    if (revision != SecureStorage.sessionRevision) {
+      throw const AppException(message: 'Authentication session changed');
+    }
+  }
+
+  Future<int> _saveAuthenticationResponse(
+      dynamic data, int expectedRevision) async {
+    _ensureCurrentSession(expectedRevision);
+    final result = data is Map && data['result'] is Map ? data['result'] : data;
+    final access = result is Map
+        ? result['access_token'] ??
+            result['access'] ??
+            (data is Map ? data['access_token'] ?? data['access'] : null)
+        : null;
+    final refresh = result is Map
+        ? result['refresh_token'] ??
+            result['refresh'] ??
+            (data is Map ? data['refresh_token'] ?? data['refresh'] : null)
+        : null;
+    if (access is! String ||
+        access.trim().isEmpty ||
+        refresh is! String ||
+        refresh.trim().isEmpty) {
+      throw const AppException(message: 'Invalid authentication response');
+    }
+    final saved =
+        SecureStorage.saveTokens(accessToken: access, refreshToken: refresh);
+    final revision = SecureStorage.sessionRevision;
+    await saved;
+    _ensureCurrentSession(revision);
+    DioClient.resetLogoutFlag();
+    return revision;
+  }
 
   static Future<void>? _registerInFlight;
 
@@ -41,10 +78,12 @@ class AuthRepository {
 
       final token = await PushNotificationService.ensureToken();
       if (token == null) {
-        debugPrint('[AuthRepository] registerCurrentDevice: FCM token is null, skipping registration');
+        debugPrint(
+            '[AuthRepository] registerCurrentDevice: FCM token is null, skipping registration');
         return;
       }
-      debugPrint('[AuthRepository] registerCurrentDevice: token=${token.substring(0, 20)}...');
+      debugPrint(
+          '[AuthRepository] registerCurrentDevice: token=${token.substring(0, 20)}...');
 
       final deviceId = await PushNotificationService.getDeviceId();
       final language = LanguageNotifier.instance.locale.languageCode;
@@ -93,48 +132,36 @@ class AuthRepository {
     required String phoneNumber,
     required String password,
   }) async {
+    final requestRevision = SecureStorage.sessionRevision;
     try {
       final response = await _dio.post(
         'authentication/users/login/',
         data: {'phone_number': phoneNumber, 'password': password},
       );
 
-      final data = response.data is Map
-          ? response.data as Map<String, dynamic>
-          : {};
-      final accessToken =
-          data['access'] ??
-          data['access_token'] ??
-          data['result']?['access_token'];
-      final refreshToken =
-          data['refresh'] ??
-          data['refresh_token'] ??
-          data['result']?['refresh_token'];
-
-      await SecureStorage.saveTokens(
-        accessToken: accessToken?.toString() ?? '',
-        refreshToken: refreshToken?.toString() ?? '',
-      );
-      DioClient.resetLogoutFlag();
+      final revision =
+          await _saveAuthenticationResponse(response.data, requestRevision);
 
       final me = await _dio.get('authentication/users/me/');
+      _ensureCurrentSession(revision);
       final meData = me.data is Map && (me.data as Map).containsKey('result')
           ? me.data['result']
           : me.data;
-      String? newUserId;
-      if (meData is Map) {
-        if (meData.containsKey('id')) {
-          newUserId = meData['id'].toString();
-          await SecureStorage.saveUserId(newUserId);
-        }
-        final fullName = meData['full_name']?.toString();
-        if (fullName != null) await SecureStorage.saveFullName(fullName);
+      if (meData is! Map || meData['id'] == null) {
+        throw const AppException(message: 'Invalid user profile response');
+      }
+      final newUserId = meData['id'].toString();
+      await SecureStorage.saveUserId(newUserId, expectedRevision: revision);
+      final fullName = meData['full_name']?.toString();
+      if (fullName != null) {
+        await SecureStorage.saveFullName(fullName, expectedRevision: revision);
       }
 
       // Форс-релогин того же аккаунта (сессия протухла в dio_client.dart) —
       // не сбрасываем sync_queue/coldStart/watermark, иначе получаем
       // повторный cold-start скан и риск дублей при fail-open реаплоаде.
       final prefs = await SharedPreferences.getInstance();
+      _ensureCurrentSession(revision);
       final lastUserIdBeforeForcedLogout =
           prefs.getString(DioClient.kLastKnownUserIdBeforeForcedLogoutKey);
       await prefs.remove(DioClient.kLastKnownUserIdBeforeForcedLogoutKey);
@@ -143,20 +170,28 @@ class AuthRepository {
         await AutoSyncService().onLogout();
       }
 
+      _ensureCurrentSession(revision);
       AutoSyncService().initialize().then((_) async {
-        if (await AutoSyncService().isAutoSyncEnabled()) {
+        if (revision != SecureStorage.sessionRevision) return;
+        final enabled = await AutoSyncService().isAutoSyncEnabled();
+        if (enabled && revision == SecureStorage.sessionRevision) {
           AutoSyncService().startAutoSync().catchError((_) {});
         }
       }).catchError((_) {});
       unawaited(registerCurrentDevice());
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) != 'Unknown error'
-            ? _extractError(e.response?.data)
-            : 'Login failed',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
+  }
+
+  String _otpKeyFromResponse(dynamic data) {
+    final result = data is Map && data['result'] is Map ? data['result'] : data;
+    final key = result is Map ? result['otp_key'] : null;
+    if (key is! String || key.trim().isEmpty) {
+      throw const AppException(message: 'Invalid verification response');
+    }
+    return key;
   }
 
   // REGISTER → returns otp_key
@@ -174,84 +209,65 @@ class AuthRepository {
           'password': password,
         },
       );
-      final data = response.data is Map
-          ? response.data as Map<String, dynamic>
-          : {};
-      final result = data.containsKey('result') ? data['result'] : data;
-      return result['otp_key']?.toString() ?? '';
+      return _otpKeyFromResponse(response.data);
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) != 'Unknown error'
-            ? _extractError(e.response?.data)
-            : 'Registration failed',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 
   // VERIFY OTP (registration flow only — saves tokens and starts sync)
   Future<void> verifyOtp({required String otpKey, required int otpCode}) async {
+    final requestRevision = SecureStorage.sessionRevision;
     try {
       final response = await _dio.post(
         'authentication/users/otp/verify/',
         data: {'otp_key': otpKey, 'otp_code': otpCode},
       );
 
-      final data = response.data is Map
-          ? response.data as Map<String, dynamic>
-          : {};
-      final result = data.containsKey('result') ? data['result'] : data;
+      final revision =
+          await _saveAuthenticationResponse(response.data, requestRevision);
 
-      final accessToken = result['access'] ?? result['access_token'];
-      final refreshToken = result['refresh'] ?? result['refresh_token'];
-
-      if (accessToken != null) {
-        await SecureStorage.saveTokens(
-          accessToken: accessToken.toString(),
-          refreshToken: refreshToken?.toString() ?? '',
-        );
-        DioClient.resetLogoutFlag();
-
-        final me = await _dio.get('authentication/users/me/');
-        final meData = me.data is Map && (me.data as Map).containsKey('result')
-            ? me.data['result']
-            : me.data;
-        String? newUserId;
-        if (meData is Map) {
-          if (meData.containsKey('id')) {
-            newUserId = meData['id'].toString();
-            await SecureStorage.saveUserId(newUserId);
-          }
-          final fullName = meData['full_name']?.toString();
-          if (fullName != null) await SecureStorage.saveFullName(fullName);
-        }
-
-        // Форс-релогин того же аккаунта (сессия протухла в dio_client.dart) —
-        // не сбрасываем sync_queue/coldStart/watermark, иначе получаем
-        // повторный cold-start скан и риск дублей при fail-open реаплоаде.
-        final prefs = await SharedPreferences.getInstance();
-        final lastUserIdBeforeForcedLogout =
-            prefs.getString(DioClient.kLastKnownUserIdBeforeForcedLogoutKey);
-        await prefs.remove(DioClient.kLastKnownUserIdBeforeForcedLogoutKey);
-        if (lastUserIdBeforeForcedLogout == null ||
-            lastUserIdBeforeForcedLogout != newUserId) {
-          await AutoSyncService().onLogout();
-        }
-
-        AutoSyncService().initialize().then((_) async {
-          if (await AutoSyncService().isAutoSyncEnabled()) {
-            AutoSyncService().startAutoSync().catchError((_) {});
-          }
-        }).catchError((_) {});
-        unawaited(registerCurrentDevice());
+      final me = await _dio.get('authentication/users/me/');
+      _ensureCurrentSession(revision);
+      final meData = me.data is Map && (me.data as Map).containsKey('result')
+          ? me.data['result']
+          : me.data;
+      if (meData is! Map || meData['id'] == null) {
+        throw const AppException(message: 'Invalid user profile response');
       }
+      final newUserId = meData['id'].toString();
+      await SecureStorage.saveUserId(newUserId, expectedRevision: revision);
+      final fullName = meData['full_name']?.toString();
+      if (fullName != null) {
+        await SecureStorage.saveFullName(fullName, expectedRevision: revision);
+      }
+
+      // Форс-релогин того же аккаунта (сессия протухла в dio_client.dart) —
+      // не сбрасываем sync_queue/coldStart/watermark, иначе получаем
+      // повторный cold-start скан и риск дублей при fail-open реаплоаде.
+      final prefs = await SharedPreferences.getInstance();
+      _ensureCurrentSession(revision);
+      final lastUserIdBeforeForcedLogout =
+          prefs.getString(DioClient.kLastKnownUserIdBeforeForcedLogoutKey);
+      await prefs.remove(DioClient.kLastKnownUserIdBeforeForcedLogoutKey);
+      if (lastUserIdBeforeForcedLogout == null ||
+          lastUserIdBeforeForcedLogout != newUserId) {
+        await AutoSyncService().onLogout();
+      }
+
+      _ensureCurrentSession(revision);
+      AutoSyncService().initialize().then((_) async {
+        if (revision != SecureStorage.sessionRevision) return;
+        final enabled = await AutoSyncService().isAutoSyncEnabled();
+        if (enabled && revision == SecureStorage.sessionRevision) {
+          AutoSyncService().startAutoSync().catchError((_) {});
+        }
+      }).catchError((_) {});
+      unawaited(registerCurrentDevice());
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) != 'Unknown error'
-            ? _extractError(e.response?.data)
-            : 'OTP verification failed',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -261,18 +277,10 @@ class AuthRepository {
         'authentication/users/otp/resend/',
         data: {'phone_number': phoneNumber},
       );
-      final data = response.data is Map
-          ? response.data as Map<String, dynamic>
-          : {};
-      final result = data.containsKey('result') ? data['result'] : data;
-      return result['otp_key']?.toString() ?? '';
+      return _otpKeyFromResponse(response.data);
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) != 'Unknown error'
-            ? _extractError(e.response?.data)
-            : 'Resend failed',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -283,18 +291,10 @@ class AuthRepository {
         'authentication/users/password/forgot/',
         data: {'phone_number': phoneNumber},
       );
-      final data = response.data is Map
-          ? response.data as Map<String, dynamic>
-          : {};
-      final result = data.containsKey('result') ? data['result'] : data;
-      return result['otp_key']?.toString() ?? '';
+      return _otpKeyFromResponse(response.data);
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) != 'Unknown error'
-            ? _extractError(e.response?.data)
-            : 'User not found',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -305,24 +305,12 @@ class AuthRepository {
         'authentication/users/password/resend/',
         data: {'phone_number': phoneNumber},
       );
-      final data = response.data is Map
-          ? response.data as Map<String, dynamic>
-          : {};
-      final result = data.containsKey('result') ? data['result'] : data;
-      return result['otp_key']?.toString() ?? '';
+      return _otpKeyFromResponse(response.data);
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) != 'Unknown error'
-            ? _extractError(e.response?.data)
-            : 'Resend failed',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
-
-
-
-
 
   Future<void> resetPassword({
     required String otpKey,
@@ -340,33 +328,22 @@ class AuthRepository {
         },
       );
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) != 'Unknown error'
-            ? _extractError(e.response?.data)
-            : 'Password reset failed',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 
-  Future<String> verifyPasswordOtp({required String otpKey, required int otpCode}) async {
+  Future<String> verifyPasswordOtp(
+      {required String otpKey, required int otpCode}) async {
     try {
       final response = await _dio.post(
         'authentication/users/password/verify/',
         data: {'otp_key': otpKey, 'otp_code': otpCode},
       );
-      final data = response.data is Map
-          ? response.data as Map<String, dynamic>
-          : {};
-      final result = data.containsKey('result') ? data['result'] : data;
-      return result['otp_key']?.toString() ?? '';
+      return _otpKeyFromResponse(response.data);
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) != 'Unknown error'
-            ? _extractError(e.response?.data)
-            : 'OTP verification failed',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 

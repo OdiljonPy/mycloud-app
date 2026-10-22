@@ -30,9 +30,8 @@ class NotificationsRepository {
       );
 
       final dynamic responseData = response.data;
-      final List<dynamic> results = responseData is List
-          ? responseData
-          : (responseData['results'] ?? []);
+      final List<dynamic> results =
+          responseData is List ? responseData : (responseData['results'] ?? []);
 
       final bool hasNext = responseData is Map &&
           responseData['next'] != null &&
@@ -50,12 +49,8 @@ class NotificationsRepository {
         totalCount: totalCount,
       );
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) == 'Unknown error'
-            ? 'Не удалось загрузить уведомления'
-            : _extractError(e.response?.data),
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -68,12 +63,8 @@ class NotificationsRepository {
       }
       return 0;
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) == 'Unknown error'
-            ? 'Не удалось получить количество непрочитанных'
-            : _extractError(e.response?.data),
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -81,12 +72,8 @@ class NotificationsRepository {
     try {
       await _dio.post('/notifications/mark-all-read/');
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) == 'Unknown error'
-            ? 'Не удалось отметить все как прочитанные'
-            : _extractError(e.response?.data),
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -94,12 +81,8 @@ class NotificationsRepository {
     try {
       await _dio.post('/notifications/$id/read/');
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) == 'Unknown error'
-            ? 'Не удалось отметить как прочитанное'
-            : _extractError(e.response?.data),
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -107,12 +90,8 @@ class NotificationsRepository {
     try {
       await _dio.delete('/notifications/$id/');
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) == 'Unknown error'
-            ? 'Не удалось удалить уведомление'
-            : _extractError(e.response?.data),
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -128,12 +107,8 @@ class NotificationsRepository {
       final response = await _dio.get('/notifications/$id/');
       return NotificationModel.fromJson(_unwrapNotification(response.data));
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) == 'Unknown error'
-            ? 'Не удалось загрузить уведомление'
-            : _extractError(e.response?.data),
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -157,12 +132,8 @@ class NotificationsRepository {
         options: Options(extra: {'silentAuth': true}),
       );
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) == 'Unknown error'
-            ? 'Не удалось зарегистрировать устройство для push'
-            : _extractError(e.response?.data),
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -175,12 +146,8 @@ class NotificationsRepository {
         options: Options(extra: {'silentAuth': true}),
       );
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) == 'Unknown error'
-            ? 'Не удалось отписать устройство от push'
-            : _extractError(e.response?.data),
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e,
+          fallbackMessage: _extractError(e.response?.data));
     }
   }
 }

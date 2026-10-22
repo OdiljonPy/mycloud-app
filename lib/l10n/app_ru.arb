@@ -708,5 +708,48 @@
       "daysLeft": { "type": "String" }
     }
   },
-  "notifBodySystemAnnouncementFallback": "Подробности в приложении"
+  "notifBodySystemAnnouncementFallback": "Подробности в приложении",
+  "errorNetworkUnavailable": "Нет соединения. Проверьте интернет и повторите попытку.",
+  "errorRequestTimeout": "Время ожидания истекло. Повторите попытку.",
+  "errorAccessDenied": "Недостаточно прав для этого действия.",
+  "errorResourceNotFound": "Объект не найден или уже удалён.",
+  "errorTooManyRequests": "Слишком много запросов. Подождите и повторите попытку.",
+  "errorShareLimitReached": "Достигнут лимит предоставления доступа.",
+  "errorServerUnavailable": "Сервер временно недоступен. Повторите попытку позже.",
+  "errorValidation": "Проверьте введённые данные и повторите попытку.",
+  "errorItemAlreadyExists": "Такой объект уже существует.",
+  "errorOtpExpired": "Срок действия кода истёк. Запросите новый код.",
+  "errorRequestCancelled": "Действие отменено.",
+  "errorSystemFolderProtected": "Эту системную папку нельзя удалить.",
+  "pressBackAgainToExit": "Нажмите «Назад» ещё раз, чтобы закрыть приложение",
+  "splashTagline": "Ваши файлы всегда под рукой.",
+  "languageContinue": "Продолжить →",
+  "skipButton": "Пропустить",
+  "getStartedButton": "Начать",
+  "onboardingFilesTitle": "Все файлы в одном месте",
+  "onboardingFilesSubtitle": "Фото, видео, документы — всё надёжно хранится",
+  "onboardingSyncTitle": "Автоматическая синхронизация",
+  "onboardingSyncSubtitle": "Галерея загружается фоном — как Google Photos",
+  "onboardingPrivacyTitle": "Безопасно и быстро",
+  "onboardingPrivacySubtitle": "Ваши данные принадлежат только вам",
+  "uploadCheckingDuplicates": "Загрузка завершена. Проверяем дубликаты…",
+  "syncResumed": "Синхронизация продолжена.",
+  "syncResumedWithDuplicates": "Синхронизация продолжена. Пропущено дубликатов: {count}.",
+  "@syncResumedWithDuplicates": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncPausedForManualUpload": "Синхронизация приостановлена. Файлов для загрузки: {count}.",
+  "@syncPausedForManualUpload": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncStatusScanning": "Сканирование галереи...",
+  "localFileNotFound": "Файл не найден"
 }

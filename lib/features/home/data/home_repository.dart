@@ -84,10 +84,7 @@ class HomeRepository {
         'totalCount': totalCount,
       };
     } on DioException catch (e) {
-      throw AppException(
-        message: e.response?.data?['message'] ?? 'Не удалось загрузить файлы',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e, fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -128,10 +125,7 @@ class HomeRepository {
       }
       throw AppException(message: 'Неверный формат ответа (код: ${response.statusCode})');
     } on DioException catch (e) {
-      throw AppException(
-        message: e.response?.data?['message'] ?? 'Не удалось создать папку',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e, fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -310,10 +304,7 @@ class HomeRepository {
         data: {'type': type, 'id': id, 'name': name},
       );
     } on DioException catch (e) {
-      throw AppException(
-        message: e.response?.data?['message'] ?? 'Не удалось переименовать',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e, fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -336,10 +327,7 @@ class HomeRepository {
         },
       );
     } on DioException catch (e) {
-      throw AppException(
-        message: e.response?.data?['message'] ?? 'Не удалось удалить',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e, fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -365,12 +353,7 @@ class HomeRepository {
         data: {'files': files, 'folders': folders},
       );
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) != 'Unknown error'
-            ? _extractError(e.response?.data)
-            : 'Не удалось удалить выбранные элементы',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e, fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -389,12 +372,7 @@ class HomeRepository {
         },
       );
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) != 'Unknown error'
-            ? _extractError(e.response?.data)
-            : 'Не удалось переместить файлы',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e, fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -416,12 +394,7 @@ class HomeRepository {
       }
       return allResults;
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) != 'Unknown error'
-            ? _extractError(e.response?.data)
-            : 'Не удалось загрузить избранное',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e, fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -433,12 +406,7 @@ class HomeRepository {
       );
       return response.data['id'] as int;
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) != 'Unknown error'
-            ? _extractError(e.response?.data)
-            : 'Не удалось добавить в избранное',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e, fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -446,12 +414,7 @@ class HomeRepository {
     try {
       await _dio.delete('/content/favourite-file/$fileId/');
     } on DioException catch (e) {
-      throw AppException(
-        message: _extractError(e.response?.data) != 'Unknown error'
-            ? _extractError(e.response?.data)
-            : 'Не удалось убрать из избранного',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e, fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -472,10 +435,7 @@ class HomeRepository {
         };
       }).toList();
     } on DioException catch (e) {
-      throw AppException(
-        message: e.response?.data?['message'] ?? 'Не удалось загрузить закрепленные папки',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e, fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -490,10 +450,7 @@ class HomeRepository {
           e.response?.data?['message_key'] == 'you_can_pin_maximum_5_folders') {
         throw const AppException(message: 'Максимум 5 закреплённых папок');
       }
-      throw AppException(
-        message: e.response?.data?['message'] ?? 'Не удалось закрепить папку',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e, fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -501,10 +458,7 @@ class HomeRepository {
     try {
       await _dio.delete('/content/pinned-folders/$folderUuid/');
     } on DioException catch (e) {
-      throw AppException(
-        message: e.response?.data?['message'] ?? 'Не удалось открепить папку',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e, fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -531,12 +485,7 @@ class HomeRepository {
       if (response.data is List) return response.data as List;
       return response.data['results'] ?? [];
     } on DioException catch (e) {
-      throw AppException(
-        message:
-        e.response?.data?['message'] ??
-            'Не удалось загрузить недавние файлы',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e, fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -641,10 +590,7 @@ class HomeRepository {
         return item;
       }).toList();
     } on DioException catch (e) {
-      throw AppException(
-        message: e.response?.data?['message'] ?? 'Не удалось загрузить Shared',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e, fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -653,10 +599,7 @@ class HomeRepository {
       final response = await _dio.get('/content/shared-with-me/$userId/');
       return response.data;
     } on DioException catch (e) {
-      throw AppException(
-        message: e.response?.data?['message'] ?? 'Ошибка',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e, fallbackMessage: _extractError(e.response?.data));
     }
   }
 
@@ -670,10 +613,7 @@ class HomeRepository {
       );
       return response.data;
     } on DioException catch (e) {
-      throw AppException(
-        message: e.response?.data?['message'] ?? 'Ошибка',
-        statusCode: e.response?.statusCode,
-      );
+      throw AppException.fromDio(e, fallbackMessage: _extractError(e.response?.data));
     }
   }
 }

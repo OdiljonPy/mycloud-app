@@ -7,11 +7,13 @@ import '../../../l10n/app_localizations.dart';
 import 'reset_password_page.dart';
 
 class ResetPasswordOtpPage extends StatefulWidget {
+  final AuthRepository? authRepository;
   final String phoneNumber;
   final String otpKey;
 
   const ResetPasswordOtpPage({
     super.key,
+    this.authRepository,
     required this.phoneNumber,
     required this.otpKey,
   });
@@ -25,12 +27,12 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
-  final _authRepo = AuthRepository();
+  late final _authRepo = widget.authRepository ?? AuthRepository();
   late String _otpKey;
 
   bool _isLoading = false;
   bool _isResending = false;
-  String? _error;
+  Object? _error;
 
   @override
   void initState() {
@@ -41,6 +43,7 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
   String get _otpCode => _controllers.map((c) => c.text).join();
 
   void _onDigitChanged(String val, int index) {
+    if (_isLoading || _isResending) return;
     final digits = val.replaceAll(RegExp(r'[^0-9]'), '');
 
     if (digits.length > 1) {
@@ -70,6 +73,7 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
   }
 
   void _onBackspace(int index) {
+    if (_isLoading || _isResending) return;
     if (_controllers[index].text.isEmpty && index > 0) {
       _controllers[index - 1].clear();
       _focusNodes[index - 1].requestFocus();
@@ -78,9 +82,17 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
   }
 
   Future<void> _verify() async {
-    if (_isLoading) return;
-    if (_otpCode.length < 6) {
-      setState(() => _error = AppLocalizations.of(context)!.enterCompleteOtpCode);
+    if (_isLoading ||
+        _isResending ||
+        !(ModalRoute.of(context)?.isCurrent ?? true)) {
+      return;
+    }
+    final code = _otpCode;
+    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
+      setState(() => _error = const AppException(
+            message: 'Incomplete verification code',
+            messageKey: 'local_incomplete_otp',
+          ));
       return;
     }
 
@@ -94,34 +106,42 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
       // required by password/reset/ (no tokens saved, sync untouched)
       final newOtpKey = await _authRepo.verifyPasswordOtp(
         otpKey: _otpKey,
-        otpCode: int.parse(_otpCode),
+        otpCode: int.parse(code),
       );
-      if (mounted) {
+      if (mounted && (ModalRoute.of(context)?.isCurrent ?? true)) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) => ResetPasswordPage(
-              otpKey: newOtpKey.isNotEmpty ? newOtpKey : _otpKey,
-              otpCode: int.parse(_otpCode),
+              otpKey: newOtpKey,
+              authRepository: _authRepo,
+              otpCode: int.parse(code),
             ),
           ),
         );
       }
-    } on AppException catch (e) {
-      final localized = mounted
-          ? ErrorLocalizer.forException(e, AppLocalizations.of(context)!)
-          : e.message;
-      setState(() => _error = localized);
+    } catch (e) {
+      if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      setState(() => _error = e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _resend() async {
-    setState(() => _isResending = true);
+    if (_isLoading ||
+        _isResending ||
+        !(ModalRoute.of(context)?.isCurrent ?? true)) {
+      return;
+    }
+    setState(() {
+      _isResending = true;
+      _error = null;
+    });
     try {
-      final newKey = await _authRepo.resendPasswordOtp(
-          phoneNumber: widget.phoneNumber);
+      final newKey =
+          await _authRepo.resendPasswordOtp(phoneNumber: widget.phoneNumber);
+      if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
       setState(() => _otpKey = newKey);
       for (final c in _controllers) {
         c.clear();
@@ -134,11 +154,9 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
           ),
         );
       }
-    } on AppException catch (e) {
-      final localized = mounted
-          ? ErrorLocalizer.forException(e, AppLocalizations.of(context)!)
-          : e.message;
-      setState(() => _error = localized);
+    } catch (e) {
+      if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      setState(() => _error = e);
     } finally {
       if (mounted) setState(() => _isResending = false);
     }
@@ -162,10 +180,14 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
     // iOS HIG ranglar
     final bgColor = isDark ? const Color(0xFF000000) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
-    final subtitleColor = isDark ? const Color(0xFF98989D) : const Color(0xFF8E8E93);
-    final inputFillColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF5F7FA);
-    final accentColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF1A73E8);
-    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+    final subtitleColor =
+        isDark ? const Color(0xFF98989D) : const Color(0xFF8E8E93);
+    final inputFillColor =
+        isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF5F7FA);
+    final accentColor =
+        isDark ? const Color(0xFF0A84FF) : const Color(0xFF1A73E8);
+    final errorColor =
+        isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -184,7 +206,6 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 8),
-
               Container(
                 width: 56,
                 height: 56,
@@ -192,11 +213,10 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
                   color: accentColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(Icons.message_rounded, color: accentColor, size: 28),
+                child:
+                    Icon(Icons.message_rounded, color: accentColor, size: 28),
               ),
-
               const SizedBox(height: 24),
-
               Text(
                 AppLocalizations.of(context)!.verifyOtpCodeTitle,
                 style: TextStyle(
@@ -210,7 +230,8 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
                 text: TextSpan(
                   style: TextStyle(fontSize: 14, color: subtitleColor),
                   children: [
-                    TextSpan(text: AppLocalizations.of(context)!.otpSentToPrefix),
+                    TextSpan(
+                        text: AppLocalizations.of(context)!.otpSentToPrefix),
                     TextSpan(
                       text: widget.phoneNumber,
                       style: TextStyle(
@@ -221,9 +242,7 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 40),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(
@@ -240,6 +259,7 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
                         return KeyEventResult.ignored;
                       },
                       child: TextField(
+                        readOnly: _isLoading || _isResending,
                         controller: _controllers[i],
                         focusNode: _focusNodes[i],
                         textAlign: TextAlign.center,
@@ -262,7 +282,8 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: accentColor, width: 2),
+                            borderSide:
+                                BorderSide(color: accentColor, width: 2),
                           ),
                           contentPadding: EdgeInsets.zero,
                         ),
@@ -272,7 +293,6 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
                   ),
                 ),
               ),
-
               if (_error != null) ...[
                 const SizedBox(height: 16),
                 Container(
@@ -280,7 +300,8 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
                   decoration: BoxDecoration(
                     color: errorColor.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: errorColor.withValues(alpha: 0.2)),
+                    border:
+                        Border.all(color: errorColor.withValues(alpha: 0.2)),
                   ),
                   child: Row(
                     children: [
@@ -288,7 +309,8 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          _error!,
+                          ErrorLocalizer.forException(
+                              _error!, AppLocalizations.of(context)!),
                           style: TextStyle(color: errorColor, fontSize: 13),
                         ),
                       ),
@@ -296,14 +318,12 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
                   ),
                 ),
               ],
-
               const SizedBox(height: 32),
-
               SizedBox(
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _verify,
+                  onPressed: _isLoading || _isResending ? null : _verify,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: accentColor,
                     disabledBackgroundColor: accentColor.withValues(alpha: 0.5),
@@ -331,12 +351,10 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
                         ),
                 ),
               ),
-
               const SizedBox(height: 16),
-
               Center(
                 child: TextButton(
-                  onPressed: _isResending ? null : _resend,
+                  onPressed: _isLoading || _isResending ? null : _resend,
                   child: _isResending
                       ? SizedBox(
                           width: 18,

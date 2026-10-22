@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
@@ -34,31 +35,38 @@ import '../../../shared/widgets/media_grid_card.dart';
 import '../../../core/utils/media_type_helper.dart';
 import '../../../core/utils/page_transitions.dart';
 import '../../../core/utils/safe_action_mixin.dart';
+import '../../../core/utils/navigation_guard.dart';
 
 
 enum _FilterType { all, images, videos }
 
 class FilesPage extends StatefulWidget {
   final void Function(String? folderId)? onFolderChanged;
+  final HomeRepository? repository;
+  // MainPage owns system back when Files is one of its persistent tabs.
+  final bool handleSystemBack;
 
-  const FilesPage({super.key, this.onFolderChanged});
+  const FilesPage({super.key, this.onFolderChanged, this.repository,
+    this.handleSystemBack = true});
 
   @override
   State<FilesPage> createState() => FilesPageState();
 }
 
 class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
-  final _repo = HomeRepository();
+  late final _repo = widget.repository ?? HomeRepository();
   final _downloadRepo = DownloadRepository();
   final _profileRepo = ProfileRepository();
 
   List<FolderModel> _folders = [];
   List<FileModel> _files = [];
   List<FileModel> _dateOrderedFiles = [];
-  // Starts false: _loadContent() guards on this flag and flips it true
-  // synchronously before its first await.
   bool _isLoading = false;
-  String? _error;
+  int _contentRevision = 0;
+  String? _loadingFolderId;
+  bool _reloadAfterLoad = false;
+  Timer? _staggerTimer;
+  Object? _error;
   bool _isGrid = true;
   String? _authToken;
 
@@ -84,6 +92,7 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
   int _currentPage = 1;
   bool _hasNextPage = false;
   bool _isLoadingMore = false;
+  bool _loadMoreFailed = false;
   final ScrollController _scrollController = ScrollController();
   // True only for the brief window right after a full-screen load — gates
   // the staggered fade-in so it never replays for scroll/pagination reveals.
@@ -307,12 +316,13 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
-      if (!_isLoadingMore && _hasNextPage && !_showFavourites) _loadMoreContent();
+      if (!_isLoadingMore && !_loadMoreFailed && _hasNextPage && !_showFavourites) _loadMoreContent();
     }
   }
 
   @override
   void dispose() {
+    _staggerTimer?.cancel();
     _scrollController.dispose();
     _shareBloc.close();
     for (final n in _downloadNotifiers.values) {
@@ -331,7 +341,7 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
   bool _isOpeningFile = false;
 
   Future<void> _openFileViewer(FileModel file) async {
-    if (_isOpeningFile) return;
+    if (_isOpeningFile || !isCurrentPage(context)) return;
     _isOpeningFile = true;
     try {
     final mime = file.mimeType.toLowerCase();
@@ -347,7 +357,7 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
 
       if (!mounted) return;
 
-      Navigator.push(
+      await pushPageOnce(
         context,
         MaterialPageRoute(
           builder: (_) => PhotoViewerPage(
@@ -371,40 +381,64 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
     }
   }
 
+  bool _ownsContentRequest(int revision, String? folderId) =>
+      mounted && revision == _contentRevision &&
+      folderId == _currentFolderId && !_showFavourites;
+
+  List<FolderModel> _markSyncFolders(Iterable<FolderModel> folders) {
+    final marked = folders.map((folder) =>
+      !folder.isSync && (folder.name == '📱 Sync' || folder.name == 'Sync')
+        ? folder.copyWith(isSync: true) : folder).toList();
+    return [...marked.where((f) => f.isSync), ...marked.where((f) => !f.isSync)];
+  }
+
+  void _invalidateContentRequests() {
+    _contentRevision++;
+    _reloadAfterLoad = false;
+    _isLoading = false;
+    _isLoadingMore = false;
+    _loadMoreFailed = false;
+    _loadingFolderId = null;
+    _staggerTimer?.cancel();
+  }
+
   Future<void> _loadContent() async {
-    if (!mounted || _isLoading) return;
+    if (!mounted) return;
+    if (_showFavourites) {
+      // A mutation invalidates the saved folder snapshot, not the favourites view.
+      _savedFiles = null;
+      return;
+    }
+    final folderId = _currentFolderId;
+    if (_isLoading && _loadingFolderId == folderId) {
+      _reloadAfterLoad = true;
+      return;
+    }
+    final revision = ++_contentRevision;
+    _loadingFolderId = folderId;
+    _reloadAfterLoad = false;
+    _staggerTimer?.cancel();
     setState(() {
       _isLoading = true;
+      _isLoadingMore = false;
+      _loadMoreFailed = false;
       _error = null;
       _currentPage = 1;
       _hasNextPage = false;
     });
     try {
-      final result = await _repo.getContent(
-        parentId: _currentFolderId,
-        page: 1,
-      );
+      final result = await _repo.getContent(parentId: folderId, page: 1);
+      if (!_ownsContentRequest(revision, folderId)) return;
       List<Map<String, dynamic>> pinned = [];
       try {
         pinned = await _repo.getPinnedFolders();
       } catch (e) {
         if (kDebugMode) debugPrint('[FilesPage] getPinnedFolders failed: $e');
       }
-      if (!mounted) return;
-      // Mark sync folder by name if server returns is_sync=false
-      final rawFolders = result['folders'] as List<FolderModel>;
-      final markedFolders = rawFolders.map((f) {
-        if (!f.isSync && (f.name == '📱 Sync' || f.name == 'Sync')) {
-          return f.copyWith(isSync: true);
-        }
-        return f;
-      }).toList();
-      markedFolders.sort((a, b) => a.isSync ? -1 : (b.isSync ? 1 : 0));
-
-      if (!mounted) return;
+      if (!_ownsContentRequest(revision, folderId)) return;
       final loadedFiles = result['files'] as List<FileModel>;
       setState(() {
-        _folders = markedFolders;
+        _folders = _markSyncFolders(result['folders'] as List<FolderModel>);
         _files = _isSyncFolder ? _sortByCaptureDate(loadedFiles) : loadedFiles;
         _recomputeDateOrder();
         _hasNextPage = result['hasNext'] as bool;
@@ -412,78 +446,72 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
         _totalFilesCount = result['totalCount'] as int? ?? _files.length;
         _staggerActive = true;
       });
-      Future.delayed(const Duration(milliseconds: 600), () {
-        if (mounted) setState(() => _staggerActive = false);
+      _staggerTimer = Timer(const Duration(milliseconds: 600), () {
+        if (_ownsContentRequest(revision, folderId)) {
+          setState(() => _staggerActive = false);
+        }
       });
       _precacheThumbnails();
-
     } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = ErrorLocalizer.forException(e, AppLocalizations.of(context)!);
-      });
+      if (!_ownsContentRequest(revision, folderId)) return;
+      setState(() => _error = e);
     } finally {
-      // finally (not just the catch branch) — guarantees _isLoading always
-      // clears even if something other than the awaited calls above throws,
-      // so the re-entrancy guard at the top of this function can never
-      // permanently wedge the page.
-      if (mounted) setState(() => _isLoading = false);
+      if (_ownsContentRequest(revision, folderId)) {
+        setState(() => _isLoading = false);
+        if (_reloadAfterLoad) {
+          _reloadAfterLoad = false;
+          unawaited(_loadContent());
+        }
+      }
     }
   }
 
   Future<void> _loadMoreContent() async {
-    // Favourites has no server-side pagination — never request a "next page".
-    if (!mounted || _isLoadingMore || !_hasNextPage || _showFavourites) return;
-    setState(() => _isLoadingMore = true);
+    if (!mounted || _isLoading || _isLoadingMore || !_hasNextPage || _showFavourites) return;
+    final revision = _contentRevision;
+    final folderId = _currentFolderId;
+    final nextPage = _currentPage + 1;
+    setState(() {
+      _isLoadingMore = true;
+      _loadMoreFailed = false;
+    });
     try {
-      final result = await _repo.getContent(
-        parentId: _currentFolderId,
-        page: _currentPage + 1,
-      );
-      if (!mounted) return;
-      // Defensive dedup: offset-based pagination can repeat an item across
-      // pages if the folder changed between requests (upload/delete mid-scroll).
-      final existingIds = _files.map((f) => f.id).toSet();
+      final result = await _repo.getContent(parentId: folderId, page: nextPage);
+      if (!_ownsContentRequest(revision, folderId)) return;
+      final fileIds = _files.map((f) => f.id).toSet();
+      final folderIds = _folders.map((f) => f.id).toSet();
       final newFiles = (result['files'] as List<FileModel>)
-          .where((f) => existingIds.add(f.id))
-          .toList();
+          .where((f) => fileIds.add(f.id)).toList();
+      final newFolders = (result['folders'] as List<FolderModel>)
+          .where((f) => folderIds.add(f.id));
       setState(() {
         _files.addAll(newFiles);
+        _folders = _markSyncFolders([..._folders, ...newFolders]);
         if (_isSyncFolder) _files = _sortByCaptureDate(_files);
         _recomputeDateOrder();
-        _currentPage++;
+        _currentPage = nextPage;
         _hasNextPage = result['hasNext'] as bool;
-        _isLoadingMore = false;
+        _totalFilesCount = result['totalCount'] as int? ?? _totalFilesCount;
       });
-
-    } on AppException catch (e) {
-      if (!mounted) return;
-      // 404 here means "no more pages" — not a real error, don't alarm the user.
-      if (e.statusCode == 404) {
-        setState(() {
-          _isLoadingMore = false;
-          _hasNextPage = false;
-        });
-        return;
-      }
-      setState(() => _isLoadingMore = false);
-      final t = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(t.genericErrorFallback),
-          action: SnackBarAction(label: t.retry, onPressed: _loadMoreContent),
-        ),
-      );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isLoadingMore = false);
-      final t = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(t.genericErrorFallback),
-          action: SnackBarAction(label: t.retry, onPressed: _loadMoreContent),
-        ),
-      );
+      if (!_ownsContentRequest(revision, folderId)) return;
+      setState(() => _loadMoreFailed = true);
+      if (e is AppException && e.statusCode == 404) {
+        setState(() => _hasNextPage = false);
+      } else if (isCurrentPage(context)) {
+        final t = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(ErrorLocalizer.forException(e, t)),
+          action: SnackBarAction(label: t.retry, onPressed: () {
+            if (_ownsContentRequest(revision, folderId)) _loadMoreContent();
+          }),
+        ));
+      }
+    } finally {
+      if (_ownsContentRequest(revision, folderId)) {
+        setState(() => _isLoadingMore = false);
+      }
     }
   }
 
@@ -529,6 +557,10 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
   }
 
   bool handleBackNavigation() {
+    if (_isSelectionMode) {
+      setState(() { _selectedFiles.clear(); _selectedFolders.clear(); });
+      return true;
+    }
     if (_showFavourites) {
       bool needsReload = false;
       setState(() {
@@ -551,65 +583,43 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
   }
 
   void toggleFavourites() {
-    setState(() {
-      _showFavourites = true;
-      _activeFilter = _FilterType.all;
+    if (_showFavourites) return;
+    setState(_enterFavourites);
+  }
+
+  Future<void> _openUploadPage() async {
+    await runNavigationOnce<void>(context, () async {
+      final currentFolder = _currentFolderId;
+      await Navigator.push<void>(context, slideUpRoute(
+        UploadPage(parentId: currentFolder, onUploadComplete: () async {
+          await Future.delayed(const Duration(seconds: 2));
+          _loadContent();
+        }), settings: const RouteSettings(name: 'upload'),
+      ));
+      if (mounted) _loadContent();
     });
   }
 
-  void _openUploadPage() {
-    final currentFolder = _currentFolderId;
-    Navigator.push(
-      context,
-      slideUpRoute(
-        UploadPage(
-          parentId: currentFolder,
-          onUploadComplete: () async {
-            await Future.delayed(const Duration(seconds: 2));
-            _loadContent();
-          },
-        ),
-        settings: const RouteSettings(name: 'upload'),
-      ),
-    ).then((_) => _loadContent());
-  }
-
   Future<void> _pickAndUploadFiles() async {
-    final ImagePicker picker = ImagePicker();
-
-    final List<XFile> selectedFiles = await picker.pickMultipleMedia();
-
-    if (selectedFiles.isEmpty) return;
-    if (!mounted) return;
-
-    final List<PlatformFile> files = [];
-    for (final xFile in selectedFiles) {
-      final file = File(xFile.path);
-      files.add(PlatformFile(
-        name: xFile.name,
-        size: await file.length(),
-        path: xFile.path,
-      ));
-    }
-
-    if (files.isEmpty) return;
-    if (!mounted) return;
-
-    final currentFolder = _currentFolderId;
-    Navigator.push(
-      context,
-      slideUpRoute(
-        UploadPage(
-          parentId: currentFolder,
-          initialFiles: files,
+    await runNavigationOnce<void>(context, () async {
+      final currentFolder = _currentFolderId;
+      final selectedFiles = await ImagePicker().pickMultipleMedia();
+      if (!mounted || !isCurrentPage(context) || selectedFiles.isEmpty) return;
+      final files = <PlatformFile>[];
+      for (final xFile in selectedFiles) {
+        files.add(PlatformFile(name: xFile.name,
+          size: await File(xFile.path).length(), path: xFile.path));
+      }
+      if (!mounted || !isCurrentPage(context) || files.isEmpty) return;
+      await Navigator.push<void>(context, slideUpRoute(
+        UploadPage(parentId: currentFolder, initialFiles: files,
           onUploadComplete: () async {
             await Future.delayed(const Duration(seconds: 2));
             _loadContent();
-          },
-        ),
-        settings: const RouteSettings(name: 'upload'),
-      ),
-    ).then((_) => _loadContent());
+          }), settings: const RouteSettings(name: 'upload'),
+      ));
+      if (mounted) _loadContent();
+    });
   }
 
   void _openFolder(FolderModel folder) {
@@ -637,6 +647,7 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
 
 
   void _navigateTo(int index) {
+    if (index >= _breadcrumb.length) return;
     if (index < 0) {
       if (_breadcrumb.isEmpty) return;
       setState(() {
@@ -658,14 +669,17 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
   /// Snapshots the current folder view before switching to favourites, so
   /// leaving favourites can restore it from memory (browser-back semantics).
   void _enterFavourites() {
+    final canSave = !_isLoading;
     _savedBreadcrumb
       ..clear()
       ..addAll(_breadcrumb);
-    _savedFiles = List.of(_files);
+    _savedFiles = canSave ? List.of(_files) : null;
     _savedFolders = List.of(_folders);
     _savedPage = _currentPage;
     _savedHasNextPage = _hasNextPage;
     _savedTotalFilesCount = _totalFilesCount;
+    _invalidateContentRequests();
+    _error = null;
     _breadcrumb.clear();
     _showFavourites = true;
     _activeFilter = _FilterType.all;
@@ -677,17 +691,17 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
   /// and returns true so the caller knows it must call [_loadContent].
   bool _exitFavourites({required bool restore}) {
     final canRestore = restore && _savedFiles != null;
+    _invalidateContentRequests();
+    _error = null;
+    _breadcrumb.clear();
+    if (restore) _breadcrumb.addAll(_savedBreadcrumb);
     if (canRestore) {
-      _breadcrumb
-        ..clear()
-        ..addAll(_savedBreadcrumb);
       _files = _savedFiles!;
       _folders = _savedFolders!;
       _currentPage = _savedPage!;
       _hasNextPage = _savedHasNextPage!;
       _totalFilesCount = _savedTotalFilesCount ?? _files.length;
     } else {
-      _breadcrumb.clear();
       _folderPage = 0;
     }
     _savedBreadcrumb.clear();
@@ -1083,7 +1097,7 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
                     title: t.move,
                     onTap: () async {
                       Navigator.pop(ctx);
-                      final result = await Navigator.push<bool>(
+                      final result = await pushPageOnce<bool>(
                         context,
                         MaterialPageRoute(
                           builder: (context) => MoveDestinationScreen(
@@ -1154,12 +1168,12 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
                   ),
                 ],
                 if (isSyncF)
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 12, top: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12, top: 4),
                     child: Center(
                       child: Text(
-                        'Sync folder · managed automatically',
-                        style: TextStyle(
+                        AppLocalizations.of(context)!.syncFolderReadOnly,
+                        style: const TextStyle(
                           fontSize: 12,
                           color: Colors.grey,
                         ),
@@ -1347,7 +1361,7 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
                   title: t.move,
                   onTap: () async {
                     Navigator.pop(ctx);
-                    final result = await Navigator.push<bool>(
+                    final result = await pushPageOnce<bool>(
                       context,
                       MaterialPageRoute(
                         builder: (context) => MoveDestinationScreen(
@@ -1529,26 +1543,11 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
       listenable: FavouritesProvider.instance,
       builder: (context, _) {
         return PopScope(
-          canPop: _breadcrumb.isEmpty && !_showFavourites,
+          canPop: !widget.handleSystemBack ||
+              (_breadcrumb.isEmpty && !_showFavourites && !_isSelectionMode),
           onPopInvokedWithResult: (didPop, _) {
-            if (didPop) return;
-            if (_showFavourites) {
-              bool needsReload = false;
-              setState(() {
-                needsReload = _exitFavourites(restore: true);
-              });
-              if (needsReload) _loadContent();
-              return;
-            }
-            if (_breadcrumb.isNotEmpty) {
-              setState(() {
-                _breadcrumb.removeLast();
-                _folderPage = 0;
-              });
-              widget.onFolderChanged?.call(
-                  _breadcrumb.isEmpty ? null : _breadcrumb.last.id);
-              _loadContent();
-            }
+            if (didPop || !widget.handleSystemBack) return;
+            handleBackNavigation();
           },
           child: Scaffold(
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -1822,7 +1821,7 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
                       iconColor: textColor,
                       textColor: textColor,
                       onTap: () async {
-                        final result = await Navigator.push<bool>(
+                        final result = await pushPageOnce<bool>(
                           context,
                           MaterialPageRoute(
                             builder: (context) => MoveDestinationScreen(
@@ -2369,10 +2368,10 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
     // ── 3. Load-more trigger + indicator ──
     // Date-grouped grid has no index-based trigger (unlike list sliver),
     // so a trailing sliver re-triggers loading while it stays in viewport.
-    if (_isGrid && !_showFavourites && displayFiles.isNotEmpty && _hasNextPage) {
+    if (_isGrid && !_showFavourites && displayFiles.isNotEmpty && _hasNextPage && !_loadMoreFailed) {
       slivers.add(SliverToBoxAdapter(
         child: Builder(builder: (ctx) {
-          if (!_isLoadingMore) {
+          if (!_isLoadingMore && !_loadMoreFailed) {
             Future.microtask(() => _loadMoreContent());
           }
           return const Center(
@@ -2534,7 +2533,7 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
       delegate: SliverChildBuilderDelegate(
         (context, i) {
           if (i == files.length) {
-            if (hasNextPage && !_isLoadingMore) {
+            if (hasNextPage && !_isLoadingMore && !_loadMoreFailed) {
               Future.microtask(() => _loadMoreContent());
             }
             // Single pagination spinner — only while an actual fetch is in flight.
@@ -2737,7 +2736,7 @@ class FilesPageState extends State<FilesPage> with SafeActionMixin<FilesPage> {
           Icon(Icons.wifi_off, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
-            _error!,
+            ErrorLocalizer.forException(_error!, AppLocalizations.of(context)!),
             style: TextStyle(
                 color: Theme.of(context)
                     .colorScheme
@@ -3621,7 +3620,7 @@ class InfoBottomSheet extends StatefulWidget {
 class _InfoBottomSheetState extends State<InfoBottomSheet> {
   Map<String, dynamic>? _info;
   bool _isLoading = true;
-  String? _error;
+  Object? _error;
 
   @override
   void initState() {
@@ -3641,7 +3640,7 @@ class _InfoBottomSheetState extends State<InfoBottomSheet> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = ErrorLocalizer.forException(e, AppLocalizations.of(context)!);
+          _error = e;
           _isLoading = false;
         });
       }
@@ -3772,7 +3771,7 @@ class _InfoBottomSheetState extends State<InfoBottomSheet> {
             else if (_error != null)
               Center(
                 child: Text(
-                  _error!,
+                  ErrorLocalizer.forException(_error!, AppLocalizations.of(context)!),
                   style: const TextStyle(color: Colors.red),
                   textAlign: TextAlign.center,
                 ),

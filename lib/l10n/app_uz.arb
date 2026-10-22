@@ -674,5 +674,47 @@
       "daysLeft": { "type": "String" }
     }
   },
-  "notifBodySystemAnnouncementFallback": "Tafsilotlar uchun ilovani tekshiring"
+  "notifBodySystemAnnouncementFallback": "Tafsilotlar uchun ilovani tekshiring",
+  "errorNetworkUnavailable": "Aloqa yo‘q. Internetni tekshiring va qayta urinib ko‘ring.",
+  "errorRequestTimeout": "Kutish vaqti tugadi. Qayta urinib ko‘ring.",
+  "errorAccessDenied": "Bu amalni bajarish uchun ruxsat yo‘q.",
+  "errorResourceNotFound": "Obyekt topilmadi yoki o‘chirilgan.",
+  "errorTooManyRequests": "So‘rovlar juda ko‘p. Biroz kutib, qayta urinib ko‘ring.",
+  "errorShareLimitReached": "Ulashish limiti tugadi.",
+  "errorServerUnavailable": "Server vaqtincha ishlamayapti. Keyinroq qayta urinib ko‘ring.",
+  "errorValidation": "Kiritilgan ma’lumotlarni tekshiring va qayta urinib ko‘ring.",
+  "errorItemAlreadyExists": "Bunday obyekt allaqachon mavjud.",
+  "errorOtpExpired": "Tasdiqlash kodi eskirgan. Yangi kod so‘rang.",
+  "errorRequestCancelled": "Amal bekor qilindi.",
+  "errorSystemFolderProtected": "Bu tizim papkasini o‘chirib bo‘lmaydi.",
+  "pressBackAgainToExit": "Ilovani yopish uchun «Orqaga» tugmasini yana bosing",
+  "splashTagline": "Fayllaringiz doim yoningizda.",
+  "languageContinue": "Davom etish →",
+  "skipButton": "O‘tkazib yuborish",
+  "getStartedButton": "Boshlash",
+  "onboardingFilesTitle": "Barcha fayllar bir joyda",
+  "onboardingFilesSubtitle": "Rasmlar, videolar, hujjatlar — hammasi xavfsiz saqlangan",
+  "onboardingSyncTitle": "Avtomatik sinxronizatsiya",
+  "onboardingSyncSubtitle": "Galereya fonida yuklanadi — Google Photos kabi",
+  "onboardingPrivacyTitle": "Xavfsiz va tez",
+  "onboardingPrivacySubtitle": "Sizning malumotlaringiz faqat sizniki",
+  "uploadCheckingDuplicates": "Yuklash tugadi. Takroriy fayllar tekshirilmoqda…",
+  "syncResumed": "Sinxronizatsiya davom etmoqda.",
+  "syncResumedWithDuplicates": "Sinxronizatsiya davom etmoqda. O‘tkazib yuborilgan takroriy fayllar: {count}.",
+  "@syncResumedWithDuplicates": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncPausedForManualUpload": "Sinxronizatsiya to‘xtatildi. Yuklanadigan fayllar: {count}.",
+  "@syncPausedForManualUpload": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "localFileNotFound": "Fayl topilmadi"
 }

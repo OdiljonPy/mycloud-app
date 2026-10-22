@@ -1,56 +1,146 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:dio/dio.dart';
+
 import '../../l10n/app_localizations.dart';
 import '../errors/app_exception.dart';
 
-/// Maps raw server error text (e.g. from `AppException.message`) to a
-/// localized user-facing string. Uses `contains()` on the lowercased raw
-/// message since the backend's exact wording isn't guaranteed.
+/// Converts known errors to translations. Unknown server text is never shown.
 class ErrorLocalizer {
   ErrorLocalizer._();
 
-  // Order matters: entries are checked top-to-bottom and the first substring
-  // match wins (see `localize` below). Specific phrases must come before the
-  // bare single-word keys they'd otherwise be swallowed by — e.g. a plain
-  // 'code' key would match "status code"/"error code" text leaking in from
-  // an unparsed backend error body and wrongly claim "invalid verification
-  // code", so it's dropped entirely; 'already'/'not found' are kept but only
-  // as a last-resort fallback (below 'exists'), since "folder already
-  // exists" or "file not found" would otherwise get the wrong ("user...")
-  // wording.
-  static final Map<String, String Function(AppLocalizations)> _mappings = {
-    'invalid phone_number or password': (l10n) => l10n.errorInvalidCredentials,
-    'still valid': (l10n) => l10n.errorOtpStillValid,
-    'invalid code': (l10n) => l10n.errorInvalidCode,
-    'wrong code': (l10n) => l10n.errorInvalidCode,
-    'otp': (l10n) => l10n.errorInvalidCode,
-    'user already exists': (l10n) => l10n.errorUserAlreadyExists,
-    'phone already': (l10n) => l10n.errorUserAlreadyExists,
-    'user not found': (l10n) => l10n.errorUserNotFound,
-    'account not found': (l10n) => l10n.errorUserNotFound,
-    'credential': (l10n) => l10n.errorInvalidCredentials,
-    'expired': (l10n) => l10n.errorSessionExpired,
-    'exists': (l10n) => l10n.errorUserAlreadyExists,
-    'already': (l10n) => l10n.errorUserAlreadyExists,
-    'not found': (l10n) => l10n.errorUserNotFound,
-  };
+  static String localize(String serverMessage, AppLocalizations l10n) =>
+      _knownMessage(serverMessage, l10n) ?? l10n.genericErrorFallback;
 
-  static String localize(String serverMessage, AppLocalizations l10n) {
-    final lower = serverMessage.toLowerCase();
-    for (final entry in _mappings.entries) {
-      if (lower.contains(entry.key)) {
-        return entry.value(l10n);
+  static String forException(Object error, AppLocalizations l10n) {
+    if (error is DioException) {
+      return forException(
+        AppException.fromDio(error, fallbackMessage: 'Request failed'),
+        l10n,
+      );
+    }
+    if (error is SocketException) return l10n.errorNetworkUnavailable;
+    if (error is TimeoutException) return l10n.errorRequestTimeout;
+    if (error is! AppException) return l10n.genericErrorFallback;
+
+    switch (error.type) {
+      case AppExceptionType.network:
+        return l10n.errorNetworkUnavailable;
+      case AppExceptionType.timeout:
+        return l10n.errorRequestTimeout;
+      case AppExceptionType.cancelled:
+        return l10n.errorRequestCancelled;
+      case null:
+        break;
+    }
+    final status = error.statusCode;
+    if (status != null && status >= 500 && status < 600) {
+      return l10n.errorServerUnavailable;
+    }
+    if (status == 429) {
+      return error.requestPath?.endsWith('/content/shared-by-me/') == true
+          ? l10n.errorShareLimitReached
+          : l10n.errorTooManyRequests;
+    }
+    if (status == 403) return l10n.errorAccessDenied;
+    if (status == 401) {
+      return error.requestPath?.endsWith('/authentication/users/login/') == true
+          ? l10n.errorInvalidCredentials
+          : l10n.errorSessionExpiredRelogin;
+    }
+
+    // The local incomplete-code key belongs to the form, not the API contract.
+    if (error.messageKey == 'local_incomplete_otp') {
+      return l10n.enterCompleteOtpCode;
+    }
+    if (error.messageKey == 'you_can_pin_maximum_5_folders') {
+      return l10n.maxPinnedFolders;
+    }
+    final fields = error.errors;
+    if (fields != null) {
+      for (final entry in fields.entries) {
+        final value = entry.value.toString().toLowerCase();
+        if ((entry.key == 'phone_number' || entry.key == 'phone') &&
+            (value.contains('already exists') ||
+                value.contains('already registered') ||
+                value.contains('уже существует') ||
+                value.contains('allaqachon mavjud'))) {
+          return l10n.errorUserAlreadyExists;
+        }
       }
     }
+    final known = _knownMessage(error.message, l10n);
+    if (known != null) return known;
+    if (status == 404) return l10n.errorResourceNotFound;
+    if (status == 409) return l10n.errorItemAlreadyExists;
+    if (status == 400 || status == 422) return l10n.errorValidation;
     return l10n.genericErrorFallback;
   }
 
-  /// Converts any caught error into a safe, localized, user-facing string.
-  /// Never surfaces `toString()`/`AppException(...)`/raw technical text —
-  /// null or empty messages fall back to a generic localized string.
-  static String forException(Object error, AppLocalizations l10n) {
-    if (error is AppException) {
-      final message = error.message.trim();
-      return message.isEmpty ? l10n.genericErrorFallback : localize(message, l10n);
+  static String? _knownMessage(String message, AppLocalizations l10n) {
+    final lower = message.toLowerCase().trim();
+    // Older upload errors wrap transport failures in AppException.message.
+    // Recognize their category without exposing paths or hostnames.
+    if (lower.contains('timeoutexception') || lower.contains('timed out')) {
+      return l10n.errorRequestTimeout;
     }
-    return l10n.genericErrorFallback;
+    if (lower.contains('socketexception') ||
+        lower.contains('failed host lookup') ||
+        lower.contains('connection refused') ||
+        lower.contains('connection reset') ||
+        lower.contains('network is unreachable')) {
+      return l10n.errorNetworkUnavailable;
+    }
+    if (lower.contains('invalid phone_number or password') ||
+        lower.contains('invalid credentials') ||
+        lower.contains('incorrect password') ||
+        lower.contains('invalid_credentials')) {
+      return l10n.errorInvalidCredentials;
+    }
+    if (lower.contains('still valid') &&
+        (lower.contains('otp') || lower.contains('code'))) {
+      return l10n.errorOtpStillValid;
+    }
+    final isCode = lower.contains('otp') || lower.contains('verification code');
+    if (isCode &&
+        (lower.contains('expired') || lower.contains('has expired'))) {
+      return l10n.errorOtpExpired;
+    }
+    if (lower.contains('invalid code') ||
+        lower.contains('wrong code') ||
+        (isCode &&
+            (lower.contains('invalid otp') ||
+                lower.contains('incorrect code')))) {
+      return l10n.errorInvalidCode;
+    }
+    if (lower.contains('user already exists') ||
+        lower.contains('phone already') ||
+        lower.contains('phone_number already')) {
+      return l10n.errorUserAlreadyExists;
+    }
+    if (lower.contains('user not found') ||
+        lower.contains('account not found')) {
+      return l10n.errorUserNotFound;
+    }
+    if (lower.contains('session expired') ||
+        lower.contains('token expired') ||
+        lower.contains('token has expired')) {
+      return l10n.errorSessionExpired;
+    }
+    if ((lower.contains('folder') || lower.contains('file')) &&
+        lower.contains('already exists')) {
+      return l10n.errorItemAlreadyExists;
+    }
+    if ((lower.contains('folder') || lower.contains('file')) &&
+        lower.contains('not found')) {
+      return l10n.errorResourceNotFound;
+    }
+    if (lower == 'cannot modify sync folder') return l10n.syncFolderReadOnly;
+    if (lower == 'cannot delete system folder') {
+      return l10n.errorSystemFolderProtected;
+    }
+    if (lower == 'максимум 5 закреплённых папок') return l10n.maxPinnedFolders;
+    return null;
   }
 }
